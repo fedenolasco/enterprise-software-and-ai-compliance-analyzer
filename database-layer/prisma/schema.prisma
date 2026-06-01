@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RiskTier {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIAL
+  PENDING_RENEWAL
+  CANCELLED
+}
+
+enum DocumentType {
+  SLA
+  GDPR_POLICY
+  AI_POLICY
+  DPA
+  SECURITY_ADDENDUM
+}
+
+enum RiskCategory {
+  DATA_RESIDENCY
+  MODEL_TRANSPARENCY
+  AUTOMATED_DECISION_MAKING
+  DATA_RETENTION
+  SUBPROCESSOR_RISK
+  SECURITY_CONTROLS
+  PROCUREMENT
+}
+
+enum RiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AuditEventType {
+  INGESTION
+  DOCUMENT_CHUNKING
+  VECTOR_WRITE
+  READ_VALIDATION
+  WRITE_VALIDATION
+  HITL_DECISION
+  AGENT_RECOMMENDATION
+}
+
+enum AuditStatus {
+  SUCCESS
+  FAILURE
+  PENDING
+}
+
+model Vendor {
+  id                  String               @id @default(uuid()) @db.Uuid
+  vendorCode          String               @unique
+  name                String               @unique
+  legalName           String
+  headquartersCountry String
+  website             String?
+  aiRiskTier          RiskTier             @default(MEDIUM)
+  aiProcessingNotes   String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  software            Software[]
+  subscriptions       Subscription[]
+  documents           ComplianceDocument[]
+  risks               ComplianceRisk[]
+  auditEvents         AuditEvent[]
+}
+
+model Software {
+  id                  String               @id @default(uuid()) @db.Uuid
+  softwareCode        String               @unique
+  vendorId            String               @db.Uuid
+  name                String
+  category            String
+  deploymentModel     String
+  aiCapabilitySummary String?
+  isBusinessCritical  Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  vendor              Vendor               @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  subscriptions       Subscription[]
+  documents           ComplianceDocument[]
+  risks               ComplianceRisk[]
+
+  @@unique([vendorId, name])
+  @@index([vendorId])
+}
+
+model Subscription {
+  id                     String               @id @default(uuid()) @db.Uuid
+  subscriptionCode       String               @unique
+  vendorId               String               @db.Uuid
+  softwareId             String               @db.Uuid
+  department             String
+  contractOwner          String
+  billingCycle           String
+  seatsPurchased         Int
+  seatsAssigned          Int
+  annualCostUsd          Decimal              @db.Decimal(12, 2)
+  monthlyCostUsd         Decimal              @db.Decimal(12, 2)
+  renewalDate            DateTime
+  autoRenews             Boolean              @default(true)
+  status                 SubscriptionStatus   @default(ACTIVE)
+  cancellationNoticeDays Int                  @default(30)
+  rowVersion             Int                  @default(1)
+  lastValidatedAt        DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  vendor                 Vendor               @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  software               Software             @relation(fields: [softwareId], references: [id], onDelete: Cascade)
+  risks                  ComplianceRisk[]
+  auditEvents            AuditEvent[]
+
+  @@index([vendorId])
+  @@index([softwareId])
+  @@index([renewalDate])
+}
+
+model ComplianceDocument {
+  id             String             @id @default(uuid()) @db.Uuid
+  documentCode   String             @unique
+  vendorId       String?            @db.Uuid
+  softwareId     String?            @db.Uuid
+  title          String
+  documentType   DocumentType
+  sourcePath     String             @unique
+  sourceLanguage String             @default("en")
+  effectiveDate  DateTime?
+  reviewStatus   String             @default("pending")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  vendor         Vendor?            @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  software       Software?          @relation(fields: [softwareId], references: [id], onDelete: SetNull)
+  chunks         DocumentChunk[]
+
+  @@index([vendorId])
+  @@index([softwareId])
+}
+
+model DocumentChunk {
+  id           String               @id @default(uuid()) @db.Uuid
+  documentId   String               @db.Uuid
+  chunkIndex   Int
+  chunkText    String
+  tokenCount   Int
+  riskSummary  String?
+  riskCategory RiskCategory?
+  riskSeverity RiskSeverity?
+  riskScore    Decimal?             @db.Decimal(5, 2)
+  embedding    Unsupported("vector(8)")?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  document     ComplianceDocument   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  risks        ComplianceRisk[]
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+}
+
+model ComplianceRisk {
+  id              String          @id @default(uuid()) @db.Uuid
+  riskCode        String          @unique
+  vendorId        String?         @db.Uuid
+  softwareId      String?         @db.Uuid
+  subscriptionId  String?         @db.Uuid
+  documentChunkId String?         @db.Uuid
+  category        RiskCategory
+  severity        RiskSeverity
+  title           String
+  rationale       String
+  mitigationStatus String         @default("open")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  vendor          Vendor?         @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  software        Software?       @relation(fields: [softwareId], references: [id], onDelete: SetNull)
+  subscription    Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  documentChunk   DocumentChunk?  @relation(fields: [documentChunkId], references: [id], onDelete: SetNull)
+
+  @@index([vendorId])
+  @@index([softwareId])
+  @@index([subscriptionId])
+  @@index([documentChunkId])
+}
+
+model AuditEvent {
+  id             String          @id @default(uuid()) @db.Uuid
+  eventType      AuditEventType
+  status         AuditStatus
+  actor          String
+  traceId        String?
+  message        String
+  detail         Json?
+  vendorId       String?         @db.Uuid
+  subscriptionId String?         @db.Uuid
+  createdAt      DateTime        @default(now())
+  vendor         Vendor?         @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  subscription   Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([status])
+  @@index([traceId])
+}

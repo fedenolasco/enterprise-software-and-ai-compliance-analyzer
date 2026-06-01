@@ -1,0 +1,7 @@
+Synthetic Vendor Risk Register Notes
+
+OpenAI Enterprise: high-value assistant platform with cross-border support scenarios and subprocessor dependencies.
+
+Microsoft 365 Copilot: strategically important platform with broad auditability and tenant controls, but requires governance for profiling and assisted decision support.
+
+Notion AI: lower total spend but higher review priority due to underutilization, subprocessor reliance, and potential non-EU processing patterns.

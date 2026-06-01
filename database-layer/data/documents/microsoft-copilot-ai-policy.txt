@@ -1,0 +1,7 @@
+Microsoft 365 Copilot Responsible AI Notice
+
+The service may generate recommendations, summaries, and drafted responses based on enterprise content and user prompts.
+
+Organizations are expected to review outputs before relying on them in regulated or high-impact workflows.
+
+The platform includes administrative controls, logging support, and policy configuration. Profiling or automated decision support must be governed by internal review and approval controls.

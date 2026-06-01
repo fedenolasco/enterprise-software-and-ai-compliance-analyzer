@@ -1,0 +1,9 @@
+Microsoft 365 Copilot Data Processing Addendum Summary
+
+Microsoft processes tenant data in alignment with enterprise service terms and regional commitments.
+
+Customer content remains governed by Microsoft commercial data protections. Some diagnostic telemetry and support workflows may cross-border transfer data for resilience and service support.
+
+Microsoft discloses subprocessor categories and provides security controls documentation for customer review.
+
+Retention and deletion processes are managed through tenant lifecycle controls, compliance policies, and service-specific retention settings.

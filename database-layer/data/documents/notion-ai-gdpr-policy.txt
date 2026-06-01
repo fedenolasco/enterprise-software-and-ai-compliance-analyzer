@@ -1,0 +1,9 @@
+Notion AI Privacy and GDPR Summary
+
+Customer workspace content can be used to produce summaries and drafts for authorized users.
+
+Retention schedules depend on workspace configuration, account lifecycle, backup procedures, and security monitoring needs.
+
+Customers remain responsible for deciding whether automated decision making or profiling based on generated outputs is appropriate in their regulated workflows.
+
+International transfer safeguards are documented contractually and should be reviewed before processing high-risk personal data.

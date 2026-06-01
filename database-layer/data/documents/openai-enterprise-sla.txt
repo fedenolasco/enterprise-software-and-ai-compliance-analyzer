@@ -1,0 +1,9 @@
+OpenAI Enterprise Service Level Addendum
+
+Customer data may be processed in approved hosting regions. Certain support and resilience operations may involve cross-border transfers outside the EU when necessary for incident recovery.
+
+OpenAI maintains technical and organizational security controls, including access restriction, audit logging, and incident response procedures.
+
+OpenAI may engage subprocessors and third-party model infrastructure providers. Customers can request an up-to-date subprocessor list during the term.
+
+Service availability targets apply to core inference endpoints and administration capabilities.

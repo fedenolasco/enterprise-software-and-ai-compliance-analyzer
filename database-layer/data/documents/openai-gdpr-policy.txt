@@ -1,0 +1,9 @@
+OpenAI Enterprise GDPR Processing Summary
+
+OpenAI acts as a processor for enterprise customer content under documented instructions.
+
+Customers may submit requests for deletion or erasure of customer content through administrative channels. Retention periods may vary for backups, abuse monitoring, and security logging.
+
+Where personal data is transferred outside the EEA, the vendor states that supplementary safeguards and contractual measures are applied.
+
+Automated decision making that produces legal or similarly significant effects must not be deployed by customers without additional governance review.

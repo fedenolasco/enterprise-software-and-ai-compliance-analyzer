@@ -1,0 +1,110 @@
+{
+  "vendors": [
+    {
+      "vendorCode": "VND-OPENAI-001",
+      "name": "OpenAI Enterprise",
+      "legalName": "OpenAI Ireland Services Ltd.",
+      "headquartersCountry": "Ireland",
+      "website": "https://openai.com",
+      "aiRiskTier": "HIGH",
+      "aiProcessingNotes": "Processes enterprise prompts and generated outputs for productivity and knowledge workflows."
+    },
+    {
+      "vendorCode": "VND-MICROSOFT-001",
+      "name": "Microsoft 365 Copilot",
+      "legalName": "Microsoft Ireland Operations Limited",
+      "headquartersCountry": "Ireland",
+      "website": "https://microsoft.com",
+      "aiRiskTier": "MEDIUM",
+      "aiProcessingNotes": "Integrated productivity assistant with enterprise admin controls and audit support."
+    },
+    {
+      "vendorCode": "VND-NOTION-001",
+      "name": "Notion AI",
+      "legalName": "Notion Labs, Inc.",
+      "headquartersCountry": "United States",
+      "website": "https://notion.so",
+      "aiRiskTier": "HIGH",
+      "aiProcessingNotes": "Generative AI features used for internal knowledge management and content drafting."
+    }
+  ],
+  "software": [
+    {
+      "softwareCode": "SW-OPENAI-CHATGPT-ENT",
+      "vendorCode": "VND-OPENAI-001",
+      "name": "ChatGPT Enterprise",
+      "category": "Generative AI Assistant",
+      "deploymentModel": "SaaS",
+      "aiCapabilitySummary": "Prompt-based reasoning, summarization, drafting, and workflow assistance.",
+      "isBusinessCritical": true
+    },
+    {
+      "softwareCode": "SW-MS-COPILOT-M365",
+      "vendorCode": "VND-MICROSOFT-001",
+      "name": "Microsoft 365 Copilot",
+      "category": "Productivity AI",
+      "deploymentModel": "SaaS",
+      "aiCapabilitySummary": "Embedded assistance across mail, documents, spreadsheets, and meetings.",
+      "isBusinessCritical": true
+    },
+    {
+      "softwareCode": "SW-NOTION-AI",
+      "vendorCode": "VND-NOTION-001",
+      "name": "Notion AI",
+      "category": "Knowledge Management AI",
+      "deploymentModel": "SaaS",
+      "aiCapabilitySummary": "Workspace search, drafting, summarization, and content generation.",
+      "isBusinessCritical": false
+    }
+  ],
+  "subscriptions": [
+    {
+      "subscriptionCode": "SUB-ENG-OPENAI-001",
+      "vendorCode": "VND-OPENAI-001",
+      "softwareCode": "SW-OPENAI-CHATGPT-ENT",
+      "department": "Engineering",
+      "contractOwner": "Head of Engineering Operations",
+      "billingCycle": "ANNUAL",
+      "seatsPurchased": 120,
+      "seatsAssigned": 104,
+      "annualCostUsd": 43200,
+      "monthlyCostUsd": 3600,
+      "renewalDate": "2026-10-15T00:00:00.000Z",
+      "autoRenews": true,
+      "status": "ACTIVE",
+      "cancellationNoticeDays": 45
+    },
+    {
+      "subscriptionCode": "SUB-OPS-MS-001",
+      "vendorCode": "VND-MICROSOFT-001",
+      "softwareCode": "SW-MS-COPILOT-M365",
+      "department": "Operations",
+      "contractOwner": "Director of IT Services",
+      "billingCycle": "ANNUAL",
+      "seatsPurchased": 250,
+      "seatsAssigned": 237,
+      "annualCostUsd": 90000,
+      "monthlyCostUsd": 7500,
+      "renewalDate": "2026-09-01T00:00:00.000Z",
+      "autoRenews": true,
+      "status": "ACTIVE",
+      "cancellationNoticeDays": 60
+    },
+    {
+      "subscriptionCode": "SUB-PM-NOTION-001",
+      "vendorCode": "VND-NOTION-001",
+      "softwareCode": "SW-NOTION-AI",
+      "department": "Product",
+      "contractOwner": "VP Product Operations",
+      "billingCycle": "MONTHLY",
+      "seatsPurchased": 80,
+      "seatsAssigned": 58,
+      "annualCostUsd": 17280,
+      "monthlyCostUsd": 1440,
+      "renewalDate": "2026-07-01T00:00:00.000Z",
+      "autoRenews": true,
+      "status": "PENDING_RENEWAL",
+      "cancellationNoticeDays": 30
+    }
+  ]
+}

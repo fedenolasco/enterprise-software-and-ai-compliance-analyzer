@@ -1,0 +1,19 @@
+# Changelog
+
+All notable project changes should be documented here as the implementation evolves across phases.
+
+## Unreleased
+
+- Planned: validate Prisma schema generation, PostgreSQL schema application, pgvector enablement, ingestion execution, and concurrency validation.
+- Planned: add Phase 2 hybrid retrieval implementation using PostgreSQL vector search plus Neo4j graph traversal.
+- Planned: replace deterministic placeholder embeddings with a real local semantic embedding model after the storage and reset pipeline is validated.
+
+## phase-0-1-baseline
+
+- Created the monorepo foundation for `database-layer`, `agent-brain`, `mock-pricing-api`, `docs`, `plans`, and `scripts`.
+- Added local Docker service configuration for PostgreSQL with pgvector and Neo4j.
+- Added TypeScript and Prisma database-layer scaffolding.
+- Added initial Prisma schema for vendors, software, subscriptions, compliance documents, document chunks, compliance risks, and audit events.
+- Added deterministic synthetic subscription JSON and compliance text fixtures.
+- Added ingestion, pgvector enablement, and concurrency validation scaffolding.
+- Added architecture, schema, technical tool interaction, query-scope, setup, reset, and embedding strategy documentation.

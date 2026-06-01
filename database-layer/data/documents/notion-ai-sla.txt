@@ -1,0 +1,9 @@
+Notion AI Service Terms Summary
+
+Notion AI provides content drafting, summarization, and workspace assistance.
+
+Notion may use subprocessors and third-party model providers to deliver AI features. Documentation advises customers to review current subprocessor disclosures.
+
+The service is provided from cloud infrastructure that may involve processing outside the EU depending on customer configuration and vendor operations.
+
+Availability targets apply at the application level, with maintenance windows and third-party dependency limitations.
