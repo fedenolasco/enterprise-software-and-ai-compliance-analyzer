@@ -31,6 +31,10 @@ agent-brain
 - `agent-brain/`: retrieval, orchestration, state handling, governance hooks.
 - `mock-pricing-api/`: pricing tool contract and local API implementation.
 
+## Product requirements
+
+See [`docs/product-requirements.md`](product-requirements.md) for the business product requirements document. It defines product vision, target users, roadmap, success metrics, risks, and the change-control policy for product evolution.
+
 ## Schema documentation
 
 See [`docs/schema-diagrams.md`](schema-diagrams.md) for Mermaid diagrams, metadata descriptions, relationship intent, and business logic for the Prisma schema in [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
