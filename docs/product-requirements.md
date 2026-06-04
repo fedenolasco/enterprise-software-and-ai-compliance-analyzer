@@ -7,7 +7,7 @@
 | Product | Enterprise Software & AI Compliance Analyzer |
 | Document type | Business Product Requirements Document |
 | Current status | Living product document |
-| Initial baseline | Phase 0 and Phase 1 scaffold |
+| Initial baseline | Phase 0 complete and Phase 1 validated data-layer baseline |
 | Source roadmap | [`proposal/high-level-plan.md`](../proposal/high-level-plan.md), [`proposal/setup-plan-v3.md`](../proposal/setup-plan-v3.md) |
 | Technical plan | [`plans/implementation-plan.md`](../plans/implementation-plan.md) |
 | Progress checklist | [`plans/implementation-plan-checklist.md`](../plans/implementation-plan-checklist.md) |
@@ -96,10 +96,10 @@ The product addresses this by creating a local prototype that joins subscription
 - Data ingestion and concurrency validation scaffolding.
 - Product, architecture, schema, query, reset, and technical interaction documentation.
 - Public GitHub repository and phase baseline tag.
+- Runtime-validated Prisma generation, schema application, ingestion, pgvector write path, and concurrency validation.
 
 ### Out of scope for the current scaffold
 
-- Runtime-validated Prisma generation and database migration.
 - Production semantic embedding model.
 - Fully implemented Neo4j graph projection.
 - Fully implemented hybrid retrieval notebook or script.
@@ -120,7 +120,7 @@ The product addresses this by creating a local prototype that joins subscription
 - Engineering can track progress through plans, checklist, Git, changelog, and ADRs.
 - The system has clear workstream boundaries.
 
-**Status:** Mostly complete.
+**Status:** Complete.
 
 ### Phase 1: Local data foundation and repeatable demo baseline
 
@@ -134,7 +134,7 @@ The product addresses this by creating a local prototype that joins subscription
 - Audit events capture ingestion and concurrency validation.
 - Demo reset strategy keeps curated demos repeatable.
 
-**Status:** In progress.
+**Status:** Validated for local data foundation and repeatable synthetic ingestion. Phase 2 graph projection remains planned separately.
 
 ### Phase 2: Hybrid retrieval and evidence-to-cost analysis
 
@@ -239,6 +239,6 @@ Material changes should also update:
 
 ## Current product baseline
 
-The current baseline is tagged as `phase-0-1-baseline` in Git. It represents the transition from proposal and planning into a scaffolded local product architecture.
+The initial baseline is tagged as `phase-0-1-baseline` in Git. It represents the transition from proposal and planning into a scaffolded local product architecture.
 
-The baseline is not yet a fully validated runtime prototype. It is a documented and version-controlled foundation for moving toward Phase 1 validation and Phase 2 hybrid retrieval.
+Since that tag, Phase 1 data-layer validation has progressed: Prisma schema generation, local PostgreSQL schema application, synthetic ingestion, pgvector placeholder embedding writes, and optimistic concurrency validation have been executed successfully. The product is now ready to move toward Phase 2 hybrid retrieval and graph projection.

@@ -4,6 +4,7 @@ All notable project changes should be documented here as the implementation evol
 
 ## Unreleased
 
+- Updated [`docs/product-requirements.md`](docs/product-requirements.md) and [`plans/implementation-plan-checklist.md`](plans/implementation-plan-checklist.md) to reflect Phase 0 completion and Phase 1 local data-layer validation progress.
 - Applied [`database-layer/prisma/schema.prisma`](database-layer/prisma/schema.prisma) to local PostgreSQL, ran synthetic ingestion, verified persisted data and pgvector embeddings, and validated optimistic concurrency audit events.
 - Validated Docker runtime services for PostgreSQL with pgvector and Neo4j; confirmed PostgreSQL health, pgvector extension availability, and Neo4j Cypher connectivity.
 - Installed and locked [`database-layer`](database-layer/) Node dependencies, added `@types/pg`, and validated Prisma generation, Prisma schema validation, and TypeScript type checking.

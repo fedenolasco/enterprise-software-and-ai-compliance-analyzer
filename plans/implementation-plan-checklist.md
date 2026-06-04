@@ -126,9 +126,9 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 |---|---|---|
 | Planning | Completed | Implementation plan and progress checklist exist. |
 | Monorepo foundation | Completed | Core folders and initial docs are present. |
-| Local service configuration | Completed | PostgreSQL with pgvector and Neo4j are configured but not yet runtime-validated. |
-| Prisma schema | In progress | Initial schema exists; generation and database application still need validation. |
-| Synthetic data | In progress | JSON and text fixtures exist; schema validation still needs to be run. |
+| Local service configuration | Completed | PostgreSQL with pgvector and Neo4j are configured and runtime-validated. |
+| Prisma schema | Completed | Initial schema exists, Prisma Client generation passed, and schema was applied to local PostgreSQL. |
+| Synthetic data | Completed | JSON and text fixtures were validated through successful ingestion. |
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
 | Agent brain | Not started | Planned for Phase 2 after database validation. |
@@ -137,9 +137,8 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 
 ## Next recommended implementation steps
 
-1. Install dependencies in [`database-layer/package.json`](../database-layer/package.json).
-2. Validate [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma) with Prisma.
-3. Start local services from [`docker-compose.yml`](../docker-compose.yml).
-4. Enable pgvector with [`database-layer/scripts/enable-pgvector.ts`](../database-layer/scripts/enable-pgvector.ts).
-5. Continue to Phase 2 planning and implementation after confirming whether a repeatable reset script is needed before graph projection.
-6. Initialize [`agent-brain/`](../agent-brain/) with Python project scaffolding for hybrid retrieval.
+1. Confirm whether a repeatable reset script is needed before Phase 2 graph projection.
+2. Initialize [`agent-brain/`](../agent-brain/) with Python project scaffolding for hybrid retrieval.
+3. Add Neo4j graph projection from validated PostgreSQL records.
+4. Add PostgreSQL vector retrieval and Neo4j graph traversal modules.
+5. Implement the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](query-scope.md).
