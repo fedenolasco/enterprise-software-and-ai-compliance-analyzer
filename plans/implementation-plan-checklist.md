@@ -43,7 +43,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Define initial document chunk entity with pgvector-compatible embedding field in [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
 - [x] Define initial compliance risk entity in [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
 - [x] Define initial audit event entity in [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
-- [ ] Generate and validate the Prisma client from [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
+- [x] Generate and validate the Prisma client from [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
 - [ ] Apply schema to local PostgreSQL.
 
 ### Phase 1.2: Docker data infrastructure
@@ -64,9 +64,9 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Add database-layer documentation in [`database-layer/README.md`](../database-layer/README.md).
 - [x] Add deterministic embedding helper in [`database-layer/src/embedding.ts`](../database-layer/src/embedding.ts).
 - [x] Add document chunking and risk inference helpers in [`database-layer/src/document-utils.ts`](../database-layer/src/document-utils.ts).
-- [ ] Install database-layer dependencies.
-- [ ] Run TypeScript type checking.
-- [ ] Run Prisma validation.
+- [x] Install database-layer dependencies.
+- [x] Run TypeScript type checking.
+- [x] Run Prisma validation.
 
 ### Phase 1.4: Synthetic data generation
 

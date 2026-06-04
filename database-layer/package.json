@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
     "db:push": "prisma db push",
     "db:enable-vector": "tsx scripts/enable-pgvector.ts",
     "seed": "tsx scripts/seed.ts",
     "ingest": "tsx scripts/ingest.ts",
+    "typecheck": "tsc --noEmit",
     "validate:concurrency": "tsx scripts/validate-concurrency.ts"
   },
   "dependencies": {
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/pg": "^8.20.0",
     "prisma": "^5.16.2",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
