@@ -43,6 +43,10 @@ See [`docs/schema-diagrams.md`](schema-diagrams.md) for Mermaid diagrams, metada
 
 See [`docs/technical-tool-interactions.md`](technical-tool-interactions.md) for high-level Mermaid diagrams and metadata explaining technology I/O across documentation, data ingestion, PostgreSQL, pgvector, Neo4j, LangGraph, the mock pricing API, HITL, and observability layers.
 
+## Dependency and versioning documentation
+
+See [`docs/dependency-versioning-strategy.md`](dependency-versioning-strategy.md) for the compatibility matrix, version pinning policy, lockfile policy, Docker image policy, upgrade policy, and embedding model transition policy.
+
 ## Repeatable demo reset strategy
 
 See [`docs/setup-runbook.md`](setup-runbook.md) for the repeatable demo reset strategy. The reset strategy treats PostgreSQL rows, pgvector embeddings, Neo4j graph projections, mock pricing runtime state, agent checkpoints, HITL decisions, traces, and simulated cost logs as rebuildable demo artifacts. The source of truth remains the committed fixtures and schema files.

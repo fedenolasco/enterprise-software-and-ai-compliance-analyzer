@@ -4,6 +4,7 @@ All notable project changes should be documented here as the implementation evol
 
 ## Unreleased
 
+- Added dependency and versioning strategy in [`docs/dependency-versioning-strategy.md`](docs/dependency-versioning-strategy.md) to govern cross-layer compatibility, lockfiles, Docker image tags, upgrade policy, and embedding model transitions.
 - Added business product requirements document in [`docs/product-requirements.md`](docs/product-requirements.md) for product vision, roadmap, success metrics, risks, and product evolution policy.
 - Planned: validate Prisma schema generation, PostgreSQL schema application, pgvector enablement, ingestion execution, and concurrency validation.
 - Planned: add Phase 2 hybrid retrieval implementation using PostgreSQL vector search plus Neo4j graph traversal.

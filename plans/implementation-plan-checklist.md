@@ -25,6 +25,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Add local Docker service configuration in [`docker-compose.yml`](../docker-compose.yml).
 - [x] Add architecture overview in [`docs/architecture-overview.md`](../docs/architecture-overview.md).
 - [x] Add business product requirements document in [`docs/product-requirements.md`](../docs/product-requirements.md).
+- [x] Add dependency and versioning strategy in [`docs/dependency-versioning-strategy.md`](../docs/dependency-versioning-strategy.md).
 - [x] Add schema diagrams and business logic documentation in [`docs/schema-diagrams.md`](../docs/schema-diagrams.md).
 - [x] Add technical tool interaction diagrams and metadata in [`docs/technical-tool-interactions.md`](../docs/technical-tool-interactions.md).
 - [x] Add setup runbook in [`docs/setup-runbook.md`](../docs/setup-runbook.md).
