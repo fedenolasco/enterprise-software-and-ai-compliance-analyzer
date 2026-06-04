@@ -51,10 +51,10 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Configure PostgreSQL with pgvector image in [`docker-compose.yml`](../docker-compose.yml).
 - [x] Configure Neo4j service placeholder for Phase 2 in [`docker-compose.yml`](../docker-compose.yml).
 - [x] Add pgvector enablement script in [`database-layer/scripts/enable-pgvector.ts`](../database-layer/scripts/enable-pgvector.ts).
-- [ ] Start Docker services locally.
-- [ ] Confirm PostgreSQL health check passes.
-- [ ] Confirm Neo4j health check passes.
-- [ ] Run pgvector extension enablement against local PostgreSQL.
+- [x] Start Docker services locally.
+- [x] Confirm PostgreSQL health check passes.
+- [x] Confirm Neo4j health check passes.
+- [x] Run pgvector extension enablement against local PostgreSQL.
 
 ### Phase 1.3: Prisma ORM and TypeScript setup
 
