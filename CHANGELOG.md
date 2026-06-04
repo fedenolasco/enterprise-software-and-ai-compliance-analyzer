@@ -4,6 +4,7 @@ All notable project changes should be documented here as the implementation evol
 
 ## Unreleased
 
+- Applied [`database-layer/prisma/schema.prisma`](database-layer/prisma/schema.prisma) to local PostgreSQL, ran synthetic ingestion, verified persisted data and pgvector embeddings, and validated optimistic concurrency audit events.
 - Validated Docker runtime services for PostgreSQL with pgvector and Neo4j; confirmed PostgreSQL health, pgvector extension availability, and Neo4j Cypher connectivity.
 - Installed and locked [`database-layer`](database-layer/) Node dependencies, added `@types/pg`, and validated Prisma generation, Prisma schema validation, and TypeScript type checking.
 - Added dependency and versioning strategy in [`docs/dependency-versioning-strategy.md`](docs/dependency-versioning-strategy.md) to govern cross-layer compatibility, lockfiles, Docker image tags, upgrade policy, and embedding model transitions.

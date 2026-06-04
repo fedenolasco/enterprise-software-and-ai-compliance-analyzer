@@ -44,7 +44,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Define initial compliance risk entity in [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
 - [x] Define initial audit event entity in [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
 - [x] Generate and validate the Prisma client from [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma).
-- [ ] Apply schema to local PostgreSQL.
+- [x] Apply schema to local PostgreSQL.
 
 ### Phase 1.2: Docker data infrastructure
 
@@ -78,18 +78,18 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Add synthetic Notion SLA text fixture in [`database-layer/data/documents/notion-ai-sla.txt`](../database-layer/data/documents/notion-ai-sla.txt).
 - [x] Add synthetic Notion GDPR text fixture in [`database-layer/data/documents/notion-ai-gdpr-policy.txt`](../database-layer/data/documents/notion-ai-gdpr-policy.txt).
 - [x] Add synthetic vendor risk register text fixture in [`database-layer/data/documents/vendor-risk-register.txt`](../database-layer/data/documents/vendor-risk-register.txt).
-- [ ] Validate fixture keys against ingestion schema.
+- [x] Validate fixture keys against ingestion schema.
 
 ### Phase 1.5: Data ingestion and concurrency validation
 
 - [x] Add ingestion script in [`database-layer/scripts/ingest.ts`](../database-layer/scripts/ingest.ts).
 - [x] Wire seed script to ingestion in [`database-layer/scripts/seed.ts`](../database-layer/scripts/seed.ts).
 - [x] Add optimistic concurrency validation script in [`database-layer/scripts/validate-concurrency.ts`](../database-layer/scripts/validate-concurrency.ts).
-- [ ] Run ingestion against local PostgreSQL.
-- [ ] Verify vendors, software, subscriptions, documents, chunks, risks, and audit events are persisted.
-- [ ] Verify embeddings are written to pgvector-compatible column.
-- [ ] Run concurrency validation against local PostgreSQL.
-- [ ] Review audit events produced by ingestion and concurrency validation.
+- [x] Run ingestion against local PostgreSQL.
+- [x] Verify vendors, software, subscriptions, documents, chunks, risks, and audit events are persisted.
+- [x] Verify embeddings are written to pgvector-compatible column.
+- [x] Run concurrency validation against local PostgreSQL.
+- [x] Review audit events produced by ingestion and concurrency validation.
 
 ## Phase 2: Local hybrid context architecture
 
@@ -129,8 +129,8 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 | Local service configuration | Completed | PostgreSQL with pgvector and Neo4j are configured but not yet runtime-validated. |
 | Prisma schema | In progress | Initial schema exists; generation and database application still need validation. |
 | Synthetic data | In progress | JSON and text fixtures exist; schema validation still needs to be run. |
-| Ingestion | In progress | Script exists; runtime execution still needs validation. |
-| Concurrency validation | In progress | Script exists; runtime execution still needs validation. |
+| Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
+| Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
 | Agent brain | Not started | Planned for Phase 2 after database validation. |
 | Mock pricing API | Not started | Planned for Phase 3. |
 | Governance and FinOps | Not started | Planned for Phase 4. |
@@ -141,5 +141,5 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 2. Validate [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma) with Prisma.
 3. Start local services from [`docker-compose.yml`](../docker-compose.yml).
 4. Enable pgvector with [`database-layer/scripts/enable-pgvector.ts`](../database-layer/scripts/enable-pgvector.ts).
-5. Run ingestion with [`database-layer/scripts/ingest.ts`](../database-layer/scripts/ingest.ts).
-6. Run concurrency validation with [`database-layer/scripts/validate-concurrency.ts`](../database-layer/scripts/validate-concurrency.ts).
+5. Continue to Phase 2 planning and implementation after confirming whether a repeatable reset script is needed before graph projection.
+6. Initialize [`agent-brain/`](../agent-brain/) with Python project scaffolding for hybrid retrieval.
