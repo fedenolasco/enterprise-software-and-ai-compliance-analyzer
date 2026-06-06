@@ -7,6 +7,7 @@ TypeScript and Prisma workstream for relational subscription data, compliance do
 - `npm run db:generate` — generate the Prisma client.
 - `npm run db:push` — push the Prisma schema to PostgreSQL.
 - `npm run db:enable-vector` — enable the PostgreSQL `vector` extension.
+- `npm run reset:demo` — delete generated demo rows in dependency-safe order before re-ingestion.
 - `npm run ingest` — load synthetic subscription and document data.
 - `npm run validate:concurrency` — run simultaneous reads and optimistic writes.
 
@@ -23,5 +24,6 @@ TypeScript and Prisma workstream for relational subscription data, compliance do
 4. Run `npm run db:generate`.
 5. Run `npm run db:push`.
 6. Run `npm run db:enable-vector`.
-7. Run `npm run ingest`.
-8. Run `npm run validate:concurrency`.
+7. Run `npm run reset:demo` when you need a clean repeatable demo state.
+8. Run `npm run ingest`.
+9. Run `npm run validate:concurrency`.

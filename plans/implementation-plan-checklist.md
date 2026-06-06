@@ -84,6 +84,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 
 - [x] Add ingestion script in [`database-layer/scripts/ingest.ts`](../database-layer/scripts/ingest.ts).
 - [x] Wire seed script to ingestion in [`database-layer/scripts/seed.ts`](../database-layer/scripts/seed.ts).
+- [x] Add repeatable demo reset script in [`database-layer/scripts/reset-demo-data.ts`](../database-layer/scripts/reset-demo-data.ts).
 - [x] Add optimistic concurrency validation script in [`database-layer/scripts/validate-concurrency.ts`](../database-layer/scripts/validate-concurrency.ts).
 - [x] Run ingestion against local PostgreSQL.
 - [x] Verify vendors, software, subscriptions, documents, chunks, risks, and audit events are persisted.
@@ -137,8 +138,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 
 ## Next recommended implementation steps
 
-1. Confirm whether a repeatable reset script is needed before Phase 2 graph projection.
-2. Initialize [`agent-brain/`](../agent-brain/) with Python project scaffolding for hybrid retrieval.
-3. Add Neo4j graph projection from validated PostgreSQL records.
-4. Add PostgreSQL vector retrieval and Neo4j graph traversal modules.
-5. Implement the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](query-scope.md).
+1. Initialize [`agent-brain/`](../agent-brain/) with Python project scaffolding for hybrid retrieval.
+2. Add Neo4j graph projection from validated PostgreSQL records.
+3. Add PostgreSQL vector retrieval and Neo4j graph traversal modules.
+4. Implement the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](query-scope.md).

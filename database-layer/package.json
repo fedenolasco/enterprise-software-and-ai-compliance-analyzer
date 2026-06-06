@@ -9,6 +9,7 @@
     "db:push": "prisma db push",
     "db:enable-vector": "tsx scripts/enable-pgvector.ts",
     "seed": "tsx scripts/seed.ts",
+    "reset:demo": "tsx scripts/reset-demo-data.ts --yes",
     "ingest": "tsx scripts/ingest.ts",
     "typecheck": "tsc --noEmit",
     "validate:concurrency": "tsx scripts/validate-concurrency.ts"

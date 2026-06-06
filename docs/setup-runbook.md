@@ -113,11 +113,24 @@ The following scripts should be added as implementation matures:
 
 | Script | Purpose |
 |---|---|
-| `database-layer/scripts/reset-demo-data.ts` | Delete Prisma-managed rows in dependency-safe order and prepare PostgreSQL for fixture re-ingestion. |
+| [`database-layer/scripts/reset-demo-data.ts`](../database-layer/scripts/reset-demo-data.ts) | Delete Prisma-managed rows in dependency-safe order and prepare PostgreSQL for fixture re-ingestion. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
 | `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
 | `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
 | `scripts/reset-demo-environment.sh` | Optional WSL/Linux equivalent. |
+
+### Current reset command
+
+Use the database-layer reset script before re-running ingestion or before building Phase 2 graph projections from a clean relational baseline:
+
+```text
+cd database-layer
+set DATABASE_URL=postgresql://compliance_user:compliance_password@localhost:5432/compliance_analyzer?schema=public
+npm run reset:demo
+npm run ingest
+```
+
+The reset script deletes records in dependency-safe order and reports counts before deletion, deleted counts, and counts after deletion.
 
 ### Validation after reset
 
