@@ -148,7 +148,16 @@ python -m pytest tests/test_recommendation.py
 
 The recommendation drafting scaffold in [`agent-brain/src/agent_brain/orchestration/recommendation.py`](../agent-brain/src/agent_brain/orchestration/recommendation.py) creates deterministic recommendation drafts from retrieved context, compliance risks, and live pricing. High-risk, high-severity, or high-cost drafts require HITL approval before finalization.
 
-### 14. Run future documented demo entry points
+### 14. Validate the mandatory HITL finalization gate
+
+```cmd
+cd agent-brain
+python -m pytest tests/test_hitl.py
+```
+
+The HITL helpers in [`agent-brain/src/agent_brain/governance/hitl.py`](../agent-brain/src/agent_brain/governance/hitl.py) build a structured pause payload and block final output unless the human decision is approved.
+
+### 15. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -270,6 +279,7 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/orchestration/state.py`](../agent-brain/src/agent_brain/orchestration/state.py) | Define LangGraph-ready state fields and HITL finalization checks for Phase 3 workflows. |
 | [`agent-brain/src/agent_brain/orchestration/recommendation.py`](../agent-brain/src/agent_brain/orchestration/recommendation.py) | Draft deterministic recommendations from retrieval, pricing, and risk context. |
 | [`agent-brain/src/agent_brain/tools/pricing.py`](../agent-brain/src/agent_brain/tools/pricing.py) | Call the local mock pricing API and append normalized pricing context to agent state. |
+| [`agent-brain/src/agent_brain/governance/hitl.py`](../agent-brain/src/agent_brain/governance/hitl.py) | Enforce mandatory HITL pause and approval before final recommendation output. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
 | [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
 | [`mock-pricing-api/src/mock_pricing_api/main.py`](../mock-pricing-api/src/mock_pricing_api/main.py) | Run the local FastAPI mock pricing service for Phase 3 tool-use validation. |
@@ -373,4 +383,5 @@ After a reset and re-ingestion, validate that:
 - Agent state exports LangGraph-ready fields and blocks cancellation or renewal finalization without approval.
 - Mock pricing tool wrapper calls the pricing API contract and appends normalized live pricing context.
 - Recommendation drafting creates deterministic drafts and flags HITL-required high-risk decisions.
+- HITL finalization gate blocks final output unless a human decision approves the draft.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.

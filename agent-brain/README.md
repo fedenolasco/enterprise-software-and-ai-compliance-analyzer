@@ -21,6 +21,7 @@ The current implementation milestone includes:
 - Define a LangGraph-ready Phase 3 agent state model with explicit HITL finalization checks.
 - Call the local mock pricing API through a typed tool wrapper and append results to agent state.
 - Draft deterministic recommendation summaries from retrieved context, risks, and live pricing.
+- Enforce a mandatory HITL pause before governed recommendation finalization.
 
 ## Setup
 
@@ -139,6 +140,12 @@ The wrapper uses `MOCK_PRICING_API_URL`, defaulting to `http://127.0.0.1:8000`.
 The deterministic recommendation drafting scaffold is defined in [`recommendation.py`](src/agent_brain/orchestration/recommendation.py). It summarizes retrieved context, compliance risks, and live pricing, then creates a `RecommendationDraft` on `AgentBrainState`.
 
 High-risk, high-severity, or high-cost drafts are marked as requiring human approval and receive the `HITL_REQUIRED` safety flag. Finalization remains blocked by `is_finalization_allowed()` until approval is recorded.
+
+## HITL finalization gate
+
+The mandatory human-in-the-loop finalization helpers are defined in [`hitl.py`](src/agent_brain/governance/hitl.py). They create a structured pause payload, capture human decisions, and only produce final output when the decision is approved.
+
+Rejected or revision-requested decisions keep `final_output` empty and add `FINALIZATION_BLOCKED`, preserving the hard stop before cancellation or renewal finalization.
 
 ## Planned package layout
 
