@@ -139,7 +139,16 @@ python -m pytest tests/test_pricing_tool.py
 
 The tool wrapper in [`agent-brain/src/agent_brain/tools/pricing.py`](../agent-brain/src/agent_brain/tools/pricing.py) calls `POST /pricing:lookup`, normalizes the response, and appends pricing context to `AgentBrainState`. Set `MOCK_PRICING_API_URL` if the pricing API is not running on `http://127.0.0.1:8000`.
 
-### 13. Run future documented demo entry points
+### 13. Validate the Phase 3 recommendation drafting scaffold
+
+```cmd
+cd agent-brain
+python -m pytest tests/test_recommendation.py
+```
+
+The recommendation drafting scaffold in [`agent-brain/src/agent_brain/orchestration/recommendation.py`](../agent-brain/src/agent_brain/orchestration/recommendation.py) creates deterministic recommendation drafts from retrieved context, compliance risks, and live pricing. High-risk, high-severity, or high-cost drafts require HITL approval before finalization.
+
+### 14. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -259,6 +268,7 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/cli/hybrid_retrieve.py`](../agent-brain/src/agent_brain/cli/hybrid_retrieve.py) | Merge PostgreSQL vector evidence and Neo4j graph context into deterministic risk-to-cost rows. |
 | [`agent-brain/src/agent_brain/cli/run_curated_demo.py`](../agent-brain/src/agent_brain/cli/run_curated_demo.py) | Run the curated Phase 2 query-scope demo and assert expected positive vendor matches. |
 | [`agent-brain/src/agent_brain/orchestration/state.py`](../agent-brain/src/agent_brain/orchestration/state.py) | Define LangGraph-ready state fields and HITL finalization checks for Phase 3 workflows. |
+| [`agent-brain/src/agent_brain/orchestration/recommendation.py`](../agent-brain/src/agent_brain/orchestration/recommendation.py) | Draft deterministic recommendations from retrieval, pricing, and risk context. |
 | [`agent-brain/src/agent_brain/tools/pricing.py`](../agent-brain/src/agent_brain/tools/pricing.py) | Call the local mock pricing API and append normalized pricing context to agent state. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
 | [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
@@ -362,4 +372,5 @@ After a reset and re-ingestion, validate that:
 - Mock pricing API health, listing, detail, and lookup endpoints return deterministic synthetic pricing data.
 - Agent state exports LangGraph-ready fields and blocks cancellation or renewal finalization without approval.
 - Mock pricing tool wrapper calls the pricing API contract and appends normalized live pricing context.
+- Recommendation drafting creates deterministic drafts and flags HITL-required high-risk decisions.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.

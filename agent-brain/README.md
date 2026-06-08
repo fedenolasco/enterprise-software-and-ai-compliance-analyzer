@@ -20,6 +20,7 @@ The current implementation milestone includes:
 - Provide a documented Jupyter notebook that imports the reusable curated demo module.
 - Define a LangGraph-ready Phase 3 agent state model with explicit HITL finalization checks.
 - Call the local mock pricing API through a typed tool wrapper and append results to agent state.
+- Draft deterministic recommendation summaries from retrieved context, risks, and live pricing.
 
 ## Setup
 
@@ -132,6 +133,12 @@ The model exports a `TypedDict` shape for future LangGraph nodes and includes `i
 The local pricing tool wrapper is defined in [`pricing.py`](src/agent_brain/tools/pricing.py). It calls the mock pricing API `POST /pricing:lookup` endpoint documented in [`docs/pricing-api-contract.md`](../docs/pricing-api-contract.md), normalizes the response, and can append a `LivePricingContext` entry to `AgentBrainState`.
 
 The wrapper uses `MOCK_PRICING_API_URL`, defaulting to `http://127.0.0.1:8000`.
+
+## Recommendation drafting
+
+The deterministic recommendation drafting scaffold is defined in [`recommendation.py`](src/agent_brain/orchestration/recommendation.py). It summarizes retrieved context, compliance risks, and live pricing, then creates a `RecommendationDraft` on `AgentBrainState`.
+
+High-risk, high-severity, or high-cost drafts are marked as requiring human approval and receive the `HITL_REQUIRED` safety flag. Finalization remains blocked by `is_finalization_allowed()` until approval is recorded.
 
 ## Planned package layout
 

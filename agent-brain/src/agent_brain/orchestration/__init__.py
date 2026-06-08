@@ -1,5 +1,6 @@
 """Agent orchestration state models and workflow scaffolding."""
 
+from agent_brain.orchestration.recommendation import draft_recommendation
 from agent_brain.orchestration.state import (
     AgentBrainState,
     ComplianceRiskContext,
@@ -22,6 +23,7 @@ __all__ = [
     "RetrievedContext",
     "create_initial_state",
     "add_pricing_to_state",
+    "draft_recommendation",
     "is_finalization_allowed",
     "record_human_approval",
 ]
