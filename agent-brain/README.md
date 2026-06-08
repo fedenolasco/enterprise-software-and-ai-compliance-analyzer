@@ -18,6 +18,7 @@ The current implementation milestone includes:
 - Merge PostgreSQL vector results and Neo4j graph traversal into deterministic hybrid risk-to-cost rows.
 - Run the curated Phase 2 risk-to-cost demo queries from `plans/query-scope.md` with deterministic assertions.
 - Provide a documented Jupyter notebook that imports the reusable curated demo module.
+- Define a LangGraph-ready Phase 3 agent state model with explicit HITL finalization checks.
 
 ## Setup
 
@@ -119,6 +120,12 @@ Open it after completing the runbook setup and graph projection steps:
 jupyter lab notebooks/phase2-risk-to-cost-demo.ipynb
 ```
 
+## Phase 3 agent state model
+
+The initial Phase 3 state model is defined in [`state.py`](src/agent_brain/orchestration/state.py). It includes the planned workflow fields from the implementation plan: `user_query`, `retrieved_context`, `compliance_risks`, `live_pricing`, `recommendation_draft`, `human_approval_status`, and `final_output`.
+
+The model exports a `TypedDict` shape for future LangGraph nodes and includes `is_finalization_allowed()` to hard-stop cancellation or renewal finalization unless human approval is present.
+
 ## Planned package layout
 
 ```text
@@ -127,6 +134,7 @@ src/agent_brain/
   cli/                      Local validation and demo entry points.
   demo/                     Curated demo query definitions and reusable assertions.
   graph/                    Neo4j graph projection and traversal modules.
+  orchestration/            LangGraph-ready state and future workflow modules.
   retrieval/                PostgreSQL vector and hybrid retrieval modules.
   governance/               Future safety, HITL, audit, and observability hooks.
 ```

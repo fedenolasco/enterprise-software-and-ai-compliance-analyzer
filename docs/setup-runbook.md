@@ -121,7 +121,16 @@ python -m mock_pricing_api.main
 
 The API starts on `http://127.0.0.1:8000` by default and serves deterministic synthetic pricing records from [`mock-pricing-api/src/mock_pricing_api/data/pricing.json`](../mock-pricing-api/src/mock_pricing_api/data/pricing.json). The contract is documented in [`docs/pricing-api-contract.md`](pricing-api-contract.md).
 
-### 11. Run future documented demo entry points
+### 11. Validate the Phase 3 agent state model
+
+```cmd
+cd agent-brain
+python -m pytest tests/test_orchestration_state.py
+```
+
+The state model in [`agent-brain/src/agent_brain/orchestration/state.py`](../agent-brain/src/agent_brain/orchestration/state.py) defines the LangGraph-ready workflow state and enforces that cancellation or renewal finalization requires human approval.
+
+### 12. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -240,6 +249,7 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/cli/traverse_graph.py`](../agent-brain/src/agent_brain/cli/traverse_graph.py) | Traverse projected Neo4j relationships to connect vendors, software, subscriptions, and evidence chunks. |
 | [`agent-brain/src/agent_brain/cli/hybrid_retrieve.py`](../agent-brain/src/agent_brain/cli/hybrid_retrieve.py) | Merge PostgreSQL vector evidence and Neo4j graph context into deterministic risk-to-cost rows. |
 | [`agent-brain/src/agent_brain/cli/run_curated_demo.py`](../agent-brain/src/agent_brain/cli/run_curated_demo.py) | Run the curated Phase 2 query-scope demo and assert expected positive vendor matches. |
+| [`agent-brain/src/agent_brain/orchestration/state.py`](../agent-brain/src/agent_brain/orchestration/state.py) | Define LangGraph-ready state fields and HITL finalization checks for Phase 3 workflows. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
 | [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
 | [`mock-pricing-api/src/mock_pricing_api/main.py`](../mock-pricing-api/src/mock_pricing_api/main.py) | Run the local FastAPI mock pricing service for Phase 3 tool-use validation. |
@@ -340,4 +350,5 @@ After a reset and re-ingestion, validate that:
 - Curated Phase 2 demo assertions pass for expected positive vendor matches.
 - The Phase 2 notebook imports reusable demo code and documents prerequisites, outputs, and limitations.
 - Mock pricing API health, listing, detail, and lookup endpoints return deterministic synthetic pricing data.
+- Agent state exports LangGraph-ready fields and blocks cancellation or renewal finalization without approval.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.
