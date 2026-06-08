@@ -16,6 +16,7 @@ The current implementation milestone includes:
 - Search PostgreSQL document chunks through pgvector using the deterministic placeholder embedding algorithm.
 - Traverse Neo4j vendor, software, subscription, policy, and chunk relationships for risk-to-cost context.
 - Merge PostgreSQL vector results and Neo4j graph traversal into deterministic hybrid risk-to-cost rows.
+- Run the curated Phase 2 risk-to-cost demo queries from `plans/query-scope.md` with deterministic assertions.
 
 ## Setup
 
@@ -97,12 +98,23 @@ This command combines PostgreSQL vector evidence with Neo4j graph traversal cont
 
 The current ranking is deterministic and aligned to [`plans/query-scope.md`](../plans/query-scope.md). It is intended for repeatable local validation and demo preparation before real semantic embeddings or model-generated ranking are introduced.
 
+## Curated Phase 2 demo
+
+After PostgreSQL ingestion, Neo4j projection, and hybrid retrieval are available, run the curated demo contract with:
+
+```powershell
+python -m agent_brain.cli.run_curated_demo
+```
+
+This command executes the four curated query definitions from [`plans/query-scope.md`](../plans/query-scope.md), prints result rows in the expected risk-to-cost shape, and asserts that the expected positive vendors appear for each curated query. The module behind the CLI is reusable by the future notebook so notebook cells can import the same query definitions, assertions, and row-shaping logic instead of duplicating demo behavior.
+
 ## Planned package layout
 
 ```text
 src/agent_brain/
   config.py                 Environment-backed local settings.
   cli/                      Local validation and demo entry points.
+  demo/                     Curated demo query definitions and reusable assertions.
   graph/                    Neo4j graph projection and traversal modules.
   retrieval/                PostgreSQL vector and hybrid retrieval modules.
   governance/               Future safety, HITL, audit, and observability hooks.

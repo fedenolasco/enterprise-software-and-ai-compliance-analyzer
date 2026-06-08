@@ -36,6 +36,7 @@ agent-brain-project-graph = "agent_brain.cli.project_graph:main"
 agent-brain-search-vectors = "agent_brain.cli.search_vectors:main"
 agent-brain-traverse-graph = "agent_brain.cli.traverse_graph:main"
 agent-brain-hybrid-retrieve = "agent_brain.cli.hybrid_retrieve:main"
+agent-brain-run-curated-demo = "agent_brain.cli.run_curated_demo:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_brain"]

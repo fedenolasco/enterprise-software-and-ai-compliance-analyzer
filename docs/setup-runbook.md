@@ -89,7 +89,16 @@ python -m agent_brain.cli.hybrid_retrieve "cross-border processing subprocessors
 
 This runs the current Phase 2 hybrid retrieval entry point. It combines PostgreSQL vector evidence with Neo4j graph traversal context and prints deterministic risk-to-cost rows with priority score, vendor, software, subscription, annual cost, risk, recommended review action, and matched retrieval sources.
 
-### 8. Run future documented demo entry points
+### 8. Run curated Phase 2 demo assertions
+
+```cmd
+cd agent-brain
+python -m agent_brain.cli.run_curated_demo
+```
+
+This runs the reusable curated demo module aligned to [`plans/query-scope.md`](../plans/query-scope.md). It executes all four curated query definitions, prints rows in the expected risk-to-cost shape, and fails if any expected positive vendor is missing.
+
+### 9. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -207,8 +216,9 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/cli/search_vectors.py`](../agent-brain/src/agent_brain/cli/search_vectors.py) | Run PostgreSQL pgvector retrieval against compliance document chunks for Phase 2 retrieval validation. |
 | [`agent-brain/src/agent_brain/cli/traverse_graph.py`](../agent-brain/src/agent_brain/cli/traverse_graph.py) | Traverse projected Neo4j relationships to connect vendors, software, subscriptions, and evidence chunks. |
 | [`agent-brain/src/agent_brain/cli/hybrid_retrieve.py`](../agent-brain/src/agent_brain/cli/hybrid_retrieve.py) | Merge PostgreSQL vector evidence and Neo4j graph context into deterministic risk-to-cost rows. |
+| [`agent-brain/src/agent_brain/cli/run_curated_demo.py`](../agent-brain/src/agent_brain/cli/run_curated_demo.py) | Run the curated Phase 2 query-scope demo and assert expected positive vendor matches. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
-| Future Phase 2 notebook under `agent-brain/notebooks/` | Document and execute the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
+| Future Phase 2 notebook under `agent-brain/notebooks/` | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
 | `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
 | `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
 | `scripts/reset-demo-environment.sh` | Optional WSL/Linux equivalent. |
@@ -252,6 +262,13 @@ cd agent-brain
 python -m agent_brain.cli.hybrid_retrieve "cross-border processing subprocessors outside the EU" --top-k 5 --graph-limit 25
 ```
 
+Run the curated demo assertions if the Phase 2 demo contract is part of the current validation scope:
+
+```text
+cd agent-brain
+python -m agent_brain.cli.run_curated_demo
+```
+
 The reset script deletes records in dependency-safe order and reports counts before deletion, deleted counts, and counts after deletion.
 
 ## Notebook and end-user script documentation standard
@@ -289,4 +306,5 @@ After a reset and re-ingestion, validate that:
 - Neo4j graph projections match the current PostgreSQL identifiers.
 - Neo4j graph traversal connects vendors, software, subscriptions, documents, chunks, and risk metadata.
 - Hybrid retrieval returns deterministic risk-to-cost rows with priority scores and recommended review actions.
+- Curated Phase 2 demo assertions pass for expected positive vendor matches.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.
