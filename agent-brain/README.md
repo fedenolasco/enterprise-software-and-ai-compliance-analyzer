@@ -6,12 +6,13 @@ Python workstream for local hybrid retrieval, graph context, future LangGraph or
 
 This scaffold prepares `agent-brain` for the hybrid retrieval work described in [`plans/implementation-plan.md`](../plans/implementation-plan.md) and the curated demo queries in [`plans/query-scope.md`](../plans/query-scope.md).
 
-The first implementation milestone is intentionally small:
+The current implementation milestone includes:
 
 - Load local PostgreSQL and Neo4j settings from environment variables.
 - Keep Python runtime compatibility at `3.11+`.
 - Provide package structure for retrieval, graph projection, and governance modules.
 - Validate the scaffold without requiring live database connections.
+- Project validated PostgreSQL vendors, software, subscriptions, compliance documents, and document chunks into Neo4j.
 
 ## Setup
 
@@ -41,7 +42,23 @@ python -m ruff check src tests
 python -m mypy src
 ```
 
-`agent-brain-validate` checks configuration parsing and package importability only. Live PostgreSQL and Neo4j connectivity checks will be added with the graph projection and retrieval modules.
+`agent-brain-validate` checks configuration parsing and package importability only.
+
+## Neo4j graph projection
+
+After the Docker services are running and the database layer has ingested demo data, project the relational and document evidence records into Neo4j:
+
+```powershell
+python -m agent_brain.cli.project_graph
+```
+
+The projection is idempotent. It creates uniqueness constraints and merges these graph nodes and relationships:
+
+- `Vendor` nodes linked to `Software` with `SELLS`.
+- `Vendor` and `Software` nodes linked to `Subscription` with `HAS_SUBSCRIPTION`.
+- `Vendor` and `Software` nodes linked to `ComplianceDocument` with `HAS_POLICY`.
+- `ComplianceDocument` nodes linked to `DocumentChunk` with `HAS_CHUNK`.
+- `DocumentChunk` nodes linked back to `Software` with `EVIDENCES_RISK`.
 
 ## Planned package layout
 

@@ -11,6 +11,68 @@
 7. Ingest synthetic fixtures.
 8. Run the concurrency validator.
 
+## End-to-end local run order
+
+Use this order when building or replaying the current validated local baseline from a clean checkout. Run commands from the repository root unless a step explicitly changes into a workstream directory.
+
+### 1. Start local infrastructure
+
+```cmd
+copy .env.example .env
+docker compose up -d
+```
+
+This starts PostgreSQL with pgvector support and Neo4j using the service definitions in [`docker-compose.yml`](../docker-compose.yml).
+
+### 2. Bootstrap the PostgreSQL and pgvector data layer
+
+```cmd
+cd database-layer
+copy .env.example .env
+npm install
+npm run db:generate
+npm run db:push
+npm run db:enable-vector
+npm run reset:demo
+npm run ingest
+npm run validate:concurrency
+```
+
+This creates the Prisma client, applies the schema, enables pgvector, reloads deterministic fixtures, writes placeholder embeddings, creates risk/audit records, and validates optimistic concurrency behavior.
+
+### 3. Validate the Python agent-brain package
+
+```cmd
+cd agent-brain
+python -m pip install -e .[dev]
+python -m agent_brain.cli.validate_scaffold
+python -m pytest
+python -m ruff check src tests
+python -m mypy src
+```
+
+This validates local configuration, unit tests, linting, and strict typing before running end-user retrieval or graph commands.
+
+### 4. Project validated relational data into Neo4j
+
+```cmd
+cd agent-brain
+python -m agent_brain.cli.project_graph
+```
+
+This runs the idempotent Phase 2 graph projection command. It creates Neo4j uniqueness constraints and merges `Vendor`, `Software`, `Subscription`, `ComplianceDocument`, and `DocumentChunk` nodes with relationships that support graph traversal.
+
+### 5. Run future documented demo entry points
+
+Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
+
+- Purpose and expected audience.
+- Prerequisite services and prior commands.
+- Exact command or notebook path.
+- Required environment variables.
+- Expected deterministic outputs or assertions.
+- Known limitations, especially when deterministic placeholder embeddings are still in use.
+
 ## Expected validation outcomes
 
 - PostgreSQL accepts schema creation and vector extension enablement.
@@ -107,14 +169,16 @@ flowchart TD
   L --> M[Review deterministic demo output]
 ```
 
-### Future reset scripts
+### Future reset scripts and demo entry points
 
 The following scripts should be added as implementation matures:
 
 | Script | Purpose |
 |---|---|
 | [`database-layer/scripts/reset-demo-data.ts`](../database-layer/scripts/reset-demo-data.ts) | Delete Prisma-managed rows in dependency-safe order and prepare PostgreSQL for fixture re-ingestion. |
+| [`agent-brain/src/agent_brain/cli/project_graph.py`](../agent-brain/src/agent_brain/cli/project_graph.py) | Project validated PostgreSQL records into Neo4j for Phase 2 graph traversal. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
+| Future Phase 2 notebook under `agent-brain/notebooks/` | Document and execute the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
 | `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
 | `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
 | `scripts/reset-demo-environment.sh` | Optional WSL/Linux equivalent. |
@@ -130,7 +194,37 @@ npm run reset:demo
 npm run ingest
 ```
 
+After re-ingestion, run the graph projection if Neo4j traversal or the Phase 2 demo is part of the current validation scope:
+
+```text
+cd agent-brain
+python -m agent_brain.cli.project_graph
+```
+
 The reset script deletes records in dependency-safe order and reports counts before deletion, deleted counts, and counts after deletion.
+
+## Notebook and end-user script documentation standard
+
+Every end-user script or notebook added for a demo must be self-documenting and linked from this runbook. Notebook markdown cells should explain each executable section before code is run.
+
+Required documentation sections for notebooks are:
+
+1. Demo objective and business question.
+2. Source fixture and query-scope links.
+3. Prerequisite runbook steps.
+4. Environment variables and local service assumptions.
+5. Query inputs and expected positive matches.
+6. Step-by-step execution for structured filtering, vector retrieval, graph traversal, result merging, ranking, and assertions.
+7. Output interpretation with evidence excerpts and cost/renewal context.
+8. Limitations and reset instructions.
+
+Required documentation for script-style entry points is:
+
+- Module docstring describing purpose and side effects.
+- CLI help or README/runbook command example.
+- Deterministic output summary.
+- Unit or integration validation command.
+- Runbook update in this file before the script is considered end-user ready.
 
 ### Validation after reset
 
@@ -140,5 +234,5 @@ After a reset and re-ingestion, validate that:
 - Compliance documents are chunked and linked to their source records.
 - pgvector embeddings are regenerated for all document chunks.
 - Curated queries in [`plans/query-scope.md`](../plans/query-scope.md) return the expected positive matches.
-- Neo4j graph projections match the current PostgreSQL identifiers once Phase 2 is implemented.
+- Neo4j graph projections match the current PostgreSQL identifiers.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.

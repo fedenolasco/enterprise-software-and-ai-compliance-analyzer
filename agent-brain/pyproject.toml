@@ -32,6 +32,7 @@ notebook = [
 
 [project.scripts]
 agent-brain-validate = "agent_brain.cli.validate_scaffold:main"
+agent-brain-project-graph = "agent_brain.cli.project_graph:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_brain"]

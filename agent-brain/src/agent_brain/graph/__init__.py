@@ -1,4 +1,5 @@
-"""Neo4j graph projection and traversal modules.
+"""Neo4j graph projection and traversal modules."""
 
-Implementation will be added after the Python project scaffold is validated.
-"""
+from agent_brain.graph.projection import GraphProjectionSummary, project_graph
+
+__all__ = ["GraphProjectionSummary", "project_graph"]
