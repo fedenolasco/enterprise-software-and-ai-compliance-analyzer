@@ -13,6 +13,7 @@ The current implementation milestone includes:
 - Provide package structure for retrieval, graph projection, and governance modules.
 - Validate the scaffold without requiring live database connections.
 - Project validated PostgreSQL vendors, software, subscriptions, compliance documents, and document chunks into Neo4j.
+- Search PostgreSQL document chunks through pgvector using the deterministic placeholder embedding algorithm.
 
 ## Setup
 
@@ -59,6 +60,18 @@ The projection is idempotent. It creates uniqueness constraints and merges these
 - `Vendor` and `Software` nodes linked to `ComplianceDocument` with `HAS_POLICY`.
 - `ComplianceDocument` nodes linked to `DocumentChunk` with `HAS_CHUNK`.
 - `DocumentChunk` nodes linked back to `Software` with `EVIDENCES_RISK`.
+
+## PostgreSQL vector retrieval
+
+After ingestion has written document chunks and deterministic placeholder embeddings to PostgreSQL, run a local vector search with:
+
+```powershell
+python -m agent_brain.cli.search_vectors "cross-border processing subprocessors outside the EU" --top-k 5
+```
+
+This command embeds the query text with the same deterministic placeholder embedding algorithm used by ingestion, searches `DocumentChunk.embedding` with pgvector distance ordering, and prints ranked evidence rows with vendor, software, risk, distance, and excerpt columns.
+
+The current vectors are deterministic placeholders for infrastructure validation. They are useful for proving the zero-ETL retrieval path and repeatable demo plumbing, but they are not production semantic embeddings.
 
 ## Planned package layout
 

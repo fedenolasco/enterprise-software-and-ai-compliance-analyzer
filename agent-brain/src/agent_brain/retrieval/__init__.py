@@ -1,4 +1,5 @@
-"""PostgreSQL vector and hybrid retrieval modules.
+"""PostgreSQL vector and hybrid retrieval modules."""
 
-Implementation will be added after graph projection is defined.
-"""
+from agent_brain.retrieval.vector import VectorSearchResult, vector_search
+
+__all__ = ["VectorSearchResult", "vector_search"]

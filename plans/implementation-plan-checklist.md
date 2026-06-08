@@ -96,7 +96,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 
 - [x] Initialize Python project structure in `agent-brain`.
 - [x] Add Neo4j graph mapping for vendors, software, subscriptions, and document chunks.
-- [ ] Add PostgreSQL vector retrieval module.
+- [x] Add PostgreSQL vector retrieval module.
 - [ ] Add Neo4j graph traversal module.
 - [ ] Add hybrid retrieval function combining graph and vector context.
 - [x] Document curated positive demo query scope in [`plans/query-scope.md`](query-scope.md).
@@ -133,14 +133,14 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 | Synthetic data | Completed | JSON and text fixtures were validated through successful ingestion. |
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
-| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection module, and unit tests are present. |
+| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, and unit tests are present. |
 | Mock pricing API | Not started | Planned for Phase 3. |
 | Governance and FinOps | Not started | Planned for Phase 4. |
 
 ## Next recommended implementation steps
 
-1. Run [`agent-brain/`](../agent-brain/) Neo4j graph projection against live local PostgreSQL and Neo4j services.
-2. Add PostgreSQL vector retrieval and Neo4j graph traversal modules.
+1. Run [`agent-brain/`](../agent-brain/) Neo4j graph projection and PostgreSQL vector retrieval against live local services.
+2. Add Neo4j graph traversal module.
 3. Add a hybrid retrieval function combining graph and vector context.
 4. Implement reusable Python scripts/modules for the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](query-scope.md).
 5. Add a Jupyter notebook that imports those modules and presents the curated demo results.
