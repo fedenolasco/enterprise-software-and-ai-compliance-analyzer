@@ -109,7 +109,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Add synthetic pricing API data.
 - [x] Document GraphQL-style pricing contract in `docs`.
 - [x] Add LangGraph agent state model.
-- [ ] Add mock pricing tool wrapper.
+- [x] Add mock pricing tool wrapper.
 - [ ] Add recommendation drafting workflow.
 - [ ] Add mandatory HITL pause before cancellation recommendation finalization.
 
@@ -133,7 +133,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 | Synthetic data | Completed | JSON and text fixtures were validated through successful ingestion. |
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
-| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, notebook, LangGraph-ready state model, and unit tests are present. |
+| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, notebook, LangGraph-ready state model, mock pricing tool wrapper, and unit tests are present. |
 | Mock pricing API | In progress | FastAPI scaffold, synthetic pricing fixture, typed models, tests, and pricing contract are present. |
 | Governance and FinOps | Not started | Planned for Phase 4. |
 
@@ -141,6 +141,6 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 
 1. Run [`agent-brain/`](../agent-brain/) graph projection, vector retrieval, graph traversal, hybrid retrieval, curated demo assertions, and the Phase 2 notebook against live local services.
 2. Run [`mock-pricing-api/`](../mock-pricing-api/) validation and start the local FastAPI service.
-3. Add mock pricing tool wrapper.
-4. Add recommendation drafting workflow.
-5. Add mandatory HITL pause before cancellation recommendation finalization.
+3. Add recommendation drafting workflow.
+4. Add mandatory HITL pause before cancellation recommendation finalization.
+5. Add local model adapter boundary for future Microsoft Foundry Local readiness.

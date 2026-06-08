@@ -19,6 +19,7 @@ The current implementation milestone includes:
 - Run the curated Phase 2 risk-to-cost demo queries from `plans/query-scope.md` with deterministic assertions.
 - Provide a documented Jupyter notebook that imports the reusable curated demo module.
 - Define a LangGraph-ready Phase 3 agent state model with explicit HITL finalization checks.
+- Call the local mock pricing API through a typed tool wrapper and append results to agent state.
 
 ## Setup
 
@@ -126,6 +127,12 @@ The initial Phase 3 state model is defined in [`state.py`](src/agent_brain/orche
 
 The model exports a `TypedDict` shape for future LangGraph nodes and includes `is_finalization_allowed()` to hard-stop cancellation or renewal finalization unless human approval is present.
 
+## Mock pricing tool wrapper
+
+The local pricing tool wrapper is defined in [`pricing.py`](src/agent_brain/tools/pricing.py). It calls the mock pricing API `POST /pricing:lookup` endpoint documented in [`docs/pricing-api-contract.md`](../docs/pricing-api-contract.md), normalizes the response, and can append a `LivePricingContext` entry to `AgentBrainState`.
+
+The wrapper uses `MOCK_PRICING_API_URL`, defaulting to `http://127.0.0.1:8000`.
+
 ## Planned package layout
 
 ```text
@@ -136,5 +143,6 @@ src/agent_brain/
   graph/                    Neo4j graph projection and traversal modules.
   orchestration/            LangGraph-ready state and future workflow modules.
   retrieval/                PostgreSQL vector and hybrid retrieval modules.
+  tools/                    Local tool wrappers such as mock pricing lookup.
   governance/               Future safety, HITL, audit, and observability hooks.
 ```

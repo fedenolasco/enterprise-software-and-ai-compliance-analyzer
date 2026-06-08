@@ -11,6 +11,7 @@ from agent_brain.orchestration.state import (
     is_finalization_allowed,
     record_human_approval,
 )
+from agent_brain.tools.pricing import add_pricing_to_state
 
 __all__ = [
     "AgentBrainState",
@@ -20,6 +21,7 @@ __all__ = [
     "RecommendationDraft",
     "RetrievedContext",
     "create_initial_state",
+    "add_pricing_to_state",
     "is_finalization_allowed",
     "record_human_approval",
 ]

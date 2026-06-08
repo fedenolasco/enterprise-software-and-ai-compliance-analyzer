@@ -36,6 +36,7 @@ class AgentBrainSettings:
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_username: str = "neo4j"
     neo4j_password: str = "compliance_password"
+    mock_pricing_api_url: str = "http://127.0.0.1:8000"
     embedding_dimension: int = 8
     vector_top_k: int = 5
     graph_result_limit: int = 25
@@ -50,6 +51,7 @@ def get_settings() -> AgentBrainSettings:
         neo4j_uri=getenv("NEO4J_URI", "bolt://localhost:7687"),
         neo4j_username=getenv("NEO4J_USERNAME", "neo4j"),
         neo4j_password=getenv("NEO4J_PASSWORD", "compliance_password"),
+        mock_pricing_api_url=getenv("MOCK_PRICING_API_URL", "http://127.0.0.1:8000"),
         embedding_dimension=_positive_int_from_env("EMBEDDING_DIMENSION", 8),
         vector_top_k=_positive_int_from_env("VECTOR_TOP_K", 5),
         graph_result_limit=_positive_int_from_env("GRAPH_RESULT_LIMIT", 25),
