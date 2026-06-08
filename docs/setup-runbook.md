@@ -107,7 +107,21 @@ jupyter lab notebooks/phase2-risk-to-cost-demo.ipynb
 
 The notebook imports the same reusable curated demo module used by the CLI. It documents prerequisites, environment assumptions, query definitions, result-row interpretation, assertion behavior, and limitations around deterministic placeholder embedding vectors.
 
-### 10. Run future documented demo entry points
+### 10. Validate and run the Phase 3 mock pricing API
+
+```cmd
+cd mock-pricing-api
+copy .env.example .env
+python -m pip install -e .[dev]
+python -m pytest
+python -m ruff check src tests
+python -m mypy src
+python -m mock_pricing_api.main
+```
+
+The API starts on `http://127.0.0.1:8000` by default and serves deterministic synthetic pricing records from [`mock-pricing-api/src/mock_pricing_api/data/pricing.json`](../mock-pricing-api/src/mock_pricing_api/data/pricing.json). The contract is documented in [`docs/pricing-api-contract.md`](pricing-api-contract.md).
+
+### 11. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -228,6 +242,7 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/cli/run_curated_demo.py`](../agent-brain/src/agent_brain/cli/run_curated_demo.py) | Run the curated Phase 2 query-scope demo and assert expected positive vendor matches. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
 | [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
+| [`mock-pricing-api/src/mock_pricing_api/main.py`](../mock-pricing-api/src/mock_pricing_api/main.py) | Run the local FastAPI mock pricing service for Phase 3 tool-use validation. |
 | `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
 | `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
 | `scripts/reset-demo-environment.sh` | Optional WSL/Linux equivalent. |
@@ -324,4 +339,5 @@ After a reset and re-ingestion, validate that:
 - Hybrid retrieval returns deterministic risk-to-cost rows with priority scores and recommended review actions.
 - Curated Phase 2 demo assertions pass for expected positive vendor matches.
 - The Phase 2 notebook imports reusable demo code and documents prerequisites, outputs, and limitations.
+- Mock pricing API health, listing, detail, and lookup endpoints return deterministic synthetic pricing data.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.

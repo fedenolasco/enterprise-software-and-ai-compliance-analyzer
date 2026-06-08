@@ -1,0 +1,61 @@
+{
+  "pricing": [
+    {
+      "vendor_code": "VND-OPENAI-001",
+      "vendor_name": "OpenAI Enterprise",
+      "software_code": "SW-OPENAI-CHATGPT-ENT",
+      "software_name": "ChatGPT Enterprise",
+      "currency": "USD",
+      "billing_cycle": "ANNUAL",
+      "list_unit_price_usd": 360.0,
+      "annual_unit_price_usd": 360.0,
+      "minimum_seats": 50,
+      "included_support_tier": "Enterprise support",
+      "data_residency_available": true,
+      "enterprise_controls_available": true,
+      "volume_discounts": [
+        { "minimum_seats": 100, "discount_percent": 5.0 },
+        { "minimum_seats": 250, "discount_percent": 10.0 }
+      ],
+      "notes": "Synthetic enterprise AI assistant pricing for local tool-call validation."
+    },
+    {
+      "vendor_code": "VND-MICROSOFT-001",
+      "vendor_name": "Microsoft 365 Copilot",
+      "software_code": "SW-MS-COPILOT-M365",
+      "software_name": "Microsoft 365 Copilot",
+      "currency": "USD",
+      "billing_cycle": "ANNUAL",
+      "list_unit_price_usd": 360.0,
+      "annual_unit_price_usd": 360.0,
+      "minimum_seats": 100,
+      "included_support_tier": "Microsoft enterprise support",
+      "data_residency_available": true,
+      "enterprise_controls_available": true,
+      "volume_discounts": [
+        { "minimum_seats": 250, "discount_percent": 4.0 },
+        { "minimum_seats": 500, "discount_percent": 8.0 }
+      ],
+      "notes": "Synthetic productivity AI pricing aligned to the demo subscription fixture."
+    },
+    {
+      "vendor_code": "VND-NOTION-001",
+      "vendor_name": "Notion AI",
+      "software_code": "SW-NOTION-AI",
+      "software_name": "Notion AI",
+      "currency": "USD",
+      "billing_cycle": "MONTHLY",
+      "list_unit_price_usd": 216.0,
+      "annual_unit_price_usd": 216.0,
+      "minimum_seats": 10,
+      "included_support_tier": "Business support",
+      "data_residency_available": false,
+      "enterprise_controls_available": true,
+      "volume_discounts": [
+        { "minimum_seats": 50, "discount_percent": 3.0 },
+        { "minimum_seats": 100, "discount_percent": 6.0 }
+      ],
+      "notes": "Synthetic knowledge-management AI pricing with data residency caveat."
+    }
+  ]
+}

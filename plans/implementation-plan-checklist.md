@@ -105,9 +105,9 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 
 ## Phase 3: Agentic orchestration and mock tool use
 
-- [ ] Initialize FastAPI project in `mock-pricing-api`.
-- [ ] Add synthetic pricing API data.
-- [ ] Document GraphQL-style pricing contract in `docs`.
+- [x] Initialize FastAPI project in `mock-pricing-api`.
+- [x] Add synthetic pricing API data.
+- [x] Document GraphQL-style pricing contract in `docs`.
 - [ ] Add LangGraph agent state model.
 - [ ] Add mock pricing tool wrapper.
 - [ ] Add recommendation drafting workflow.
@@ -134,13 +134,13 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
 | Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, notebook, and unit tests are present. |
-| Mock pricing API | Not started | Planned for Phase 3. |
+| Mock pricing API | In progress | FastAPI scaffold, synthetic pricing fixture, typed models, tests, and pricing contract are present. |
 | Governance and FinOps | Not started | Planned for Phase 4. |
 
 ## Next recommended implementation steps
 
 1. Run [`agent-brain/`](../agent-brain/) graph projection, vector retrieval, graph traversal, hybrid retrieval, curated demo assertions, and the Phase 2 notebook against live local services.
-2. Initialize the Phase 3 mock pricing API after the Phase 2 demo path is validated.
-3. Document the Phase 3 pricing API contract before adding agent tool calls.
-4. Add LangGraph state and mock pricing tool wrappers after the pricing API is available.
+2. Run [`mock-pricing-api/`](../mock-pricing-api/) validation and start the local FastAPI service.
+3. Add LangGraph state and mock pricing tool wrappers after the pricing API is available.
+4. Add recommendation drafting workflow.
 5. Add mandatory HITL pause before cancellation recommendation finalization.
