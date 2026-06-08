@@ -94,13 +94,14 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 
 ## Phase 2: Local hybrid context architecture
 
-- [ ] Initialize Python project structure in `agent-brain`.
+- [x] Initialize Python project structure in `agent-brain`.
 - [ ] Add Neo4j graph mapping for vendors, software, subscriptions, and document chunks.
 - [ ] Add PostgreSQL vector retrieval module.
 - [ ] Add Neo4j graph traversal module.
 - [ ] Add hybrid retrieval function combining graph and vector context.
 - [x] Document curated positive demo query scope in [`plans/query-scope.md`](query-scope.md).
-- [ ] Add notebook or script demonstrating curated risk-to-cost retrieval based on [`plans/query-scope.md`](query-scope.md).
+- [ ] Add reusable Python script/module demonstrating curated risk-to-cost retrieval based on [`plans/query-scope.md`](query-scope.md).
+- [ ] Add Jupyter notebook that imports the reusable scripts/modules and presents the curated Phase 2 risk-to-cost demo.
 
 ## Phase 3: Agentic orchestration and mock tool use
 
@@ -132,13 +133,14 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 | Synthetic data | Completed | JSON and text fixtures were validated through successful ingestion. |
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
-| Agent brain | Not started | Planned for Phase 2 after database validation. |
+| Agent brain | In progress | Python package scaffold, local configuration, validation CLI, package placeholders, and initial test are present. |
 | Mock pricing API | Not started | Planned for Phase 3. |
 | Governance and FinOps | Not started | Planned for Phase 4. |
 
 ## Next recommended implementation steps
 
-1. Initialize [`agent-brain/`](../agent-brain/) with Python project scaffolding for hybrid retrieval.
+1. Install and validate [`agent-brain/`](../agent-brain/) Python dependencies.
 2. Add Neo4j graph projection from validated PostgreSQL records.
 3. Add PostgreSQL vector retrieval and Neo4j graph traversal modules.
-4. Implement the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](query-scope.md).
+4. Implement reusable Python scripts/modules for the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](query-scope.md).
+5. Add a Jupyter notebook that imports those modules and presents the curated demo results.

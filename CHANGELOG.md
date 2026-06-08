@@ -4,6 +4,7 @@ All notable project changes should be documented here as the implementation evol
 
 ## Unreleased
 
+- Initialized the [`agent-brain`](agent-brain/) Python project scaffold with pinned dependencies, local environment template, configuration module, validation CLI, package placeholders, README guidance, and a first configuration test.
 - Added repeatable demo reset script [`database-layer/scripts/reset-demo-data.ts`](database-layer/scripts/reset-demo-data.ts) and documented reset-plus-reingestion usage before Phase 2 graph projection.
 - Updated [`docs/product-requirements.md`](docs/product-requirements.md) and [`plans/implementation-plan-checklist.md`](plans/implementation-plan-checklist.md) to reflect Phase 0 completion and Phase 1 local data-layer validation progress.
 - Applied [`database-layer/prisma/schema.prisma`](database-layer/prisma/schema.prisma) to local PostgreSQL, ran synthetic ingestion, verified persisted data and pgvector embeddings, and validated optimistic concurrency audit events.
