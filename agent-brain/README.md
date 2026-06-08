@@ -17,6 +17,7 @@ The current implementation milestone includes:
 - Traverse Neo4j vendor, software, subscription, policy, and chunk relationships for risk-to-cost context.
 - Merge PostgreSQL vector results and Neo4j graph traversal into deterministic hybrid risk-to-cost rows.
 - Run the curated Phase 2 risk-to-cost demo queries from `plans/query-scope.md` with deterministic assertions.
+- Provide a documented Jupyter notebook that imports the reusable curated demo module.
 
 ## Setup
 
@@ -107,6 +108,16 @@ python -m agent_brain.cli.run_curated_demo
 ```
 
 This command executes the four curated query definitions from [`plans/query-scope.md`](../plans/query-scope.md), prints result rows in the expected risk-to-cost shape, and asserts that the expected positive vendors appear for each curated query. The module behind the CLI is reusable by the future notebook so notebook cells can import the same query definitions, assertions, and row-shaping logic instead of duplicating demo behavior.
+
+## Phase 2 notebook
+
+The documented notebook is available at [`notebooks/phase2-risk-to-cost-demo.ipynb`](notebooks/phase2-risk-to-cost-demo.ipynb). It imports the reusable curated demo module, explains prerequisites and reset expectations, runs the curated query assertions, prints notebook-friendly result rows, and documents limitations around deterministic placeholder embedding vectors.
+
+Open it after completing the runbook setup and graph projection steps:
+
+```powershell
+jupyter lab notebooks/phase2-risk-to-cost-demo.ipynb
+```
 
 ## Planned package layout
 

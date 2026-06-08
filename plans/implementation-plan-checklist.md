@@ -101,7 +101,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Add hybrid retrieval function combining graph and vector context.
 - [x] Document curated positive demo query scope in [`plans/query-scope.md`](query-scope.md).
 - [x] Add reusable Python script/module demonstrating curated risk-to-cost retrieval based on [`plans/query-scope.md`](query-scope.md).
-- [ ] Add Jupyter notebook that imports the reusable scripts/modules and presents the curated Phase 2 risk-to-cost demo.
+- [x] Add Jupyter notebook that imports the reusable scripts/modules and presents the curated Phase 2 risk-to-cost demo.
 
 ## Phase 3: Agentic orchestration and mock tool use
 
@@ -133,14 +133,14 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 | Synthetic data | Completed | JSON and text fixtures were validated through successful ingestion. |
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
-| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, and unit tests are present. |
+| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, notebook, and unit tests are present. |
 | Mock pricing API | Not started | Planned for Phase 3. |
 | Governance and FinOps | Not started | Planned for Phase 4. |
 
 ## Next recommended implementation steps
 
-1. Run [`agent-brain/`](../agent-brain/) graph projection, vector retrieval, graph traversal, hybrid retrieval, and curated demo assertions against live local services.
-2. Add a Jupyter notebook that imports the reusable curated demo module and presents the curated Phase 2 results.
-3. Initialize the Phase 3 mock pricing API after the Phase 2 demo path is validated.
-4. Document the Phase 3 pricing API contract before adding agent tool calls.
-5. Add LangGraph state and mock pricing tool wrappers after the pricing API is available.
+1. Run [`agent-brain/`](../agent-brain/) graph projection, vector retrieval, graph traversal, hybrid retrieval, curated demo assertions, and the Phase 2 notebook against live local services.
+2. Initialize the Phase 3 mock pricing API after the Phase 2 demo path is validated.
+3. Document the Phase 3 pricing API contract before adding agent tool calls.
+4. Add LangGraph state and mock pricing tool wrappers after the pricing API is available.
+5. Add mandatory HITL pause before cancellation recommendation finalization.

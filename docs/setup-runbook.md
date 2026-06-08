@@ -98,7 +98,16 @@ python -m agent_brain.cli.run_curated_demo
 
 This runs the reusable curated demo module aligned to [`plans/query-scope.md`](../plans/query-scope.md). It executes all four curated query definitions, prints rows in the expected risk-to-cost shape, and fails if any expected positive vendor is missing.
 
-### 9. Run future documented demo entry points
+### 9. Open the documented Phase 2 notebook
+
+```cmd
+cd agent-brain
+jupyter lab notebooks/phase2-risk-to-cost-demo.ipynb
+```
+
+The notebook imports the same reusable curated demo module used by the CLI. It documents prerequisites, environment assumptions, query definitions, result-row interpretation, assertion behavior, and limitations around deterministic placeholder embedding vectors.
+
+### 10. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -218,7 +227,7 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/cli/hybrid_retrieve.py`](../agent-brain/src/agent_brain/cli/hybrid_retrieve.py) | Merge PostgreSQL vector evidence and Neo4j graph context into deterministic risk-to-cost rows. |
 | [`agent-brain/src/agent_brain/cli/run_curated_demo.py`](../agent-brain/src/agent_brain/cli/run_curated_demo.py) | Run the curated Phase 2 query-scope demo and assert expected positive vendor matches. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
-| Future Phase 2 notebook under `agent-brain/notebooks/` | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
+| [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
 | `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
 | `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
 | `scripts/reset-demo-environment.sh` | Optional WSL/Linux equivalent. |
@@ -269,6 +278,13 @@ cd agent-brain
 python -m agent_brain.cli.run_curated_demo
 ```
 
+Open the notebook when a documented stakeholder-facing walkthrough is needed:
+
+```text
+cd agent-brain
+jupyter lab notebooks/phase2-risk-to-cost-demo.ipynb
+```
+
 The reset script deletes records in dependency-safe order and reports counts before deletion, deleted counts, and counts after deletion.
 
 ## Notebook and end-user script documentation standard
@@ -307,4 +323,5 @@ After a reset and re-ingestion, validate that:
 - Neo4j graph traversal connects vendors, software, subscriptions, documents, chunks, and risk metadata.
 - Hybrid retrieval returns deterministic risk-to-cost rows with priority scores and recommended review actions.
 - Curated Phase 2 demo assertions pass for expected positive vendor matches.
+- The Phase 2 notebook imports reusable demo code and documents prerequisites, outputs, and limitations.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.
