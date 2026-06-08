@@ -14,6 +14,7 @@ The current implementation milestone includes:
 - Validate the scaffold without requiring live database connections.
 - Project validated PostgreSQL vendors, software, subscriptions, compliance documents, and document chunks into Neo4j.
 - Search PostgreSQL document chunks through pgvector using the deterministic placeholder embedding algorithm.
+- Traverse Neo4j vendor, software, subscription, policy, and chunk relationships for risk-to-cost context.
 
 ## Setup
 
@@ -72,6 +73,16 @@ python -m agent_brain.cli.search_vectors "cross-border processing subprocessors 
 This command embeds the query text with the same deterministic placeholder embedding algorithm used by ingestion, searches `DocumentChunk.embedding` with pgvector distance ordering, and prints ranked evidence rows with vendor, software, risk, distance, and excerpt columns.
 
 The current vectors are deterministic placeholders for infrastructure validation. They are useful for proving the zero-ETL retrieval path and repeatable demo plumbing, but they are not production semantic embeddings.
+
+## Neo4j graph traversal
+
+After graph projection has populated Neo4j, run a local graph traversal with:
+
+```powershell
+python -m agent_brain.cli.traverse_graph --risk-category DATA_RESIDENCY --limit 10
+```
+
+Optional filters include `--vendor-code`, `--risk-category`, `--risk-severity`, and `--limit`. The command prints vendor, software, subscription cost, risk, and evidence excerpts from the projected graph. This validates that graph traversal connects compliance evidence to software and subscription exposure before the hybrid retriever combines graph and vector context.
 
 ## Planned package layout
 

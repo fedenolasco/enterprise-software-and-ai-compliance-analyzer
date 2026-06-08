@@ -34,6 +34,7 @@ notebook = [
 agent-brain-validate = "agent_brain.cli.validate_scaffold:main"
 agent-brain-project-graph = "agent_brain.cli.project_graph:main"
 agent-brain-search-vectors = "agent_brain.cli.search_vectors:main"
+agent-brain-traverse-graph = "agent_brain.cli.traverse_graph:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_brain"]

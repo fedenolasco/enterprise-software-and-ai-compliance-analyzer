@@ -71,7 +71,16 @@ python -m agent_brain.cli.search_vectors "cross-border processing subprocessors 
 
 This runs the current Phase 2 vector retrieval entry point against PostgreSQL document chunks. It should print ranked evidence rows with vendor, software, risk, distance, and evidence excerpt columns. The ranking uses deterministic placeholder embedding vectors, so treat it as retrieval plumbing validation rather than final semantic retrieval quality.
 
-### 6. Run future documented demo entry points
+### 6. Run Neo4j graph traversal smoke test
+
+```cmd
+cd agent-brain
+python -m agent_brain.cli.traverse_graph --risk-category DATA_RESIDENCY --limit 10
+```
+
+This runs the current Phase 2 graph traversal entry point against projected Neo4j nodes and relationships. It should print vendor, software, subscription, annual cost, risk, and evidence excerpt columns. Run graph projection before this step whenever PostgreSQL fixture data has been reset or re-ingested.
+
+### 7. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -187,6 +196,7 @@ The following scripts should be added as implementation matures:
 | [`database-layer/scripts/reset-demo-data.ts`](../database-layer/scripts/reset-demo-data.ts) | Delete Prisma-managed rows in dependency-safe order and prepare PostgreSQL for fixture re-ingestion. |
 | [`agent-brain/src/agent_brain/cli/project_graph.py`](../agent-brain/src/agent_brain/cli/project_graph.py) | Project validated PostgreSQL records into Neo4j for Phase 2 graph traversal. |
 | [`agent-brain/src/agent_brain/cli/search_vectors.py`](../agent-brain/src/agent_brain/cli/search_vectors.py) | Run PostgreSQL pgvector retrieval against compliance document chunks for Phase 2 retrieval validation. |
+| [`agent-brain/src/agent_brain/cli/traverse_graph.py`](../agent-brain/src/agent_brain/cli/traverse_graph.py) | Traverse projected Neo4j relationships to connect vendors, software, subscriptions, and evidence chunks. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
 | Future Phase 2 notebook under `agent-brain/notebooks/` | Document and execute the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
 | `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
@@ -216,6 +226,13 @@ Run the vector retrieval smoke test if PostgreSQL retrieval behavior is part of 
 ```text
 cd agent-brain
 python -m agent_brain.cli.search_vectors "cross-border processing subprocessors outside the EU" --top-k 5
+```
+
+Run the graph traversal smoke test if Neo4j traversal behavior is part of the current validation scope:
+
+```text
+cd agent-brain
+python -m agent_brain.cli.traverse_graph --risk-category DATA_RESIDENCY --limit 10
 ```
 
 The reset script deletes records in dependency-safe order and reports counts before deletion, deleted counts, and counts after deletion.
@@ -253,4 +270,5 @@ After a reset and re-ingestion, validate that:
 - PostgreSQL vector retrieval returns ranked evidence rows with document, vendor, software, subscription, and risk metadata.
 - Curated queries in [`plans/query-scope.md`](../plans/query-scope.md) return the expected positive matches.
 - Neo4j graph projections match the current PostgreSQL identifiers.
+- Neo4j graph traversal connects vendors, software, subscriptions, documents, chunks, and risk metadata.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.
