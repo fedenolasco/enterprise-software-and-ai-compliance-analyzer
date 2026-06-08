@@ -80,7 +80,16 @@ python -m agent_brain.cli.traverse_graph --risk-category DATA_RESIDENCY --limit 
 
 This runs the current Phase 2 graph traversal entry point against projected Neo4j nodes and relationships. It should print vendor, software, subscription, annual cost, risk, and evidence excerpt columns. Run graph projection before this step whenever PostgreSQL fixture data has been reset or re-ingested.
 
-### 7. Run future documented demo entry points
+### 7. Run hybrid retrieval smoke test
+
+```cmd
+cd agent-brain
+python -m agent_brain.cli.hybrid_retrieve "cross-border processing subprocessors outside the EU" --top-k 5 --graph-limit 25
+```
+
+This runs the current Phase 2 hybrid retrieval entry point. It combines PostgreSQL vector evidence with Neo4j graph traversal context and prints deterministic risk-to-cost rows with priority score, vendor, software, subscription, annual cost, risk, recommended review action, and matched retrieval sources.
+
+### 8. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -197,6 +206,7 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/cli/project_graph.py`](../agent-brain/src/agent_brain/cli/project_graph.py) | Project validated PostgreSQL records into Neo4j for Phase 2 graph traversal. |
 | [`agent-brain/src/agent_brain/cli/search_vectors.py`](../agent-brain/src/agent_brain/cli/search_vectors.py) | Run PostgreSQL pgvector retrieval against compliance document chunks for Phase 2 retrieval validation. |
 | [`agent-brain/src/agent_brain/cli/traverse_graph.py`](../agent-brain/src/agent_brain/cli/traverse_graph.py) | Traverse projected Neo4j relationships to connect vendors, software, subscriptions, and evidence chunks. |
+| [`agent-brain/src/agent_brain/cli/hybrid_retrieve.py`](../agent-brain/src/agent_brain/cli/hybrid_retrieve.py) | Merge PostgreSQL vector evidence and Neo4j graph context into deterministic risk-to-cost rows. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
 | Future Phase 2 notebook under `agent-brain/notebooks/` | Document and execute the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
 | `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
@@ -235,6 +245,13 @@ cd agent-brain
 python -m agent_brain.cli.traverse_graph --risk-category DATA_RESIDENCY --limit 10
 ```
 
+Run the hybrid retrieval smoke test if merged risk-to-cost context is part of the current validation scope:
+
+```text
+cd agent-brain
+python -m agent_brain.cli.hybrid_retrieve "cross-border processing subprocessors outside the EU" --top-k 5 --graph-limit 25
+```
+
 The reset script deletes records in dependency-safe order and reports counts before deletion, deleted counts, and counts after deletion.
 
 ## Notebook and end-user script documentation standard
@@ -271,4 +288,5 @@ After a reset and re-ingestion, validate that:
 - Curated queries in [`plans/query-scope.md`](../plans/query-scope.md) return the expected positive matches.
 - Neo4j graph projections match the current PostgreSQL identifiers.
 - Neo4j graph traversal connects vendors, software, subscriptions, documents, chunks, and risk metadata.
+- Hybrid retrieval returns deterministic risk-to-cost rows with priority scores and recommended review actions.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.

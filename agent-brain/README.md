@@ -15,6 +15,7 @@ The current implementation milestone includes:
 - Project validated PostgreSQL vendors, software, subscriptions, compliance documents, and document chunks into Neo4j.
 - Search PostgreSQL document chunks through pgvector using the deterministic placeholder embedding algorithm.
 - Traverse Neo4j vendor, software, subscription, policy, and chunk relationships for risk-to-cost context.
+- Merge PostgreSQL vector results and Neo4j graph traversal into deterministic hybrid risk-to-cost rows.
 
 ## Setup
 
@@ -83,6 +84,18 @@ python -m agent_brain.cli.traverse_graph --risk-category DATA_RESIDENCY --limit 
 ```
 
 Optional filters include `--vendor-code`, `--risk-category`, `--risk-severity`, and `--limit`. The command prints vendor, software, subscription cost, risk, and evidence excerpts from the projected graph. This validates that graph traversal connects compliance evidence to software and subscription exposure before the hybrid retriever combines graph and vector context.
+
+## Hybrid retrieval
+
+After PostgreSQL ingestion and Neo4j graph projection are complete, run hybrid retrieval with:
+
+```powershell
+python -m agent_brain.cli.hybrid_retrieve "cross-border processing subprocessors outside the EU" --top-k 5 --graph-limit 25
+```
+
+This command combines PostgreSQL vector evidence with Neo4j graph traversal context and returns the Phase 2 risk-to-cost result shape: vendor, software, subscription, annual cost, risk, recommended review action, matched sources, and deterministic priority score.
+
+The current ranking is deterministic and aligned to [`plans/query-scope.md`](../plans/query-scope.md). It is intended for repeatable local validation and demo preparation before real semantic embeddings or model-generated ranking are introduced.
 
 ## Planned package layout
 

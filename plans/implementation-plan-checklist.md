@@ -98,7 +98,7 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 - [x] Add Neo4j graph mapping for vendors, software, subscriptions, and document chunks.
 - [x] Add PostgreSQL vector retrieval module.
 - [x] Add Neo4j graph traversal module.
-- [ ] Add hybrid retrieval function combining graph and vector context.
+- [x] Add hybrid retrieval function combining graph and vector context.
 - [x] Document curated positive demo query scope in [`plans/query-scope.md`](query-scope.md).
 - [ ] Add reusable Python script/module demonstrating curated risk-to-cost retrieval based on [`plans/query-scope.md`](query-scope.md).
 - [ ] Add Jupyter notebook that imports the reusable scripts/modules and presents the curated Phase 2 risk-to-cost demo.
@@ -133,14 +133,14 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 | Synthetic data | Completed | JSON and text fixtures were validated through successful ingestion. |
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
-| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, and unit tests are present. |
+| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, and unit tests are present. |
 | Mock pricing API | Not started | Planned for Phase 3. |
 | Governance and FinOps | Not started | Planned for Phase 4. |
 
 ## Next recommended implementation steps
 
-1. Run [`agent-brain/`](../agent-brain/) graph projection, vector retrieval, and graph traversal against live local services.
-2. Add a hybrid retrieval function combining graph and vector context.
-3. Implement reusable Python scripts/modules for the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](query-scope.md).
-4. Add a Jupyter notebook that imports those modules and presents the curated demo results.
-5. Initialize the Phase 3 mock pricing API after the Phase 2 demo path is validated.
+1. Run [`agent-brain/`](../agent-brain/) graph projection, vector retrieval, graph traversal, and hybrid retrieval against live local services.
+2. Implement reusable Python scripts/modules for the curated risk-to-cost retrieval demo from [`plans/query-scope.md`](query-scope.md).
+3. Add a Jupyter notebook that imports those modules and presents the curated demo results.
+4. Initialize the Phase 3 mock pricing API after the Phase 2 demo path is validated.
+5. Document the Phase 3 pricing API contract before adding agent tool calls.
