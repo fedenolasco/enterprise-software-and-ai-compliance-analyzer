@@ -116,10 +116,10 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 ## Phase 4: Governance, observability, and FinOps
 
 - [ ] Add local model adapter boundary for Microsoft Foundry Local readiness.
-- [ ] Install and configure a local Arize Phoenix-compatible observability setup.
+- [ ] Install and configure local Arize Phoenix through the Docker Compose `observability` profile.
 - [ ] Add Phoenix-compatible trace hook placeholders.
 - [ ] Add safety flag logging.
-- [ ] Install and configure a local Langfuse-compatible FinOps telemetry setup.
+- [ ] Install and configure local Langfuse through the Docker Compose `observability` profile.
 - [ ] Add Langfuse-compatible token usage and simulated cost logging.
 - [ ] Persist governance-critical events to audit tables.
 - [ ] Document local fallback behavior when optional observability tools are not installed.

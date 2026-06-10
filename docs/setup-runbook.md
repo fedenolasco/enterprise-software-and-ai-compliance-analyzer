@@ -342,6 +342,46 @@ jupyter lab notebooks/phase2-risk-to-cost-demo.ipynb
 
 The reset script deletes records in dependency-safe order and reports counts before deletion, deleted counts, and counts after deletion.
 
+### Optional Phase 4 observability Docker stack
+
+Phoenix and Langfuse are optional Phase 4 services. They run through the Docker Compose `observability` profile so the Phase 0 through Phase 3 workflow remains lightweight and does not require observability containers.
+
+Before starting the observability profile, copy [`.env.example`](../.env.example) to `.env` and replace the local placeholder secrets for Langfuse:
+
+- `LANGFUSE_NEXTAUTH_SECRET`
+- `LANGFUSE_SALT`
+- `LANGFUSE_ENCRYPTION_KEY`
+- `LANGFUSE_POSTGRES_PASSWORD`
+- `LANGFUSE_CLICKHOUSE_PASSWORD`
+- `LANGFUSE_REDIS_PASSWORD`
+- `LANGFUSE_MINIO_ROOT_PASSWORD`
+
+Start Phoenix, Langfuse, and Langfuse support services with:
+
+```text
+docker compose --profile observability up -d phoenix langfuse langfuse-worker
+```
+
+The profile also starts the required Langfuse PostgreSQL, ClickHouse, Redis, MinIO, and bucket-initialization services declared in [`docker-compose.yml`](../docker-compose.yml).
+
+Expected local endpoints are:
+
+| Service | Endpoint | Purpose |
+|---|---|---|
+| Phoenix UI and HTTP collector | `http://localhost:6006` | Trace review and Phoenix-compatible collection. |
+| Phoenix OTLP gRPC collector | `http://localhost:4317` | Trace export from future agent instrumentation. |
+| Langfuse UI/API | `http://localhost:3000` | Token usage and simulated cost telemetry review. |
+| Langfuse MinIO API | `http://localhost:9090` | Local object storage for Langfuse event payloads. |
+| Langfuse MinIO console | `http://localhost:9091` | Local object storage inspection. |
+
+Stop only the optional observability profile with:
+
+```text
+docker compose --profile observability stop phoenix langfuse langfuse-worker langfuse-postgres langfuse-clickhouse langfuse-redis langfuse-minio
+```
+
+If Phoenix or Langfuse are stopped, the agent workflow should continue with `PHOENIX_ENABLED=false` and `LANGFUSE_ENABLED=false`; local audit persistence remains the durable governance record.
+
 ## Notebook and end-user script documentation standard
 
 Every end-user script or notebook added for a demo must be self-documenting and linked from this runbook. Notebook markdown cells should explain each executable section before code is run.

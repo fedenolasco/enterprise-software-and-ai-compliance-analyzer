@@ -283,14 +283,14 @@ sequenceDiagram
 
 ## Phase 4 observability installation and compatibility setup
 
-Phase 4 includes local installation and configuration of Arize Phoenix and Langfuse-compatible telemetry. These tools are observability targets for the agent workflow, but they must remain optional runtime dependencies because local audit records are the durable governance source of truth.
+Phase 4 includes local Docker-based installation and configuration of Arize Phoenix and Langfuse-compatible telemetry through the Docker Compose `observability` profile in [`docker-compose.yml`](../docker-compose.yml). These tools are observability targets for the agent workflow, but they must remain optional runtime dependencies because local audit records are the durable governance source of truth.
 
 ### Compatibility requirements
 
 | Tool | Required setup behavior | Compatibility rule |
 |---|---|---|
-| Arize Phoenix | Run locally through a pinned package or pinned container image, then receive LangGraph trace spans, trace identifiers, node names, safety flags, and decision metadata. | Do not use unpinned `latest` images or unbounded dependency versions. Keep Phoenix unavailable-safe: workflow execution must continue and persist `AuditEvent` rows if Phoenix is not running. |
-| Langfuse | Run locally through pinned, self-hosted services or a pinned SDK-compatible endpoint, then receive token usage and simulated cost telemetry. | Do not make Langfuse a cloud-only requirement. Keep Langfuse unavailable-safe: token and cost summaries must still be written to local audit/governance records if Langfuse is not running. |
+| Arize Phoenix | Run locally through the pinned Phoenix container in [`docker-compose.yml`](../docker-compose.yml), then receive LangGraph trace spans, trace identifiers, node names, safety flags, and decision metadata. | Do not use unpinned `latest` images or unbounded dependency versions. Keep Phoenix unavailable-safe: workflow execution must continue and persist `AuditEvent` rows if Phoenix is not running. |
+| Langfuse | Run locally through pinned, self-hosted Docker services in [`docker-compose.yml`](../docker-compose.yml), then receive token usage and simulated cost telemetry. | Do not make Langfuse a cloud-only requirement. Keep Langfuse unavailable-safe: token and cost summaries must still be written to local audit/governance records if Langfuse is not running. |
 | Agent observability adapters | Emit Phoenix-compatible traces and Langfuse-compatible usage records from the LangGraph workflow boundary. | Keep adapters behind configuration flags so tests can run without Phoenix or Langfuse processes. |
 | Local audit persistence | Store trace IDs, safety flags, HITL outcomes, token usage, and simulated costs in PostgreSQL audit records. | Treat local `AuditEvent` records as the reconciliation point between Phoenix traces and Langfuse cost events. |
 
@@ -309,12 +309,20 @@ Use explicit environment variables for optional observability services:
 
 The default local setup should keep `PHOENIX_ENABLED=false` and `LANGFUSE_ENABLED=false` until the corresponding local services are installed and reachable. This preserves the local-first workflow and prevents optional observability tools from blocking retrieval, pricing, HITL, or recommendation tests.
 
+Start the optional observability stack with Docker Compose only when Phase 4 validation needs Phoenix or Langfuse:
+
+```text
+docker compose --profile observability up -d phoenix langfuse langfuse-worker
+```
+
+This profile keeps PostgreSQL, Neo4j, Phoenix, Langfuse, and Langfuse support services reproducible without making observability mandatory for earlier phases.
+
 ### Installation validation expectations
 
 Phase 4 installation is considered compatible when:
 
-- Phoenix starts locally from a pinned dependency or container and receives at least one LangGraph trace with `trace_id`, node name, safety flag, and decision metadata.
-- Langfuse starts locally from pinned self-hosted dependencies or a pinned SDK-compatible endpoint and receives at least one token usage and simulated cost event.
+- Phoenix starts locally from the pinned Docker Compose service and receives at least one LangGraph trace with `trace_id`, node name, safety flag, and decision metadata.
+- Langfuse starts locally from pinned Docker Compose services and receives at least one token usage and simulated cost event.
 - The same workflow run writes a local `AuditEvent` record containing the correlation `trace_id`.
 - Disabling or stopping Phoenix and Langfuse does not fail the agent workflow; it only suppresses external observability export while local audit persistence continues.
 

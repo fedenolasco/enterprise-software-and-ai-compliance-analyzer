@@ -161,10 +161,10 @@ Recommended initial entities:
 ### Actionable tasks
 
 - Add an adapter boundary for the local reasoning model so Microsoft Foundry Local can be introduced without rewriting workflow logic.
-- Install and configure a local Arize Phoenix-compatible observability setup using pinned, locally runnable dependencies.
+- Install and configure a local Arize Phoenix-compatible observability setup through the Docker Compose `observability` profile using a pinned container image.
 - Add Phoenix-compatible tracing hooks for LangGraph steps.
 - Capture `trace_id`, `node_name`, `safety_flag`, `risk_severity`, and decision outcome.
-- Install and configure a local Langfuse-compatible FinOps telemetry setup using pinned, locally runnable dependencies.
+- Install and configure a local Langfuse-compatible FinOps telemetry setup through the Docker Compose `observability` profile using pinned self-hosted container images and local service dependencies.
 - Add Langfuse-compatible token and simulated cost logging.
 - Store critical governance events in PostgreSQL audit tables as a local source of truth.
 - Document how to run the system with placeholder local model responses if Foundry Local is not installed.
