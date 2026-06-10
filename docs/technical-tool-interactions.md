@@ -281,6 +281,43 @@ sequenceDiagram
 | Phase 3 | Retrieved context and synthetic pricing data | LangGraph, FastAPI, local tool wrappers | Draft recommendations and HITL approval state | HITL blocks unapproved cancellation recommendations |
 | Phase 4 | Agent traces, decisions, token events, safety flags | Phoenix, Langfuse, AuditEvent records | Observability, safety, and FinOps telemetry | Trace ID, safety flag, token usage, simulated cost, audit records |
 
+## Phase 4 observability installation and compatibility setup
+
+Phase 4 includes local installation and configuration of Arize Phoenix and Langfuse-compatible telemetry. These tools are observability targets for the agent workflow, but they must remain optional runtime dependencies because local audit records are the durable governance source of truth.
+
+### Compatibility requirements
+
+| Tool | Required setup behavior | Compatibility rule |
+|---|---|---|
+| Arize Phoenix | Run locally through a pinned package or pinned container image, then receive LangGraph trace spans, trace identifiers, node names, safety flags, and decision metadata. | Do not use unpinned `latest` images or unbounded dependency versions. Keep Phoenix unavailable-safe: workflow execution must continue and persist `AuditEvent` rows if Phoenix is not running. |
+| Langfuse | Run locally through pinned, self-hosted services or a pinned SDK-compatible endpoint, then receive token usage and simulated cost telemetry. | Do not make Langfuse a cloud-only requirement. Keep Langfuse unavailable-safe: token and cost summaries must still be written to local audit/governance records if Langfuse is not running. |
+| Agent observability adapters | Emit Phoenix-compatible traces and Langfuse-compatible usage records from the LangGraph workflow boundary. | Keep adapters behind configuration flags so tests can run without Phoenix or Langfuse processes. |
+| Local audit persistence | Store trace IDs, safety flags, HITL outcomes, token usage, and simulated costs in PostgreSQL audit records. | Treat local `AuditEvent` records as the reconciliation point between Phoenix traces and Langfuse cost events. |
+
+### Recommended local configuration contract
+
+Use explicit environment variables for optional observability services:
+
+| Variable | Purpose |
+|---|---|
+| `PHOENIX_ENABLED` | Enables or disables Phoenix trace export. |
+| `PHOENIX_ENDPOINT` | Local Phoenix collector or UI endpoint. |
+| `LANGFUSE_ENABLED` | Enables or disables Langfuse usage/cost export. |
+| `LANGFUSE_HOST` | Local Langfuse endpoint. |
+| `LANGFUSE_PUBLIC_KEY` | Local/self-hosted Langfuse public key when required by the SDK. |
+| `LANGFUSE_SECRET_KEY` | Local/self-hosted Langfuse secret key when required by the SDK. |
+
+The default local setup should keep `PHOENIX_ENABLED=false` and `LANGFUSE_ENABLED=false` until the corresponding local services are installed and reachable. This preserves the local-first workflow and prevents optional observability tools from blocking retrieval, pricing, HITL, or recommendation tests.
+
+### Installation validation expectations
+
+Phase 4 installation is considered compatible when:
+
+- Phoenix starts locally from a pinned dependency or container and receives at least one LangGraph trace with `trace_id`, node name, safety flag, and decision metadata.
+- Langfuse starts locally from pinned self-hosted dependencies or a pinned SDK-compatible endpoint and receives at least one token usage and simulated cost event.
+- The same workflow run writes a local `AuditEvent` record containing the correlation `trace_id`.
+- Disabling or stopping Phoenix and Langfuse does not fail the agent workflow; it only suppresses external observability export while local audit persistence continues.
+
 ## Repeatable demo reset I/O
 
 The reset process is part of the demo architecture because curated queries only remain reliable when all generated state is rebuilt from committed fixtures.

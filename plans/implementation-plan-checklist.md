@@ -12,7 +12,7 @@ This checklist tracks implementation progress against the roadmap in [`plans/imp
 
 ## Round 1 progress summary
 
-Round 1 created the written implementation plan and began Phase 0 and Phase 1 scaffolding. The repository now has monorepo folders, Docker service configuration, database-layer TypeScript/Prisma structure, synthetic fixtures, ingestion scaffolding, concurrency validation scaffolding, and setup documentation.
+Round 1 created the written implementation plan and completed Phase 0 through Phase 3 checklist scope. The repository now has monorepo folders, Docker service configuration, database-layer TypeScript/Prisma structure, synthetic fixtures, ingestion and concurrency validation scripts, setup documentation, local hybrid retrieval scaffolding, curated Phase 2 demo assets, mock pricing API scaffolding, LangGraph-ready orchestration primitives, pricing tool integration, recommendation drafting, and HITL finalization controls.
 
 ## Phase 0: Monorepo foundation
 
@@ -116,11 +116,14 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 ## Phase 4: Governance, observability, and FinOps
 
 - [ ] Add local model adapter boundary for Microsoft Foundry Local readiness.
+- [ ] Install and configure a local Arize Phoenix-compatible observability setup.
 - [ ] Add Phoenix-compatible trace hook placeholders.
 - [ ] Add safety flag logging.
+- [ ] Install and configure a local Langfuse-compatible FinOps telemetry setup.
 - [ ] Add Langfuse-compatible token usage and simulated cost logging.
 - [ ] Persist governance-critical events to audit tables.
 - [ ] Document local fallback behavior when optional observability tools are not installed.
+- [ ] Validate Phoenix and Langfuse setup compatibility against [`docs/technical-tool-interactions.md`](../docs/technical-tool-interactions.md).
 
 ## Current completion snapshot
 
@@ -133,14 +136,14 @@ Round 1 created the written implementation plan and began Phase 0 and Phase 1 sc
 | Synthetic data | Completed | JSON and text fixtures were validated through successful ingestion. |
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
-| Agent brain | In progress | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, notebook, LangGraph-ready state model, mock pricing tool wrapper, recommendation drafting, HITL finalization gate, and unit tests are present. |
-| Mock pricing API | In progress | FastAPI scaffold, synthetic pricing fixture, typed models, tests, and pricing contract are present. |
+| Agent brain | Completed | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, notebook, LangGraph-ready state model, mock pricing tool wrapper, recommendation drafting, HITL finalization gate, and unit tests are present. |
+| Mock pricing API | Completed | FastAPI scaffold, synthetic pricing fixture, typed models, tests, and pricing contract are present. |
 | Governance and FinOps | Not started | Planned for Phase 4. |
 
 ## Next recommended implementation steps
 
-1. Run [`agent-brain/`](../agent-brain/) graph projection, vector retrieval, graph traversal, hybrid retrieval, curated demo assertions, and the Phase 2 notebook against live local services.
-2. Run [`mock-pricing-api/`](../mock-pricing-api/) validation and start the local FastAPI service.
-3. Add local model adapter boundary for future Microsoft Foundry Local readiness.
-4. Add Phoenix-compatible trace hook placeholders.
-5. Add safety flag logging.
+1. Add local model adapter boundary for future Microsoft Foundry Local readiness.
+2. Install/configure local Arize Phoenix and add Phoenix-compatible trace hook placeholders.
+3. Install/configure local Langfuse and add Langfuse-compatible token usage and simulated cost logging.
+4. Add safety flag logging.
+5. Persist governance-critical events to audit tables.
