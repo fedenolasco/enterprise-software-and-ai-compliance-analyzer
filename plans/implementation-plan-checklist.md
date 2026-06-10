@@ -115,15 +115,15 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 
 ## Phase 4: Governance, observability, and FinOps
 
-- [ ] Add local model adapter boundary for Microsoft Foundry Local readiness.
-- [ ] Install and configure local Arize Phoenix through the Docker Compose `observability` profile.
-- [ ] Add Phoenix-compatible trace hook placeholders.
-- [ ] Add safety flag logging.
-- [ ] Install and configure local Langfuse through the Docker Compose `observability` profile.
-- [ ] Add Langfuse-compatible token usage and simulated cost logging.
-- [ ] Persist governance-critical events to audit tables.
-- [ ] Document local fallback behavior when optional observability tools are not installed.
-- [ ] Validate Phoenix and Langfuse setup compatibility against [`docs/technical-tool-interactions.md`](../docs/technical-tool-interactions.md).
+- [x] Add local model adapter boundary for Microsoft Foundry Local readiness.
+- [x] Install and configure local Arize Phoenix through the Docker Compose `observability` profile.
+- [x] Add Phoenix-compatible trace hook placeholders.
+- [x] Add safety flag logging.
+- [x] Install and configure local Langfuse through the Docker Compose `observability` profile.
+- [x] Add Langfuse-compatible token usage and simulated cost logging.
+- [x] Persist governance-critical events to audit tables.
+- [x] Document local fallback behavior when optional observability tools are not installed.
+- [x] Validate Phoenix and Langfuse setup compatibility against [`docs/technical-tool-interactions.md`](../docs/technical-tool-interactions.md).
 
 ## Current completion snapshot
 
@@ -138,12 +138,12 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
 | Agent brain | Completed | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, notebook, LangGraph-ready state model, mock pricing tool wrapper, recommendation drafting, HITL finalization gate, and unit tests are present. |
 | Mock pricing API | Completed | FastAPI scaffold, synthetic pricing fixture, typed models, tests, and pricing contract are present. |
-| Governance and FinOps | Not started | Planned for Phase 4. |
+| Governance and FinOps | Completed | Docker Compose observability profile, local model adapter boundary, Phoenix-compatible traces, safety flag events, Langfuse-compatible token/cost records, audit persistence helpers, fallback documentation, compatibility validation, and unit tests are present. |
 
 ## Next recommended implementation steps
 
-1. Add local model adapter boundary for future Microsoft Foundry Local readiness.
-2. Install/configure local Arize Phoenix and add Phoenix-compatible trace hook placeholders.
-3. Install/configure local Langfuse and add Langfuse-compatible token usage and simulated cost logging.
-4. Add safety flag logging.
-5. Persist governance-critical events to audit tables.
+1. Run the optional Docker Compose `observability` profile and confirm Phoenix and Langfuse containers start locally.
+2. Run an end-to-end agent workflow with `PHOENIX_ENABLED=true` and `LANGFUSE_ENABLED=true` after exporter clients are wired to the placeholder payloads.
+3. Replace deterministic placeholder model responses with a concrete Microsoft Foundry Local client when the local model runtime is available.
+4. Add integration tests that persist governance audit events against a live local PostgreSQL database.
+5. Add UI or CLI review screens for Phoenix trace IDs, Langfuse usage events, and local audit records.

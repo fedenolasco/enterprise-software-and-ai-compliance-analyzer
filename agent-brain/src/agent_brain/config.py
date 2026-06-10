@@ -40,6 +40,16 @@ class AgentBrainSettings:
     embedding_dimension: int = 8
     vector_top_k: int = 5
     graph_result_limit: int = 25
+    model_provider: str = "placeholder"
+    foundry_local_endpoint: str | None = None
+    local_model_name: str = "deterministic-placeholder-local-model"
+    phoenix_enabled: bool = False
+    phoenix_endpoint: str = "http://localhost:6006"
+    phoenix_grpc_endpoint: str = "http://localhost:4317"
+    langfuse_enabled: bool = False
+    langfuse_host: str = "http://localhost:3000"
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
 
 
 def get_settings() -> AgentBrainSettings:
@@ -55,4 +65,28 @@ def get_settings() -> AgentBrainSettings:
         embedding_dimension=_positive_int_from_env("EMBEDDING_DIMENSION", 8),
         vector_top_k=_positive_int_from_env("VECTOR_TOP_K", 5),
         graph_result_limit=_positive_int_from_env("GRAPH_RESULT_LIMIT", 25),
+        model_provider=getenv("MODEL_PROVIDER", "placeholder"),
+        foundry_local_endpoint=getenv("FOUNDRY_LOCAL_ENDPOINT"),
+        local_model_name=getenv("LOCAL_MODEL_NAME", "deterministic-placeholder-local-model"),
+        phoenix_enabled=_bool_from_env("PHOENIX_ENABLED", False),
+        phoenix_endpoint=getenv("PHOENIX_ENDPOINT", "http://localhost:6006"),
+        phoenix_grpc_endpoint=getenv("PHOENIX_GRPC_ENDPOINT", "http://localhost:4317"),
+        langfuse_enabled=_bool_from_env("LANGFUSE_ENABLED", False),
+        langfuse_host=getenv("LANGFUSE_HOST", "http://localhost:3000"),
+        langfuse_public_key=getenv("LANGFUSE_PUBLIC_KEY"),
+        langfuse_secret_key=getenv("LANGFUSE_SECRET_KEY"),
     )
+
+
+def _bool_from_env(name: str, default: bool) -> bool:
+    """Read a boolean from the environment."""
+
+    raw_value = getenv(name)
+    if raw_value is None or raw_value.strip() == "":
+        return default
+    normalized = raw_value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{name} must be a boolean value.")

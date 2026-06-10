@@ -147,6 +147,14 @@ The mandatory human-in-the-loop finalization helpers are defined in [`hitl.py`](
 
 Rejected or revision-requested decisions keep `final_output` empty and add `FINALIZATION_BLOCKED`, preserving the hard stop before cancellation or renewal finalization.
 
+## Phase 4 model and observability boundaries
+
+The Phase 4 local model boundary is defined in [`model_adapter.py`](src/agent_brain/orchestration/model_adapter.py). It provides a deterministic placeholder adapter for offline validation and an explicit Microsoft Foundry Local adapter boundary that fails closed until a concrete local client is wired in.
+
+Phoenix-compatible trace payloads, Langfuse-compatible token/cost payloads, safety flag records, and local AuditEvent-compatible governance records are defined in [`observability.py`](src/agent_brain/governance/observability.py). PostgreSQL persistence helpers for governance audit records are defined in [`audit.py`](src/agent_brain/governance/audit.py).
+
+The observability exporters are intentionally unavailable-safe. Tests can build trace, usage, safety, and audit payloads without running Phoenix or Langfuse. When those optional services are unavailable, local audit persistence remains the durable governance source of truth.
+
 ## Planned package layout
 
 ```text

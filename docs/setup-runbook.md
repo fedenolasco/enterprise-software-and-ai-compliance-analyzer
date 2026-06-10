@@ -382,6 +382,15 @@ docker compose --profile observability stop phoenix langfuse langfuse-worker lan
 
 If Phoenix or Langfuse are stopped, the agent workflow should continue with `PHOENIX_ENABLED=false` and `LANGFUSE_ENABLED=false`; local audit persistence remains the durable governance record.
 
+The Phase 4 Python payload builders can be validated without running Phoenix or Langfuse:
+
+```text
+cd agent-brain
+python -m pytest tests/test_model_adapter.py tests/test_observability.py tests/test_audit.py
+```
+
+These tests validate the Microsoft Foundry Local adapter boundary, deterministic placeholder model fallback, Phoenix-compatible trace payloads, Langfuse-compatible token/cost payloads, safety flag records, and PostgreSQL AuditEvent-compatible governance records.
+
 ## Notebook and end-user script documentation standard
 
 Every end-user script or notebook added for a demo must be self-documenting and linked from this runbook. Notebook markdown cells should explain each executable section before code is run.
