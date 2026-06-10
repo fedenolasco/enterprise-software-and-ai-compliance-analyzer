@@ -25,6 +25,11 @@ Local-first monorepo for analyzing enterprise software subscriptions and AI comp
 - `proposal/setup-plan-v3.md`
 - `plans/implementation-plan.md`
 
+## Demo documentation
+
+- [`docs/demo-runbook.md`](docs/demo-runbook.md) — recommended stakeholder and technical demo order.
+- [`docs/setup-runbook.md`](docs/setup-runbook.md) — detailed local setup and validation commands.
+
 ## Local services
 
 Use `docker-compose.yml` with `.env.example` values to start PostgreSQL with pgvector and Neo4j.

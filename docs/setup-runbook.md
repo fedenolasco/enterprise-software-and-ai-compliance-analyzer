@@ -2,6 +2,8 @@
 
 ## Phase 0 and Phase 1 bootstrap
 
+For a presentation-ready walkthrough sequence, use [`docs/demo-runbook.md`](demo-runbook.md). This setup runbook remains the detailed command reference for preparing and validating the local environment.
+
 1. Copy [`.env.example`](../.env.example) to `.env` at the repository root.
 2. Start local services with [`docker-compose.yml`](../docker-compose.yml).
 3. Copy [`database-layer/.env.example`](../database-layer/.env.example) to `database-layer/.env`.
