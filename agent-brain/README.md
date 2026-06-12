@@ -1,4 +1,4 @@
-# Agent Brain
+﻿# Agent Brain
 
 Python workstream for local hybrid retrieval, graph context, future LangGraph orchestration, and governance hooks.
 
@@ -131,7 +131,7 @@ The model exports a `TypedDict` shape for future LangGraph nodes and includes `i
 
 ## Mock pricing tool wrapper
 
-The local pricing tool wrapper is defined in [`pricing.py`](src/agent_brain/tools/pricing.py). It calls the mock pricing API `POST /pricing:lookup` endpoint documented in [`docs/pricing-api-contract.md`](../docs/pricing-api-contract.md), normalizes the response, and can append a `LivePricingContext` entry to `AgentBrainState`.
+The local pricing tool wrapper is defined in [`pricing.py`](src/agent_brain/tools/pricing.py). It calls the mock pricing API `POST /pricing:lookup` endpoint documented in [`docs/08-pricing-api-contract.md`](../docs/08-pricing-api-contract.md), normalizes the response, and can append a `LivePricingContext` entry to `AgentBrainState`.
 
 The wrapper uses `MOCK_PRICING_API_URL`, defaulting to `http://127.0.0.1:8000`.
 

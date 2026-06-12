@@ -1,4 +1,4 @@
-# Enterprise Software & AI Compliance Analyzer Progress Checklist
+﻿# Enterprise Software & AI Compliance Analyzer Progress Checklist
 
 ## Purpose
 
@@ -23,14 +23,14 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 - [x] Add repository overview in [`README.md`](../README.md).
 - [x] Add root environment template in [`.env.example`](../.env.example).
 - [x] Add local Docker service configuration in [`docker-compose.yml`](../docker-compose.yml).
-- [x] Add architecture overview in [`docs/architecture-overview.md`](../docs/architecture-overview.md).
-- [x] Add business product requirements document in [`docs/product-requirements.md`](../docs/product-requirements.md).
-- [x] Add dependency and versioning strategy in [`docs/dependency-versioning-strategy.md`](../docs/dependency-versioning-strategy.md).
-- [x] Add schema diagrams and business logic documentation in [`docs/schema-diagrams.md`](../docs/schema-diagrams.md).
-- [x] Add technical tool interaction diagrams and metadata in [`docs/technical-tool-interactions.md`](../docs/technical-tool-interactions.md).
-- [x] Add setup runbook in [`docs/setup-runbook.md`](../docs/setup-runbook.md).
-- [x] Add repeatable demo reset strategy in [`docs/setup-runbook.md`](../docs/setup-runbook.md).
-- [x] Cross-reference repeatable demo reset strategy from [`docs/architecture-overview.md`](../docs/architecture-overview.md) and [`docs/technical-tool-interactions.md`](../docs/technical-tool-interactions.md).
+- [x] Add architecture overview in [`docs/02-architecture-overview.md`](../docs/02-architecture-overview.md).
+- [x] Add business product requirements document in [`docs/01-product-requirements.md`](../docs/01-product-requirements.md).
+- [x] Add dependency and versioning strategy in [`docs/05-dependency-versioning-strategy.md`](../docs/05-dependency-versioning-strategy.md).
+- [x] Add schema diagrams and business logic documentation in [`docs/03-schema-diagrams.md`](../docs/03-schema-diagrams.md).
+- [x] Add technical tool interaction diagrams and metadata in [`docs/04-technical-tool-interactions.md`](../docs/04-technical-tool-interactions.md).
+- [x] Add setup runbook in [`docs/06-setup-runbook.md`](../docs/06-setup-runbook.md).
+- [x] Add repeatable demo reset strategy in [`docs/06-setup-runbook.md`](../docs/06-setup-runbook.md).
+- [x] Cross-reference repeatable demo reset strategy from [`docs/02-architecture-overview.md`](../docs/02-architecture-overview.md) and [`docs/04-technical-tool-interactions.md`](../docs/04-technical-tool-interactions.md).
 
 ## Phase 1: Local data foundations and zero-ETL architecture
 
@@ -123,7 +123,7 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 - [x] Add Langfuse-compatible token usage and simulated cost logging.
 - [x] Persist governance-critical events to audit tables.
 - [x] Document local fallback behavior when optional observability tools are not installed.
-- [x] Validate Phoenix and Langfuse setup compatibility against [`docs/technical-tool-interactions.md`](../docs/technical-tool-interactions.md).
+- [x] Validate Phoenix and Langfuse setup compatibility against [`docs/04-technical-tool-interactions.md`](../docs/04-technical-tool-interactions.md).
 
 ## Current completion snapshot
 

@@ -1,8 +1,8 @@
-# Demo Runbook
+﻿# Demo Runbook
 
 ## Purpose
 
-This runbook gives a presentation-ready order for demonstrating the Enterprise Software & AI Compliance Analyzer from a clean local checkout. It complements the operational setup details in [`docs/setup-runbook.md`](setup-runbook.md), the architecture diagrams in [`docs/technical-tool-interactions.md`](technical-tool-interactions.md), and the curated query definitions in [`plans/query-scope.md`](../plans/query-scope.md).
+This runbook gives a presentation-ready order for demonstrating the Enterprise Software & AI Compliance Analyzer from a clean local checkout. It complements the operational setup details in [`docs/06-setup-runbook.md`](06-setup-runbook.md), the architecture diagrams in [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md), and the curated query definitions in [`plans/query-scope.md`](../plans/query-scope.md).
 
 Use this document when preparing a stakeholder walkthrough, recorded demo, or technical validation session.
 
@@ -47,8 +47,8 @@ Optional tools:
 Start with the high-level project context:
 
 - [`README.md`](../README.md) for the monorepo and phase overview.
-- [`docs/architecture-overview.md`](architecture-overview.md) for architecture narrative.
-- [`docs/technical-tool-interactions.md`](technical-tool-interactions.md) for tool interaction diagrams.
+- [`docs/02-architecture-overview.md`](02-architecture-overview.md) for architecture narrative.
+- [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md) for tool interaction diagrams.
 - [`plans/implementation-plan-checklist.md`](../plans/implementation-plan-checklist.md) for implementation completion status.
 
 Suggested talk track:
@@ -64,7 +64,7 @@ copy .env.example .env
 docker compose up -d
 ```
 
-This starts the default local infrastructure: PostgreSQL with pgvector and Neo4j. The detailed setup order is documented in [`docs/setup-runbook.md`](setup-runbook.md).
+This starts the default local infrastructure: PostgreSQL with pgvector and Neo4j. The detailed setup order is documented in [`docs/06-setup-runbook.md`](06-setup-runbook.md).
 
 ### 3. Bootstrap and seed the database layer
 
@@ -125,7 +125,7 @@ From [`agent-brain/`](../agent-brain/):
 python -m agent_brain.cli.search_vectors "cross-border processing subprocessors outside the EU" --top-k 5
 ```
 
-Explain that the current embeddings are deterministic placeholder embedding vectors. They validate the pgvector write/read path but are not production semantic embeddings. The limitation is documented in [`docs/technical-tool-interactions.md`](technical-tool-interactions.md).
+Explain that the current embeddings are deterministic placeholder embedding vectors. They validate the pgvector write/read path but are not production semantic embeddings. The limitation is documented in [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md).
 
 ### 7. Demonstrate graph traversal
 
@@ -184,7 +184,7 @@ python -m pytest
 python -m mock_pricing_api.main
 ```
 
-The pricing service runs on `http://127.0.0.1:8000` by default. Its contract is documented in [`docs/pricing-api-contract.md`](pricing-api-contract.md).
+The pricing service runs on `http://127.0.0.1:8000` by default. Its contract is documented in [`docs/08-pricing-api-contract.md`](08-pricing-api-contract.md).
 
 ### 12. Demonstrate Phase 3 governance behavior
 
@@ -224,7 +224,7 @@ These tests demonstrate:
 
 ### 14. Optionally start Phoenix and Langfuse UIs
 
-This is optional for the current scaffold. Before starting the observability profile, copy [`.env.example`](../.env.example) to `.env` and replace the placeholder Langfuse secrets listed in [`docs/setup-runbook.md`](setup-runbook.md).
+This is optional for the current scaffold. Before starting the observability profile, copy [`.env.example`](../.env.example) to `.env` and replace the placeholder Langfuse secrets listed in [`docs/06-setup-runbook.md`](06-setup-runbook.md).
 
 From the repository root:
 
@@ -269,7 +269,7 @@ Optional setup:
 
 If time is limited, use this order:
 
-1. Show [`docs/technical-tool-interactions.md`](technical-tool-interactions.md).
+1. Show [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md).
 2. Run PostgreSQL/Neo4j startup from [`docker-compose.yml`](../docker-compose.yml).
 3. Run database ingestion and concurrency validation from [`database-layer/`](../database-layer/).
 4. Run graph projection from [`agent-brain/`](../agent-brain/).

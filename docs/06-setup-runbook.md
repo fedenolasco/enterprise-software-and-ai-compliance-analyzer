@@ -1,8 +1,8 @@
-# Setup Runbook
+﻿# Setup Runbook
 
 ## Phase 0 and Phase 1 bootstrap
 
-For a presentation-ready walkthrough sequence, use [`docs/demo-runbook.md`](demo-runbook.md). This setup runbook remains the detailed command reference for preparing and validating the local environment.
+For a presentation-ready walkthrough sequence, use [`docs/07-demo-runbook.md`](07-demo-runbook.md). This setup runbook remains the detailed command reference for preparing and validating the local environment.
 
 1. Copy [`.env.example`](../.env.example) to `.env` at the repository root.
 2. Start local services with [`docker-compose.yml`](../docker-compose.yml).
@@ -121,7 +121,7 @@ python -m mypy src
 python -m mock_pricing_api.main
 ```
 
-The API starts on `http://127.0.0.1:8000` by default and serves deterministic synthetic pricing records from [`mock-pricing-api/src/mock_pricing_api/data/pricing.json`](../mock-pricing-api/src/mock_pricing_api/data/pricing.json). The contract is documented in [`docs/pricing-api-contract.md`](pricing-api-contract.md).
+The API starts on `http://127.0.0.1:8000` by default and serves deterministic synthetic pricing records from [`mock-pricing-api/src/mock_pricing_api/data/pricing.json`](../mock-pricing-api/src/mock_pricing_api/data/pricing.json). The contract is documented in [`docs/08-pricing-api-contract.md`](08-pricing-api-contract.md).
 
 ### 11. Validate the Phase 3 agent state model
 

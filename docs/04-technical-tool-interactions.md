@@ -1,8 +1,8 @@
-# Technical Tool Interaction Diagrams
+﻿# Technical Tool Interaction Diagrams
 
 ## Purpose
 
-This document shows the high-level technology input/output relationships across all layers of the Enterprise Software & AI Compliance Analyzer. It complements [`docs/architecture-overview.md`](architecture-overview.md), [`docs/schema-diagrams.md`](schema-diagrams.md), and [`plans/query-scope.md`](../plans/query-scope.md) by focusing on what each tool exchanges, why it exists, and how it supports the local compliance-analysis use case.
+This document shows the high-level technology input/output relationships across all layers of the Enterprise Software & AI Compliance Analyzer. It complements [`docs/02-architecture-overview.md`](02-architecture-overview.md), [`docs/03-schema-diagrams.md`](03-schema-diagrams.md), and [`plans/query-scope.md`](../plans/query-scope.md) by focusing on what each tool exchanges, why it exists, and how it supports the local compliance-analysis use case.
 
 The architecture deliberately separates technologies by responsibility:
 
@@ -255,7 +255,7 @@ sequenceDiagram
 | [`proposal/setup-plan-v3.md`](../proposal/setup-plan-v3.md) | Planning | Detailed roadmap | Chronological setup tasks | Defines the intended order of schema, data, retrieval, agents, and observability. |
 | [`plans/implementation-plan.md`](../plans/implementation-plan.md) | Planning | Proposal roadmap | Executable implementation plan | Converts the roadmap into concrete engineering phases. |
 | [`plans/query-scope.md`](../plans/query-scope.md) | Planning and validation | Synthetic data context | Curated positive demo queries | Ensures retrieval demos intentionally match available sample data. |
-| [`docs/setup-runbook.md`](setup-runbook.md) reset strategy | Demo operations | Persisted demo state and committed fixtures | Clean repeatable demo baseline | Defines what must be reset so curated query outputs remain deterministic. |
+| [`docs/06-setup-runbook.md`](06-setup-runbook.md) reset strategy | Demo operations | Persisted demo state and committed fixtures | Clean repeatable demo baseline | Defines what must be reset so curated query outputs remain deterministic. |
 | [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma) | Type-safe data access | Domain model decisions | Prisma Client types and database schema | Prevents schema drift and provides typed access boundaries. |
 | PostgreSQL | Local persistence | Prisma writes, ingestion outputs, audit events | Relational subscription, risk, evidence, and audit records | Provides the local source of truth with no cloud dependency. |
 | pgvector | Local vector retrieval | Document chunk embeddings | Similarity search results | Enables zero-ETL retrieval in the same PostgreSQL database. During Phase 1 this stores deterministic placeholder vectors for write-path validation, not production semantic embeddings. |

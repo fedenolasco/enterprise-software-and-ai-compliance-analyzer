@@ -1,4 +1,4 @@
-# Business Product Requirements: Enterprise Software & AI Compliance Analyzer
+﻿# Business Product Requirements: Enterprise Software & AI Compliance Analyzer
 
 ## Document control
 
@@ -212,7 +212,7 @@ The product addresses this by creating a local prototype that joins subscription
 |---|---|---|
 | Placeholder embeddings are mistaken for semantic embeddings. | Retrieval quality could be overestimated. | Documentation clearly labels them deterministic placeholders. |
 | Curated demo data is too narrow. | Product appears demo-only. | Use curated data for baseline, then expand scenarios after validation. |
-| Graph and relational data drift. | Retrieval returns inconsistent context. | Use reset and projection rules from [`docs/setup-runbook.md`](setup-runbook.md). |
+| Graph and relational data drift. | Retrieval returns inconsistent context. | Use reset and projection rules from [`docs/06-setup-runbook.md`](06-setup-runbook.md). |
 | Agent recommendations overstep governance boundaries. | Compliance risk. | Enforce HITL before final cancellation or renewal recommendation. |
 | Product direction changes are undocumented. | Team loses decision history. | Update this document, [`CHANGELOG.md`](../CHANGELOG.md), and ADRs. |
 

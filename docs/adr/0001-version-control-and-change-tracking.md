@@ -1,4 +1,4 @@
-# ADR 0001: Version Control and Change Tracking
+﻿# ADR 0001: Version Control and Change Tracking
 
 ## Status
 
@@ -46,7 +46,7 @@ When replacing deterministic placeholder vectors with real local semantic embedd
 2. Update `database-layer/prisma/schema.prisma` from `vector(8)` to the selected model dimension.
 3. Update `EMBEDDING_DIMENSION` in environment examples.
 4. Reset and re-ingest demo data.
-5. Update `docs/setup-runbook.md`, `docs/schema-diagrams.md`, and `docs/technical-tool-interactions.md`.
+5. Update `docs/06-setup-runbook.md`, `docs/03-schema-diagrams.md`, and `docs/04-technical-tool-interactions.md`.
 6. Add a changelog entry.
 7. Add a new ADR documenting the model choice, dimension, runtime requirements, and tradeoffs.
 8. Commit and tag the validated milestone if retrieval behavior is accepted.

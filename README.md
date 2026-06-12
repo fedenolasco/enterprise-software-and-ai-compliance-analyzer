@@ -1,4 +1,4 @@
-# Enterprise Software & AI Compliance Analyzer
+﻿# Enterprise Software & AI Compliance Analyzer
 
 Local-first monorepo for analyzing enterprise software subscriptions and AI compliance risk across structured billing data and unstructured compliance evidence.
 
@@ -27,8 +27,8 @@ Local-first monorepo for analyzing enterprise software subscriptions and AI comp
 
 ## Demo documentation
 
-- [`docs/demo-runbook.md`](docs/demo-runbook.md) — recommended stakeholder and technical demo order.
-- [`docs/setup-runbook.md`](docs/setup-runbook.md) — detailed local setup and validation commands.
+- [`docs/07-demo-runbook.md`](docs/07-demo-runbook.md) — recommended stakeholder and technical demo order.
+- [`docs/06-setup-runbook.md`](docs/06-setup-runbook.md) — detailed local setup and validation commands.
 
 ## Local services
 

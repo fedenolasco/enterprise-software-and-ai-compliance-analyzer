@@ -1,4 +1,4 @@
-# Enterprise Software & AI Compliance Analyzer Implementation Plan
+﻿# Enterprise Software & AI Compliance Analyzer Implementation Plan
 
 ## Source documents
 
@@ -168,7 +168,7 @@ Recommended initial entities:
 - Add Langfuse-compatible token and simulated cost logging.
 - Store critical governance events in PostgreSQL audit tables as a local source of truth.
 - Document how to run the system with placeholder local model responses if Foundry Local is not installed.
-- Validate the Phoenix and Langfuse setup against the compatibility boundaries in [`docs/technical-tool-interactions.md`](../docs/technical-tool-interactions.md).
+- Validate the Phoenix and Langfuse setup against the compatibility boundaries in [`docs/04-technical-tool-interactions.md`](../docs/04-technical-tool-interactions.md).
 
 ### Validation checkpoints
 
