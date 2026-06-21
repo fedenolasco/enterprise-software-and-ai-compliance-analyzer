@@ -97,7 +97,7 @@ The product addresses this by creating a local prototype that joins subscription
 - Hybrid PostgreSQL vector plus Neo4j graph retrieval modules and curated Phase 2 demo assets.
 - Jupyter notebook and reusable curated demo module aligned to [`plans/03-query-scope.md`](../plans/03-query-scope.md).
 - Local FastAPI mock pricing service and synthetic pricing fixture.
-- LangGraph-ready agent state, pricing tool wrapper, deterministic recommendation drafting, and mandatory HITL finalization gate.
+- LangGraph runtime workflow, LangGraph-ready agent state, pricing tool wrapper, deterministic recommendation drafting, and mandatory HITL finalization gate.
 - Phoenix-compatible trace payloads, Langfuse-compatible token/cost payloads, safety flag records, local audit helpers, and optional observability Docker profile.
 - Microsoft Foundry Local adapter boundary with deterministic placeholder model fallback.
 - Product, architecture, schema, query, reset, and technical interaction documentation.

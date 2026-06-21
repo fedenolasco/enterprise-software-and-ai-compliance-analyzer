@@ -82,6 +82,12 @@ Context7 documentation for LangGraph confirms the following compatibility constr
 - Commit lockfiles such as `uv.lock` or equivalent once dependencies are installed.
 - Pin LangGraph, LangChain, LlamaIndex, FastAPI, Uvicorn, Pydantic, PostgreSQL client, and Neo4j client versions when they become runtime-critical or when lockfiles are introduced.
 
+For local virtual environments, use Python `3.11.x` unless an ADR or compatibility update changes the baseline. The manifests allow `>=3.11`, but Python 3.11.x is the recommended development and demo runtime for dependency stability.
+
+Python versions newer than `3.11.x` may run the current test suite, but they are not the documented baseline. Dependency warnings emitted only under non-`3.11.x` interpreters, such as Neo4j driver deprecation warnings, should be tracked as compatibility observations and treated as blockers only if they become test failures or affect runtime behavior under the documented Python 3.11.x baseline.
+
+Generated local dependency artifacts must not be committed. The root [`.gitignore`](../.gitignore) excludes Python virtual environments, Python tooling caches, Node `node_modules`, generated build folders, Jupyter checkpoints, and uncommitted `.env` files while preserving committed `.env.example` templates.
+
 ### Docker services
 
 - Keep Docker image tags explicit.
@@ -167,6 +173,7 @@ Major upgrades require:
 - [`database-layer/package-lock.json`](../database-layer/package-lock.json) is present, so Node dependency installation has been captured for the database layer.
 - [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml) and [`mock-pricing-api/pyproject.toml`](../mock-pricing-api/pyproject.toml) are present for the Python workstreams.
 - Python lockfiles are not currently present; add `uv.lock`, `poetry.lock`, or an equivalent lockfile if reproducible Python dependency resolution becomes a hard requirement.
+- LangGraph Phase A runtime wiring is implemented with `langgraph==1.0.8` pinned in [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml). The workflow keeps deterministic governance logic authoritative per [`docs/adr/0004-langgraph-runtime-with-deterministic-governance.md`](adr/0004-langgraph-runtime-with-deterministic-governance.md).
 - Live Phoenix and Langfuse exporter clients are not yet wired end to end; pin exporter SDKs when that integration is added.
 - A concrete Microsoft Foundry Local client is still forward-looking; document runtime and dependency requirements when selected.
 

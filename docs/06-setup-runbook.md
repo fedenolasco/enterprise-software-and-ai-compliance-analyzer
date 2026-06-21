@@ -13,6 +13,43 @@ For a presentation-ready walkthrough sequence, use [`docs/07-demo-runbook.md`](0
 7. Ingest synthetic fixtures.
 8. Run the concurrency validator.
 
+## Python virtual environment baseline
+
+Use Python `3.11.x` for local virtual environments in the Python workstreams.
+
+The project manifests require Python `>=3.11`, but the recommended local baseline is Python `3.11.x` because LangGraph local workflows and the current dependency set are documented against Python 3.11+.
+
+Create separate virtual environments for each Python workstream:
+
+- [`agent-brain/`](../agent-brain/)
+- [`mock-pricing-api/`](../mock-pricing-api/)
+
+On Windows, prefer the Python launcher so each virtual environment is created with Python 3.11 even if the default `python` command points to a newer interpreter:
+
+```cmd
+cd agent-brain
+py -3.11 -m venv .venv
+.venv\Scripts\activate.bat
+python -m pip install --upgrade pip
+python -m pip install -e .[dev,notebook]
+```
+
+For the mock pricing API:
+
+```cmd
+cd mock-pricing-api
+py -3.11 -m venv .venv
+.venv\Scripts\activate.bat
+python -m pip install --upgrade pip
+python -m pip install -e .[dev]
+```
+
+Python versions newer than the documented `3.11.x` baseline may execute the current tests, but they are not the supported local baseline. If dependency warnings appear when using a non-`3.11.x` interpreter, such as Neo4j driver deprecation warnings, treat them as runtime compatibility warnings unless they become test failures or affect runtime behavior. Re-run validation in a Python `3.11.x` virtual environment before treating those warnings as project defects.
+
+Local virtual environments, caches, tool outputs, and uncommitted `.env` files are intentionally ignored by the root [`.gitignore`](../.gitignore). Before committing, run `git status --short` and confirm that generated folders such as `.venv`, `.venv-py311`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`, `node_modules`, and `.ipynb_checkpoints` are not staged.
+
+Committed environment templates such as [`.env.example`](../.env.example), [`agent-brain/.env.example`](../agent-brain/.env.example), [`database-layer/.env.example`](../database-layer/.env.example), and [`mock-pricing-api/.env.example`](../mock-pricing-api/.env.example) remain tracked so users can recreate local settings without committing secrets.
+
 ## End-to-end local run order
 
 Use this order when building or replaying the current validated local baseline from a clean checkout. Run commands from the repository root unless a step explicitly changes into a workstream directory.
@@ -159,7 +196,16 @@ python -m pytest tests/test_hitl.py
 
 The HITL helpers in [`agent-brain/src/agent_brain/governance/hitl.py`](../agent-brain/src/agent_brain/governance/hitl.py) build a structured pause payload and block final output unless the human decision is approved.
 
-### 15. Run future documented demo entry points
+### 15. Validate the LangGraph Phase A runtime workflow
+
+```cmd
+cd agent-brain
+python -m pytest tests/test_langgraph_workflow.py
+```
+
+The LangGraph workflow in [`agent-brain/src/agent_brain/orchestration/workflow.py`](../agent-brain/src/agent_brain/orchestration/workflow.py) wraps the existing deterministic pricing, recommendation drafting, and HITL finalization logic. It uses LangGraph for node sequencing, conditional routing, and checkpoint-ready execution without introducing LLM calls or OpenAI Agents SDK behavior.
+
+### 16. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -169,6 +215,10 @@ Future end-user scripts and notebooks must be added to this runbook when impleme
 - Required environment variables.
 - Expected deterministic outputs or assertions.
 - Known limitations, especially when deterministic placeholder embeddings are still in use.
+
+The next planned Phase 3 entry point is the LangGraph runtime workflow described in [`plans/04-langgraph-runtime-orchestration-plan.md`](../plans/04-langgraph-runtime-orchestration-plan.md). After implementation, add the exact command, required environment variables, checkpoint reset notes, and validation expectations here before treating the workflow as end-user ready.
+
+A future guided notebook, [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb), should be added only after the LangGraph workflow is implemented and validated. It must demonstrate deterministic LangGraph execution, mock pricing context, recommendation drafting, HITL pause or block behavior, and approved finalization without introducing LLM calls or OpenAI Agents SDK behavior. Link the notebook here with exact launch instructions before treating it as an end-user demo artifact.
 
 ## Expected validation outcomes
 

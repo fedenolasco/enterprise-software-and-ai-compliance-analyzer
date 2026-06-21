@@ -47,3 +47,7 @@ Within folders that use two-digit prefixes, read files in ascending numeric orde
 ## Local services
 
 Use `docker-compose.yml` with `.env.example` values to start PostgreSQL with pgvector and Neo4j.
+
+## Local generated files
+
+The root [`.gitignore`](.gitignore) excludes local virtual environments, dependency folders, tool caches, logs, Jupyter checkpoints, and uncommitted `.env` files. Keep committed templates such as [`.env.example`](.env.example) and workstream `.env.example` files in source control, but do not commit machine-specific `.env` files or generated folders such as `.venv`, `.venv-py311`, `node_modules`, `.mypy_cache`, `.pytest_cache`, or `.ruff_cache`.

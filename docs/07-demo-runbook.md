@@ -195,6 +195,7 @@ python -m pytest tests/test_orchestration_state.py
 python -m pytest tests/test_pricing_tool.py
 python -m pytest tests/test_recommendation.py
 python -m pytest tests/test_hitl.py
+python -m pytest tests/test_langgraph_workflow.py
 ```
 
 These tests demonstrate:
@@ -203,6 +204,7 @@ These tests demonstrate:
 - Mock pricing tool wrapper behavior in [`agent-brain/src/agent_brain/tools/pricing.py`](../agent-brain/src/agent_brain/tools/pricing.py).
 - Recommendation drafting in [`agent-brain/src/agent_brain/orchestration/recommendation.py`](../agent-brain/src/agent_brain/orchestration/recommendation.py).
 - Mandatory HITL finalization controls in [`agent-brain/src/agent_brain/governance/hitl.py`](../agent-brain/src/agent_brain/governance/hitl.py).
+- LangGraph runtime orchestration in [`agent-brain/src/agent_brain/orchestration/workflow.py`](../agent-brain/src/agent_brain/orchestration/workflow.py) without LLM calls or OpenAI Agents SDK behavior.
 
 ### 13. Demonstrate Phase 4 governance and observability scaffolding
 
@@ -251,7 +253,7 @@ Use this checklist before a stakeholder walkthrough, recorded demo, or technical
 - [ ] The repository is on the expected branch and commit, and the working tree does not contain unrelated changes.
 - [ ] Docker Desktop is running and has enough memory available for PostgreSQL, pgvector, and Neo4j.
 - [ ] Node.js and npm are installed for [`database-layer/`](../database-layer/).
-- [ ] Python `3.11+` and pip are installed for [`agent-brain/`](../agent-brain/) and [`mock-pricing-api/`](../mock-pricing-api/).
+- [ ] Python `3.11.x` and pip are installed for local virtual environments in [`agent-brain/`](../agent-brain/) and [`mock-pricing-api/`](../mock-pricing-api/).
 - [ ] Root [`.env.example`](../.env.example) has been copied to `.env`.
 - [ ] [`database-layer/.env.example`](../database-layer/.env.example) has been copied to `database-layer/.env`.
 - [ ] [`agent-brain/.env.example`](../agent-brain/.env.example) has been copied to `agent-brain/.env` when running agent commands directly.
@@ -325,6 +327,7 @@ Optional setup:
 1. Install notebook extras for the Jupyter walkthrough.
 2. Replace Langfuse secrets and start the Docker Compose `observability` profile.
 3. Add a concrete Microsoft Foundry Local runtime when replacing the placeholder model adapter.
+4. Add the future Phase 3 LangGraph notebook from [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) only after the runtime workflow is implemented, validated, and documented in [`docs/06-setup-runbook.md`](06-setup-runbook.md).
 
 ## Recommended short demo path
 

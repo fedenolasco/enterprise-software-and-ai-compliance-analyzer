@@ -25,9 +25,11 @@ The current implementation milestone includes:
 
 ## Setup
 
+Use Python `3.11.x` for this virtual environment to match the repository Python baseline.
+
 ```powershell
 cd agent-brain
-python -m venv .venv
+py -3.11 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e .[dev,notebook]
