@@ -24,9 +24,9 @@ This document must be updated when dependency versions, runtime versions, Docker
 | Database layer | Node.js, TypeScript, Prisma, Prisma Client, `pg`, `zod`, `tsx` | [`database-layer/package.json`](../database-layer/package.json), [`database-layer/tsconfig.json`](../database-layer/tsconfig.json) | `package-lock.json` after dependency installation |
 | Database schema | Prisma models, enums, pgvector field, relations | [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma) | Prisma migrations after runtime validation |
 | Synthetic data | Structured subscription data and compliance document fixtures | [`database-layer/data/subscriptions.json`](../database-layer/data/subscriptions.json), [`database-layer/data/documents/`](../database-layer/data/documents/) | Versioned fixture updates and reset validation |
-| Agent brain | Python retrieval, LangGraph, LangChain, LlamaIndex, Neo4j/PostgreSQL clients | Future [`agent-brain/`](../agent-brain/) project manifest | Future `pyproject.toml`, `uv.lock`, or equivalent lockfile |
-| Mock pricing API | Python FastAPI service and pricing fixture layer | Future [`mock-pricing-api/`](../mock-pricing-api/) project manifest | Future `pyproject.toml`, `uv.lock`, or equivalent lockfile |
-| Observability | Phoenix, Langfuse, trace adapters, token/cost logging | Future agent dependency manifest and docs | Future pinned observability dependencies |
+| Agent brain | Python retrieval, LangGraph-ready state, Neo4j/PostgreSQL clients, governance helpers | [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml) | Future `uv.lock`, `poetry.lock`, or equivalent lockfile if dependency locking is introduced |
+| Mock pricing API | Python FastAPI service and pricing fixture layer | [`mock-pricing-api/pyproject.toml`](../mock-pricing-api/pyproject.toml) | Future `uv.lock`, `poetry.lock`, or equivalent lockfile if dependency locking is introduced |
+| Observability | Phoenix, Langfuse, trace adapters, token/cost logging | [`docker-compose.yml`](../docker-compose.yml), [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml), and [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md) | Future pinned exporter client dependencies when live exporters are wired |
 | Documentation and governance | Product, architecture, ADRs, changelog, setup, query scope | [`docs/`](../docs/), [`plans/`](../plans/), [`CHANGELOG.md`](../CHANGELOG.md) | Git commits, tags, and ADR history |
 
 ## Context7 compatibility findings
@@ -61,8 +61,8 @@ Context7 documentation for LangGraph confirms the following compatibility constr
 | pgvector | Bundled in selected Docker image | Tied to `pgvector/pgvector:pg16` image. |
 | Neo4j | `5.21` | Explicit image in [`docker-compose.yml`](../docker-compose.yml). |
 | Python | `3.11+` | Required for LangGraph local CLI and local server workflows. |
-| LangGraph | Pin during Phase 2 | Do not leave floating once [`agent-brain/`](../agent-brain/) is initialized. |
-| FastAPI | Pin during Phase 3 | Do not leave floating once [`mock-pricing-api/`](../mock-pricing-api/) is initialized. |
+| LangGraph-ready orchestration | Present as typed state and workflow boundaries | Full LangGraph runtime wiring remains a forward-looking hardening step. |
+| FastAPI | Declared in [`mock-pricing-api/pyproject.toml`](../mock-pricing-api/pyproject.toml) | Validate local API startup and tests after dependency changes. |
 | Embedding model | Deterministic placeholder for now | Documented in [`docs/adr/0002-placeholder-embedding-strategy.md`](adr/0002-placeholder-embedding-strategy.md). |
 
 ## Version pinning policy
@@ -78,9 +78,9 @@ Context7 documentation for LangGraph confirms the following compatibility constr
 ### Python layers
 
 - Use Python `3.11+` for [`agent-brain/`](../agent-brain/) and [`mock-pricing-api/`](../mock-pricing-api/).
-- Use a project manifest such as `pyproject.toml` when those layers are scaffolded.
+- Use the existing project manifests in [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml) and [`mock-pricing-api/pyproject.toml`](../mock-pricing-api/pyproject.toml).
 - Commit lockfiles such as `uv.lock` or equivalent once dependencies are installed.
-- Pin LangGraph, LangChain, LlamaIndex, FastAPI, Uvicorn, Pydantic, PostgreSQL client, and Neo4j client versions when introduced.
+- Pin LangGraph, LangChain, LlamaIndex, FastAPI, Uvicorn, Pydantic, PostgreSQL client, and Neo4j client versions when they become runtime-critical or when lockfiles are introduced.
 
 ### Docker services
 
@@ -162,12 +162,13 @@ Major upgrades require:
 | Phase 3 | Create mock API manifest, pin FastAPI stack, validate local API startup. |
 | Phase 4 | Pin observability libraries and document Phoenix/Langfuse compatibility. |
 
-## Current unresolved dependency notes
+## Current dependency status and forward-looking notes
 
-- [`database-layer/tsconfig.json`](../database-layer/tsconfig.json) references Node types via `types: ["node"]`.
-- [`@types/node`](../database-layer/package.json) is declared but not installed until dependency installation is approved.
-- The visible TypeScript diagnostic is expected until `npm install` is run in [`database-layer/`](../database-layer/).
-- Dependency installation is intentionally deferred until scaffolding is ready and approved.
+- [`database-layer/package-lock.json`](../database-layer/package-lock.json) is present, so Node dependency installation has been captured for the database layer.
+- [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml) and [`mock-pricing-api/pyproject.toml`](../mock-pricing-api/pyproject.toml) are present for the Python workstreams.
+- Python lockfiles are not currently present; add `uv.lock`, `poetry.lock`, or an equivalent lockfile if reproducible Python dependency resolution becomes a hard requirement.
+- Live Phoenix and Langfuse exporter clients are not yet wired end to end; pin exporter SDKs when that integration is added.
+- A concrete Microsoft Foundry Local client is still forward-looking; document runtime and dependency requirements when selected.
 
 ## Governance
 

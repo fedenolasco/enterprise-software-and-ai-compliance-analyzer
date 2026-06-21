@@ -6,7 +6,7 @@
 |---|---|
 | Product | Enterprise Software & AI Compliance Analyzer |
 | Document type | Business Product Requirements Document |
-| Current status | Living product document |
+| Current status | Living product document aligned to completed Phase 0 through Phase 4 scaffold/prototype implementation |
 | Initial baseline | Phase 0 complete and Phase 1 validated data-layer baseline |
 | Source roadmap | [`proposal/01-high-level-plan.md`](../proposal/01-high-level-plan.md), [`proposal/02-setup-plan-v3.md`](../proposal/02-setup-plan-v3.md) |
 | Technical plan | [`plans/01-implementation-plan.md`](../plans/01-implementation-plan.md) |
@@ -89,24 +89,30 @@ The product addresses this by creating a local prototype that joins subscription
 
 - Monorepo structure for database, agent, mock API, docs, plans, and scripts.
 - PostgreSQL and pgvector service configuration.
-- Neo4j service configuration for future graph retrieval.
+- Neo4j service configuration, graph projection, and graph traversal for local relationship retrieval.
 - Prisma schema for vendor, software, subscription, document, chunk, risk, and audit records.
 - Synthetic subscription and compliance-document fixtures.
 - Deterministic placeholder embedding strategy for pgvector write-path validation.
-- Data ingestion and concurrency validation scaffolding.
+- Data ingestion, repeatable reset, and concurrency validation scaffolding.
+- Hybrid PostgreSQL vector plus Neo4j graph retrieval modules and curated Phase 2 demo assets.
+- Jupyter notebook and reusable curated demo module aligned to [`plans/03-query-scope.md`](../plans/03-query-scope.md).
+- Local FastAPI mock pricing service and synthetic pricing fixture.
+- LangGraph-ready agent state, pricing tool wrapper, deterministic recommendation drafting, and mandatory HITL finalization gate.
+- Phoenix-compatible trace payloads, Langfuse-compatible token/cost payloads, safety flag records, local audit helpers, and optional observability Docker profile.
+- Microsoft Foundry Local adapter boundary with deterministic placeholder model fallback.
 - Product, architecture, schema, query, reset, and technical interaction documentation.
 - Public GitHub repository and phase baseline tag.
-- Runtime-validated Prisma generation, schema application, ingestion, pgvector write path, and concurrency validation.
+- Runtime-validated Prisma generation, schema application, ingestion, pgvector write path, concurrency validation, graph projection/traversal, hybrid retrieval, pricing API behavior, HITL controls, and governance payload builders.
 
 ### Out of scope for the current scaffold
 
 - Production semantic embedding model.
-- Fully implemented Neo4j graph projection.
-- Fully implemented hybrid retrieval notebook or script.
-- FastAPI mock pricing service implementation.
-- LangGraph agent workflow implementation.
-- Actual HITL UI or production approval workflow.
-- Production-grade observability integrations.
+- Live enterprise or vendor data ingestion.
+- Concrete Microsoft Foundry Local model client implementation beyond the adapter boundary.
+- Live Phoenix and Langfuse exporter clients wired end-to-end into a running agent workflow.
+- Actual HITL UI or production approval workflow beyond code-level finalization controls.
+- Production-grade observability dashboards, alerting, role-based governance, and retention policies.
+- Production procurement or vendor-pricing integrations.
 
 ## Product roadmap
 
@@ -134,7 +140,7 @@ The product addresses this by creating a local prototype that joins subscription
 - Audit events capture ingestion and concurrency validation.
 - Demo reset strategy keeps curated demos repeatable.
 
-**Status:** Validated for local data foundation and repeatable synthetic ingestion. Phase 2 graph projection remains planned separately.
+**Status:** Complete and validated for local data foundation, repeatable synthetic ingestion, pgvector placeholder writes, reset, and optimistic concurrency checks.
 
 ### Phase 2: Hybrid retrieval and evidence-to-cost analysis
 
@@ -147,7 +153,7 @@ The product addresses this by creating a local prototype that joins subscription
 - Neo4j graph traversal links vendors, software, subscriptions, documents, chunks, and risks.
 - Query outputs are deterministic enough for repeatable demonstrations.
 
-**Status:** Planned.
+**Status:** Complete for the local prototype scaffold. Graph projection, graph traversal, PostgreSQL vector retrieval, hybrid risk-to-cost retrieval, curated demo assertions, and the Phase 2 notebook are implemented and tracked in [`plans/02-implementation-plan-checklist.md`](../plans/02-implementation-plan-checklist.md).
 
 ### Phase 3: Agentic workflow, mock pricing, and HITL governance
 
@@ -160,7 +166,7 @@ The product addresses this by creating a local prototype that joins subscription
 - Recommendations are grounded in retrieval context and pricing data.
 - High-risk recommendations pause for human approval before finalization.
 
-**Status:** Planned.
+**Status:** Complete for the local prototype scaffold. The mock pricing API, pricing tool wrapper, LangGraph-ready state model, recommendation drafting, and mandatory HITL finalization gate are implemented and validated through tests.
 
 ### Phase 4: Observability, governance, and FinOps telemetry
 
@@ -172,7 +178,7 @@ The product addresses this by creating a local prototype that joins subscription
 - Governance-critical events persist locally in audit records.
 - The product is ready for a local reasoning engine integration path, including Microsoft Foundry Local or equivalent local model runtime.
 
-**Status:** Planned.
+**Status:** Complete for governance and observability scaffolding. Optional Phoenix and Langfuse services are configured through the Docker Compose `observability` profile, payload builders are implemented, safety and audit helpers are present, and Microsoft Foundry Local is represented by a replaceable adapter boundary.
 
 ## Product capabilities by maturity
 
@@ -180,11 +186,11 @@ The product addresses this by creating a local prototype that joins subscription
 |---|---|---|---|
 | Subscription data modeling | Prisma schema exists | Runtime validation and ingestion complete | Import from enterprise systems. |
 | Compliance evidence ingestion | Synthetic text fixtures exist | Chunking, risk inference, embeddings validated | Vendor-document upload and review workflow. |
-| Embeddings | Deterministic placeholder vectors | Real local semantic embedding model | Model selection and retrieval quality monitoring. |
-| Retrieval | Planned | Hybrid PostgreSQL plus Neo4j query demo | Interactive query experience. |
-| Pricing | Planned mock API | Local FastAPI pricing tool | Integration with procurement or pricing systems. |
+| Embeddings | Deterministic placeholder vectors | Placeholder write/read path validated in pgvector | Real local semantic model selection and retrieval quality monitoring. |
+| Retrieval | PostgreSQL vector and Neo4j graph modules exist | Hybrid PostgreSQL plus Neo4j query demo with curated assertions | Interactive query experience and broader scenario coverage. |
+| Pricing | Local synthetic pricing fixture and FastAPI service | Local pricing lookup tool wrapper validates tool-use pattern | Integration with procurement or pricing systems. |
 | HITL governance | Documented requirement | LangGraph pause and approval state | Role-based approval workflow. |
-| Observability | Documented architecture | Local trace and cost logging | Full governance dashboard. |
+| Observability | Documented architecture and optional Docker profile | Phoenix/Langfuse-compatible payloads, safety flags, audit persistence helpers | Full governance dashboard and live exporter wiring. |
 
 ## Success metrics
 
@@ -205,6 +211,9 @@ The product addresses this by creating a local prototype that joins subscription
 - Concurrency validation completes without data corruption.
 - Hybrid retrieval returns expected positive matches.
 - Audit events are persisted for ingestion, validation, HITL, and recommendations.
+- Mock pricing lookup returns deterministic synthetic pricing records.
+- Recommendation finalization is blocked unless HITL approval is present.
+- Governance payload builders produce trace, safety, token/cost, and audit-compatible records.
 
 ## Product risks and mitigations
 
@@ -241,4 +250,16 @@ Material changes should also update:
 
 The initial baseline is tagged as `phase-0-1-baseline` in Git. It represents the transition from proposal and planning into a scaffolded local product architecture.
 
-Since that tag, Phase 1 data-layer validation has progressed: Prisma schema generation, local PostgreSQL schema application, synthetic ingestion, pgvector placeholder embedding writes, and optimistic concurrency validation have been executed successfully. The product is now ready to move toward Phase 2 hybrid retrieval and graph projection.
+Since that tag, the implementation has progressed through the local prototype scaffold described in [`plans/02-implementation-plan-checklist.md`](../plans/02-implementation-plan-checklist.md): Prisma schema generation, local PostgreSQL schema application, synthetic ingestion, pgvector placeholder embedding writes, optimistic concurrency validation, Neo4j graph projection/traversal, hybrid risk-to-cost retrieval, curated Phase 2 demo assets, mock pricing API scaffolding, LangGraph-ready state, pricing tool integration, deterministic recommendation drafting, HITL finalization controls, and Phase 4 governance/observability payload builders are present.
+
+## Forward-looking product plan
+
+The next product direction is not to add more scaffold, but to harden the validated local prototype into a richer governed demo and later production-style implementation:
+
+1. Wire live Phoenix and Langfuse exporter clients into the agent workflow while keeping local `AuditEvent` records as the durable fallback.
+2. Replace deterministic placeholder model responses with a concrete Microsoft Foundry Local client when the local model runtime is available.
+3. Replace deterministic placeholder embedding vectors with a real local semantic embedding model and update the vector dimension, reset workflow, query expectations, and related ADRs.
+4. Add integration tests that persist governance audit events against a live local PostgreSQL database.
+5. Add UI or CLI review screens for Phoenix trace IDs, Langfuse usage events, local audit records, and HITL approval decisions.
+6. Expand synthetic scenarios beyond the current OpenAI, Microsoft, and Notion fixtures to test broader vendor, risk, renewal, and pricing combinations.
+7. Evaluate production-grade integrations only after the local synthetic workflow remains repeatable, explainable, and governed end to end.

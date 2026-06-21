@@ -266,9 +266,9 @@ flowchart TD
   L --> M[Review deterministic demo output]
 ```
 
-### Future reset scripts and demo entry points
+### Reset scripts and demo entry points
 
-The following scripts should be added as implementation matures:
+The following scripts and entry points are present unless explicitly marked as future. Keep this table updated as demo automation matures:
 
 | Script | Purpose |
 |---|---|
@@ -282,12 +282,12 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/orchestration/recommendation.py`](../agent-brain/src/agent_brain/orchestration/recommendation.py) | Draft deterministic recommendations from retrieval, pricing, and risk context. |
 | [`agent-brain/src/agent_brain/tools/pricing.py`](../agent-brain/src/agent_brain/tools/pricing.py) | Call the local mock pricing API and append normalized pricing context to agent state. |
 | [`agent-brain/src/agent_brain/governance/hitl.py`](../agent-brain/src/agent_brain/governance/hitl.py) | Enforce mandatory HITL pause and approval before final recommendation output. |
-| `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
+| Future `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
 | [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/03-query-scope.md`](../plans/03-query-scope.md). |
 | [`mock-pricing-api/src/mock_pricing_api/main.py`](../mock-pricing-api/src/mock_pricing_api/main.py) | Run the local FastAPI mock pricing service for Phase 3 tool-use validation. |
-| `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
-| `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
-| `scripts/reset-demo-environment.sh` | Optional WSL/Linux equivalent. |
+| Future `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
+| Future `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
+| Future `scripts/reset-demo-environment.sh` | Optional WSL/Linux equivalent. |
 
 ### Current reset command
 

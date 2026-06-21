@@ -1,4 +1,4 @@
-"""Curated Phase 2 risk-to-cost demo aligned to plans/query-scope.md."""
+"""Curated Phase 2 risk-to-cost demo aligned to plans/03-query-scope.md."""
 
 from __future__ import annotations
 

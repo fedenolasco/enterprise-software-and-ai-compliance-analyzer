@@ -446,4 +446,6 @@ flowchart TD
 
 ## Current implementation status
 
-This document describes the intended schema represented in [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma). Runtime validation still needs to confirm Prisma generation, PostgreSQL schema application, pgvector enablement, ingestion execution, and concurrency validation.
+This document describes the schema represented in [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma). The current implementation has validated Prisma generation, PostgreSQL schema application, pgvector enablement, synthetic ingestion, deterministic placeholder embedding writes, repeatable reset, and optimistic concurrency checks. Phase 2 graph projection and graph traversal are implemented in [`agent-brain/`](../agent-brain/) and use the same relational identifiers to connect vendors, software, subscriptions, compliance documents, document chunks, and risk metadata.
+
+Forward-looking schema work should focus on replacing deterministic placeholder vectors with a real local semantic embedding model, updating the `vector(8)` dimension to the selected model dimension, and adding any new fields needed for production review workflows, remediation status, and richer HITL decision history.
