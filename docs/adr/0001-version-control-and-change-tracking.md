@@ -1,4 +1,4 @@
-﻿# ADR 0001: Version Control and Change Tracking
+# ADR 0001: Version Control and Change Tracking
 
 ## Status
 

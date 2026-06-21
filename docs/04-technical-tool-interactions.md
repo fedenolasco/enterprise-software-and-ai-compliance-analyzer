@@ -1,8 +1,8 @@
-Ôªø# Technical Tool Interaction Diagrams
+# Technical Tool Interaction Diagrams
 
 ## Purpose
 
-This document shows the high-level technology input/output relationships across all layers of the Enterprise Software & AI Compliance Analyzer. It complements [`docs/02-architecture-overview.md`](02-architecture-overview.md), [`docs/03-schema-diagrams.md`](03-schema-diagrams.md), and [`plans/query-scope.md`](../plans/query-scope.md) by focusing on what each tool exchanges, why it exists, and how it supports the local compliance-analysis use case.
+This document shows the high-level technology input/output relationships across all layers of the Enterprise Software & AI Compliance Analyzer. It complements [`docs/02-architecture-overview.md`](02-architecture-overview.md), [`docs/03-schema-diagrams.md`](03-schema-diagrams.md), and [`plans/03-query-scope.md`](../plans/03-query-scope.md) by focusing on what each tool exchanges, why it exists, and how it supports the local compliance-analysis use case.
 
 The architecture deliberately separates technologies by responsibility:
 
@@ -251,10 +251,10 @@ sequenceDiagram
 
 | Component | Layer | Primary input | Primary output | Why it exists |
 |---|---|---|---|---|
-| [`proposal/high-level-plan.md`](../proposal/high-level-plan.md) | Planning | Strategic project goals | Phase-level implementation direction | Keeps implementation aligned to local-first, governed AI architecture. |
-| [`proposal/setup-plan-v3.md`](../proposal/setup-plan-v3.md) | Planning | Detailed roadmap | Chronological setup tasks | Defines the intended order of schema, data, retrieval, agents, and observability. |
-| [`plans/implementation-plan.md`](../plans/implementation-plan.md) | Planning | Proposal roadmap | Executable implementation plan | Converts the roadmap into concrete engineering phases. |
-| [`plans/query-scope.md`](../plans/query-scope.md) | Planning and validation | Synthetic data context | Curated positive demo queries | Ensures retrieval demos intentionally match available sample data. |
+| [`proposal/01-high-level-plan.md`](../proposal/01-high-level-plan.md) | Planning | Strategic project goals | Phase-level implementation direction | Keeps implementation aligned to local-first, governed AI architecture. |
+| [`proposal/02-setup-plan-v3.md`](../proposal/02-setup-plan-v3.md) | Planning | Detailed roadmap | Chronological setup tasks | Defines the intended order of schema, data, retrieval, agents, and observability. |
+| [`plans/01-implementation-plan.md`](../plans/01-implementation-plan.md) | Planning | Proposal roadmap | Executable implementation plan | Converts the roadmap into concrete engineering phases. |
+| [`plans/03-query-scope.md`](../plans/03-query-scope.md) | Planning and validation | Synthetic data context | Curated positive demo queries | Ensures retrieval demos intentionally match available sample data. |
 | [`docs/06-setup-runbook.md`](06-setup-runbook.md) reset strategy | Demo operations | Persisted demo state and committed fixtures | Clean repeatable demo baseline | Defines what must be reset so curated query outputs remain deterministic. |
 | [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma) | Type-safe data access | Domain model decisions | Prisma Client types and database schema | Prevents schema drift and provides typed access boundaries. |
 | PostgreSQL | Local persistence | Prisma writes, ingestion outputs, audit events | Relational subscription, risk, evidence, and audit records | Provides the local source of truth with no cloud dependency. |
@@ -275,9 +275,9 @@ sequenceDiagram
 
 | Phase | Inputs | Processing tools | Outputs | Validation evidence |
 |---|---|---|---|---|
-| Phase 0 | Proposal docs and implementation intent | Markdown docs, Docker Compose, folder structure | Monorepo structure and setup docs | [`plans/implementation-plan-checklist.md`](../plans/implementation-plan-checklist.md) |
+| Phase 0 | Proposal docs and implementation intent | Markdown docs, Docker Compose, folder structure | Monorepo structure and setup docs | [`plans/02-implementation-plan-checklist.md`](../plans/02-implementation-plan-checklist.md) |
 | Phase 1 | Synthetic JSON, compliance text, Prisma schema | TypeScript, Prisma, PostgreSQL, pgvector | Vendors, software, subscriptions, chunks, embeddings, risks, audits | Prisma generation, ingestion run, concurrency validation |
-| Phase 2 | Structured records, embeddings, graph nodes, curated queries | Python, PostgreSQL, pgvector, Neo4j | Hybrid risk-to-cost context | Deterministic positive query matches from [`plans/query-scope.md`](../plans/query-scope.md) |
+| Phase 2 | Structured records, embeddings, graph nodes, curated queries | Python, PostgreSQL, pgvector, Neo4j | Hybrid risk-to-cost context | Deterministic positive query matches from [`plans/03-query-scope.md`](../plans/03-query-scope.md) |
 | Phase 3 | Retrieved context and synthetic pricing data | LangGraph, FastAPI, local tool wrappers | Draft recommendations and HITL approval state | HITL blocks unapproved cancellation recommendations |
 | Phase 4 | Agent traces, decisions, token events, safety flags | Phoenix, Langfuse, AuditEvent records | Observability, safety, and FinOps telemetry | Trace ID, safety flag, token usage, simulated cost, audit records |
 
@@ -364,7 +364,7 @@ Orange reset lines show the direct outputs of the reset procedure. They indicate
 | [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma) | Recreated schema contract | Ensures the database shape matches the documented model. |
 | [`database-layer/data/subscriptions.json`](../database-layer/data/subscriptions.json) | Rebuilt vendor, software, and subscription rows | Keeps commercial scenario data deterministic. |
 | [`database-layer/data/documents/`](../database-layer/data/documents/) | Rebuilt document chunks and embeddings | Keeps semantic search aligned to known positive evidence. |
-| [`plans/query-scope.md`](../plans/query-scope.md) | Expected query inputs and matches | Keeps demo assertions aligned to fixture data. |
+| [`plans/03-query-scope.md`](../plans/03-query-scope.md) | Expected query inputs and matches | Keeps demo assertions aligned to fixture data. |
 | Runtime audit, trace, HITL, graph, and pricing state | Cleared generated state | Prevents prior runs from affecting the next demonstration. |
 
 ## Embedding strategy: deterministic placeholder first, real local model later
@@ -411,7 +411,7 @@ When the real embedding model is selected, update:
 
 ### Documentation wording standard
 
-Use the phrase ‚Äúdeterministic placeholder embedding vectors‚Äù until a real local embedding model is implemented. Avoid calling them ‚Äúsemantic embeddings‚Äù because that would imply model-based meaning that the current placeholder does not provide.
+Use the phrase ìdeterministic placeholder embedding vectorsî until a real local embedding model is implemented. Avoid calling them ìsemantic embeddingsî because that would imply model-based meaning that the current placeholder does not provide.
 
 ## Why these technology boundaries exist
 

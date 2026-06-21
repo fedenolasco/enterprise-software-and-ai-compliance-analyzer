@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the curated query inputs for the Phase 2 hybrid retrieval demo described in [`plans/implementation-plan.md`](implementation-plan.md). The goal is to make the notebook or script deterministic, demonstrable, and aligned with the current synthetic data rather than dependent on arbitrary natural-language questions.
+This document defines the curated query inputs for the Phase 2 hybrid retrieval demo described in [`plans/01-implementation-plan.md`](01-implementation-plan.md). The goal is to make the notebook or script deterministic, demonstrable, and aligned with the current synthetic data rather than dependent on arbitrary natural-language questions.
 
 Documenting this now is worthwhile because the current context is known: the synthetic subscription data, vendor risk tiers, renewal dates, cost fields, compliance text fixtures, Prisma entities, and planned Neo4j relationships already define clear positive scenarios. Capturing the query scope now prevents future mismatch between demo questions and sample data.
 

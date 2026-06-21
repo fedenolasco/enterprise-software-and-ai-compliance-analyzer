@@ -1,9 +1,9 @@
-﻿# Enterprise Software & AI Compliance Analyzer Implementation Plan
+# Enterprise Software & AI Compliance Analyzer Implementation Plan
 
 ## Source documents
 
-- [`proposal/high-level-plan.md`](../proposal/high-level-plan.md)
-- [`proposal/setup-plan-v3.md`](../proposal/setup-plan-v3.md)
+- [`proposal/01-high-level-plan.md`](../proposal/01-high-level-plan.md)
+- [`proposal/02-setup-plan-v3.md`](../proposal/02-setup-plan-v3.md)
 
 ## Planning objective
 
@@ -27,13 +27,13 @@ flowchart TD
 
 ```text
 .
-├── agent-brain/
-├── database-layer/
-├── docs/
-├── mock-pricing-api/
-├── plans/
-├── proposal/
-└── scripts/
++-- agent-brain/
++-- database-layer/
++-- docs/
++-- mock-pricing-api/
++-- plans/
++-- proposal/
++-- scripts/
 ```
 
 ## Phase 0: Monorepo foundation
@@ -115,7 +115,7 @@ Recommended initial entities:
 - Add retrieval modules for PostgreSQL vector search and Neo4j graph traversal.
 - Add a hybrid retrieval function that returns both evidence text and subscription cost context.
 - Add a notebook or script with curated positive test queries aligned to the synthetic data, including high-risk AI vendors with renewal cost exposure, cross-border processing evidence, subprocessor risk, automated decision-making language, and cost-weighted renewal review prioritization.
-- Use [`plans/query-scope.md`](query-scope.md) as the source of truth for demo query inputs, expected positive matches, structured filters, semantic search phrases, and result-shape expectations.
+- Use [`plans/03-query-scope.md`](03-query-scope.md) as the source of truth for demo query inputs, expected positive matches, structured filters, semantic search phrases, and result-shape expectations.
 
 ### Validation checkpoints
 

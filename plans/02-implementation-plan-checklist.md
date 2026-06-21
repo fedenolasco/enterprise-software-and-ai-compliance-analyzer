@@ -1,8 +1,8 @@
-﻿# Enterprise Software & AI Compliance Analyzer Progress Checklist
+# Enterprise Software & AI Compliance Analyzer Progress Checklist
 
 ## Purpose
 
-This checklist tracks implementation progress against the roadmap in [`plans/implementation-plan.md`](implementation-plan.md), [`proposal/high-level-plan.md`](../proposal/high-level-plan.md), and [`proposal/setup-plan-v3.md`](../proposal/setup-plan-v3.md). It is intended as the user-facing progress tracker for each implementation round.
+This checklist tracks implementation progress against the roadmap in [`plans/01-implementation-plan.md`](01-implementation-plan.md), [`proposal/01-high-level-plan.md`](../proposal/01-high-level-plan.md), and [`proposal/02-setup-plan-v3.md`](../proposal/02-setup-plan-v3.md). It is intended as the user-facing progress tracker for each implementation round.
 
 ## Status legend
 
@@ -16,9 +16,9 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 
 ## Phase 0: Monorepo foundation
 
-- [x] Review roadmap source documents in [`proposal/high-level-plan.md`](../proposal/high-level-plan.md) and [`proposal/setup-plan-v3.md`](../proposal/setup-plan-v3.md).
-- [x] Create written implementation plan in [`plans/implementation-plan.md`](implementation-plan.md).
-- [x] Create user-facing progress checklist in [`plans/implementation-plan-checklist.md`](implementation-plan-checklist.md).
+- [x] Review roadmap source documents in [`proposal/01-high-level-plan.md`](../proposal/01-high-level-plan.md) and [`proposal/02-setup-plan-v3.md`](../proposal/02-setup-plan-v3.md).
+- [x] Create written implementation plan in [`plans/01-implementation-plan.md`](01-implementation-plan.md).
+- [x] Create user-facing progress checklist in [`plans/02-implementation-plan-checklist.md`](02-implementation-plan-checklist.md).
 - [x] Create top-level workstream directories for `database-layer`, `agent-brain`, `mock-pricing-api`, `docs`, `scripts`, and `plans`.
 - [x] Add repository overview in [`README.md`](../README.md).
 - [x] Add root environment template in [`.env.example`](../.env.example).
@@ -99,8 +99,8 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 - [x] Add PostgreSQL vector retrieval module.
 - [x] Add Neo4j graph traversal module.
 - [x] Add hybrid retrieval function combining graph and vector context.
-- [x] Document curated positive demo query scope in [`plans/query-scope.md`](query-scope.md).
-- [x] Add reusable Python script/module demonstrating curated risk-to-cost retrieval based on [`plans/query-scope.md`](query-scope.md).
+- [x] Document curated positive demo query scope in [`plans/03-query-scope.md`](03-query-scope.md).
+- [x] Add reusable Python script/module demonstrating curated risk-to-cost retrieval based on [`plans/03-query-scope.md`](03-query-scope.md).
 - [x] Add Jupyter notebook that imports the reusable scripts/modules and presents the curated Phase 2 risk-to-cost demo.
 
 ## Phase 3: Agentic orchestration and mock tool use

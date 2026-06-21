@@ -1,8 +1,8 @@
-﻿# Demo Runbook
+# Demo Runbook
 
 ## Purpose
 
-This runbook gives a presentation-ready order for demonstrating the Enterprise Software & AI Compliance Analyzer from a clean local checkout. It complements the operational setup details in [`docs/06-setup-runbook.md`](06-setup-runbook.md), the architecture diagrams in [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md), and the curated query definitions in [`plans/query-scope.md`](../plans/query-scope.md).
+This runbook gives a presentation-ready order for demonstrating the Enterprise Software & AI Compliance Analyzer from a clean local checkout. It complements the operational setup details in [`docs/06-setup-runbook.md`](06-setup-runbook.md), the architecture diagrams in [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md), and the curated query definitions in [`plans/03-query-scope.md`](../plans/03-query-scope.md).
 
 Use this document when preparing a stakeholder walkthrough, recorded demo, or technical validation session.
 
@@ -49,7 +49,7 @@ Start with the high-level project context:
 - [`README.md`](../README.md) for the monorepo and phase overview.
 - [`docs/02-architecture-overview.md`](02-architecture-overview.md) for architecture narrative.
 - [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md) for tool interaction diagrams.
-- [`plans/implementation-plan-checklist.md`](../plans/implementation-plan-checklist.md) for implementation completion status.
+- [`plans/02-implementation-plan-checklist.md`](../plans/02-implementation-plan-checklist.md) for implementation completion status.
 
 Suggested talk track:
 
@@ -155,7 +155,7 @@ From [`agent-brain/`](../agent-brain/):
 python -m agent_brain.cli.run_curated_demo
 ```
 
-This is the strongest scripted demo step. It uses the curated query definitions in [`plans/query-scope.md`](../plans/query-scope.md), including:
+This is the strongest scripted demo step. It uses the curated query definitions in [`plans/03-query-scope.md`](../plans/03-query-scope.md), including:
 
 1. High-risk AI vendors with renewal cost exposure.
 2. Cost-weighted compliance review queue.
@@ -242,6 +242,67 @@ Expected local endpoints:
 | Langfuse MinIO API | `http://localhost:9090` |
 | Langfuse MinIO console | `http://localhost:9091` |
 
+## Demo readiness checklist
+
+Use this checklist before a stakeholder walkthrough, recorded demo, or technical validation session. The core demo is ready when every required item is checked. Optional items are only needed when demonstrating the notebook, observability UIs, or a future concrete local model runtime.
+
+### Required preflight
+
+- [ ] The repository is on the expected branch and commit, and the working tree does not contain unrelated changes.
+- [ ] Docker Desktop is running and has enough memory available for PostgreSQL, pgvector, and Neo4j.
+- [ ] Node.js and npm are installed for [`database-layer/`](../database-layer/).
+- [ ] Python `3.11+` and pip are installed for [`agent-brain/`](../agent-brain/) and [`mock-pricing-api/`](../mock-pricing-api/).
+- [ ] Root [`.env.example`](../.env.example) has been copied to `.env`.
+- [ ] [`database-layer/.env.example`](../database-layer/.env.example) has been copied to `database-layer/.env`.
+- [ ] [`agent-brain/.env.example`](../agent-brain/.env.example) has been copied to `agent-brain/.env` when running agent commands directly.
+- [ ] [`mock-pricing-api/.env.example`](../mock-pricing-api/.env.example) has been copied to `mock-pricing-api/.env` when showing the pricing API.
+
+### Required service and data checks
+
+- [ ] `docker compose up -d` has started PostgreSQL and Neo4j from [`docker-compose.yml`](../docker-compose.yml).
+- [ ] PostgreSQL health checks pass and port `5432` is available.
+- [ ] Neo4j HTTP and Bolt endpoints are available on ports `7474` and `7687`.
+- [ ] [`database-layer/`](../database-layer/) dependencies are installed with `npm install`.
+- [ ] Prisma Client generation has completed with `npm run db:generate`.
+- [ ] The Prisma schema has been applied with `npm run db:push`.
+- [ ] pgvector has been enabled with `npm run db:enable-vector`.
+- [ ] Demo data has been reset with `npm run reset:demo`.
+- [ ] Synthetic subscription and compliance fixtures have been ingested with `npm run ingest`.
+- [ ] Concurrency validation has passed with `npm run validate:concurrency`.
+
+### Required retrieval checks
+
+- [ ] [`agent-brain/`](../agent-brain/) dependencies are installed with `python -m pip install -e .[dev]`.
+- [ ] Agent validation and tests pass with `python -m agent_brain.cli.validate_scaffold` and `python -m pytest`.
+- [ ] PostgreSQL records have been projected into Neo4j with `python -m agent_brain.cli.project_graph`.
+- [ ] Vector retrieval returns ranked evidence rows with `python -m agent_brain.cli.search_vectors "cross-border processing subprocessors outside the EU" --top-k 5`.
+- [ ] Graph traversal returns vendor, software, subscription, cost, risk, and evidence rows with `python -m agent_brain.cli.traverse_graph --risk-category DATA_RESIDENCY --limit 10`.
+- [ ] Hybrid retrieval returns deterministic risk-to-cost rows with `python -m agent_brain.cli.hybrid_retrieve "cross-border processing subprocessors outside the EU" --top-k 5 --graph-limit 25`.
+- [ ] Curated demo assertions pass with `python -m agent_brain.cli.run_curated_demo`.
+
+### Required governance and pricing checks when showing Phase 3
+
+- [ ] [`mock-pricing-api/`](../mock-pricing-api/) dependencies are installed with `python -m pip install -e .[dev]`.
+- [ ] Mock pricing API tests pass with `python -m pytest` from [`mock-pricing-api/`](../mock-pricing-api/).
+- [ ] The pricing service starts with `python -m mock_pricing_api.main` and responds on `http://127.0.0.1:8000`.
+- [ ] Agent state, pricing wrapper, recommendation, and HITL tests pass from [`agent-brain/`](../agent-brain/): `tests/test_orchestration_state.py`, `tests/test_pricing_tool.py`, `tests/test_recommendation.py`, and `tests/test_hitl.py`.
+
+### Optional walkthrough checks
+
+- [ ] Notebook extras are installed with `python -m pip install -e .[dev,notebook]` before opening [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb).
+- [ ] Langfuse placeholder secrets in `.env` have been replaced before starting the optional observability profile.
+- [ ] Phoenix and Langfuse containers start with `docker compose --profile observability up -d phoenix langfuse langfuse-worker` when showing observability UIs.
+- [ ] Phase 4 payload-builder tests pass with `python -m pytest tests/test_model_adapter.py tests/test_observability.py tests/test_audit.py` from [`agent-brain/`](../agent-brain/).
+- [ ] A concrete Microsoft Foundry Local runtime is available only if replacing the deterministic placeholder model adapter for a future model demo.
+
+### Known caveats to state during the demo
+
+- The embedding vectors are deterministic placeholders, not production semantic embeddings.
+- Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end.
+- Microsoft Foundry Local is represented by an adapter boundary, not a concrete model client.
+- The current experience is CLI and notebook based; no polished user-facing UI is included.
+- Local audit records remain the durable governance source of truth when optional observability services are disabled.
+
 ## What needs setup beyond the completed implementation
 
 The implementation is complete in source control, but live demos still need runtime setup.
@@ -285,4 +346,4 @@ This path demonstrates the core value without requiring optional Phoenix/Langfus
 - Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end.
 - Microsoft Foundry Local is represented by an adapter boundary, not a concrete model client.
 - The notebook is optional and requires notebook dependencies.
-- The strongest live proof point is the deterministic local flow: ingestion → graph projection → vector retrieval → graph traversal → hybrid retrieval → curated demo → governance validation.
+- The strongest live proof point is the deterministic local flow: ingestion ? graph projection ? vector retrieval ? graph traversal ? hybrid retrieval ? curated demo ? governance validation.

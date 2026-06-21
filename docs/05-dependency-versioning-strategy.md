@@ -1,4 +1,4 @@
-﻿# Dependency and Versioning Strategy
+# Dependency and Versioning Strategy
 
 ## Purpose
 
@@ -109,7 +109,7 @@ Before accepting dependency or runtime changes, validate:
 - [`CHANGELOG.md`](../CHANGELOG.md) includes a human-readable summary.
 - An ADR is added under [`docs/adr/`](adr/) when the change affects architecture, model strategy, schema, data reset, graph projection, HITL, or observability.
 - The reset strategy in [`docs/06-setup-runbook.md`](06-setup-runbook.md) still works.
-- Curated query expectations in [`plans/query-scope.md`](../plans/query-scope.md) still hold or are updated.
+- Curated query expectations in [`plans/03-query-scope.md`](../plans/03-query-scope.md) still hold or are updated.
 
 ## Embedding model transition policy
 
@@ -126,7 +126,7 @@ When this transition occurs, update:
 | [`docs/06-setup-runbook.md`](06-setup-runbook.md) | Document reset and re-ingestion requirement. |
 | [`docs/03-schema-diagrams.md`](03-schema-diagrams.md) | Update vector metadata and field semantics. |
 | [`docs/04-technical-tool-interactions.md`](04-technical-tool-interactions.md) | Update embedding flow and technology metadata. |
-| [`plans/query-scope.md`](../plans/query-scope.md) | Revalidate expected retrieval matches. |
+| [`plans/03-query-scope.md`](../plans/03-query-scope.md) | Revalidate expected retrieval matches. |
 | [`CHANGELOG.md`](../CHANGELOG.md) | Record the model transition. |
 | [`docs/adr/`](adr/) | Add ADR documenting model, dimension, runtime, and tradeoffs. |
 

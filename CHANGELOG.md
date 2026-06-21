@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable project changes should be documented here as the implementation evolves across phases.
 
@@ -6,7 +6,7 @@ All notable project changes should be documented here as the implementation evol
 
 - Initialized the [`agent-brain`](agent-brain/) Python project scaffold with pinned dependencies, local environment template, configuration module, validation CLI, package placeholders, README guidance, and a first configuration test.
 - Added repeatable demo reset script [`database-layer/scripts/reset-demo-data.ts`](database-layer/scripts/reset-demo-data.ts) and documented reset-plus-reingestion usage before Phase 2 graph projection.
-- Updated [`docs/01-product-requirements.md`](docs/01-product-requirements.md) and [`plans/implementation-plan-checklist.md`](plans/implementation-plan-checklist.md) to reflect Phase 0 completion and Phase 1 local data-layer validation progress.
+- Updated [`docs/01-product-requirements.md`](docs/01-product-requirements.md) and [`plans/02-implementation-plan-checklist.md`](plans/02-implementation-plan-checklist.md) to reflect Phase 0 completion and Phase 1 local data-layer validation progress.
 - Applied [`database-layer/prisma/schema.prisma`](database-layer/prisma/schema.prisma) to local PostgreSQL, ran synthetic ingestion, verified persisted data and pgvector embeddings, and validated optimistic concurrency audit events.
 - Validated Docker runtime services for PostgreSQL with pgvector and Neo4j; confirmed PostgreSQL health, pgvector extension availability, and Neo4j Cypher connectivity.
 - Installed and locked [`database-layer`](database-layer/) Node dependencies, added `@types/pg`, and validated Prisma generation, Prisma schema validation, and TypeScript type checking.

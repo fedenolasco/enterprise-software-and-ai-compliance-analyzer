@@ -1,4 +1,4 @@
-﻿# Business Product Requirements: Enterprise Software & AI Compliance Analyzer
+# Business Product Requirements: Enterprise Software & AI Compliance Analyzer
 
 ## Document control
 
@@ -8,9 +8,9 @@
 | Document type | Business Product Requirements Document |
 | Current status | Living product document |
 | Initial baseline | Phase 0 complete and Phase 1 validated data-layer baseline |
-| Source roadmap | [`proposal/high-level-plan.md`](../proposal/high-level-plan.md), [`proposal/setup-plan-v3.md`](../proposal/setup-plan-v3.md) |
-| Technical plan | [`plans/implementation-plan.md`](../plans/implementation-plan.md) |
-| Progress checklist | [`plans/implementation-plan-checklist.md`](../plans/implementation-plan-checklist.md) |
+| Source roadmap | [`proposal/01-high-level-plan.md`](../proposal/01-high-level-plan.md), [`proposal/02-setup-plan-v3.md`](../proposal/02-setup-plan-v3.md) |
+| Technical plan | [`plans/01-implementation-plan.md`](../plans/01-implementation-plan.md) |
+| Progress checklist | [`plans/02-implementation-plan-checklist.md`](../plans/02-implementation-plan-checklist.md) |
 
 This document is the product-facing source of truth for vision, users, business outcomes, roadmap, and product evolution. Any material change in product direction, target user, capability scope, compliance posture, roadmap sequencing, or demo strategy must update this document.
 
@@ -142,7 +142,7 @@ The product addresses this by creating a local prototype that joins subscription
 
 **Key outcomes:**
 
-- Users can run curated positive queries from [`plans/query-scope.md`](../plans/query-scope.md).
+- Users can run curated positive queries from [`plans/03-query-scope.md`](../plans/03-query-scope.md).
 - Hybrid retrieval returns vendors, subscriptions, costs, risk categories, and evidence excerpts.
 - Neo4j graph traversal links vendors, software, subscriptions, documents, chunks, and risks.
 - Query outputs are deterministic enough for repeatable demonstrations.
@@ -234,7 +234,7 @@ Material changes should also update:
 
 - [`CHANGELOG.md`](../CHANGELOG.md) for human-readable history.
 - [`docs/adr/`](adr/) for architectural decisions.
-- [`plans/implementation-plan-checklist.md`](../plans/implementation-plan-checklist.md) for progress tracking.
+- [`plans/02-implementation-plan-checklist.md`](../plans/02-implementation-plan-checklist.md) for progress tracking.
 - Git commits and tags for versioned traceability.
 
 ## Current product baseline

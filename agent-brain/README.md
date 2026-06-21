@@ -1,10 +1,10 @@
-﻿# Agent Brain
+# Agent Brain
 
 Python workstream for local hybrid retrieval, graph context, future LangGraph orchestration, and governance hooks.
 
 ## Current Phase 2 scope
 
-This scaffold prepares `agent-brain` for the hybrid retrieval work described in [`plans/implementation-plan.md`](../plans/implementation-plan.md) and the curated demo queries in [`plans/query-scope.md`](../plans/query-scope.md).
+This scaffold prepares `agent-brain` for the hybrid retrieval work described in [`plans/01-implementation-plan.md`](../plans/01-implementation-plan.md) and the curated demo queries in [`plans/03-query-scope.md`](../plans/03-query-scope.md).
 
 The current implementation milestone includes:
 
@@ -16,7 +16,7 @@ The current implementation milestone includes:
 - Search PostgreSQL document chunks through pgvector using the deterministic placeholder embedding algorithm.
 - Traverse Neo4j vendor, software, subscription, policy, and chunk relationships for risk-to-cost context.
 - Merge PostgreSQL vector results and Neo4j graph traversal into deterministic hybrid risk-to-cost rows.
-- Run the curated Phase 2 risk-to-cost demo queries from `plans/query-scope.md` with deterministic assertions.
+- Run the curated Phase 2 risk-to-cost demo queries from `plans/03-query-scope.md` with deterministic assertions.
 - Provide a documented Jupyter notebook that imports the reusable curated demo module.
 - Define a LangGraph-ready Phase 3 agent state model with explicit HITL finalization checks.
 - Call the local mock pricing API through a typed tool wrapper and append results to agent state.
@@ -101,7 +101,7 @@ python -m agent_brain.cli.hybrid_retrieve "cross-border processing subprocessors
 
 This command combines PostgreSQL vector evidence with Neo4j graph traversal context and returns the Phase 2 risk-to-cost result shape: vendor, software, subscription, annual cost, risk, recommended review action, matched sources, and deterministic priority score.
 
-The current ranking is deterministic and aligned to [`plans/query-scope.md`](../plans/query-scope.md). It is intended for repeatable local validation and demo preparation before real semantic embeddings or model-generated ranking are introduced.
+The current ranking is deterministic and aligned to [`plans/03-query-scope.md`](../plans/03-query-scope.md). It is intended for repeatable local validation and demo preparation before real semantic embeddings or model-generated ranking are introduced.
 
 ## Curated Phase 2 demo
 
@@ -111,7 +111,7 @@ After PostgreSQL ingestion, Neo4j projection, and hybrid retrieval are available
 python -m agent_brain.cli.run_curated_demo
 ```
 
-This command executes the four curated query definitions from [`plans/query-scope.md`](../plans/query-scope.md), prints result rows in the expected risk-to-cost shape, and asserts that the expected positive vendors appear for each curated query. The module behind the CLI is reusable by the future notebook so notebook cells can import the same query definitions, assertions, and row-shaping logic instead of duplicating demo behavior.
+This command executes the four curated query definitions from [`plans/03-query-scope.md`](../plans/03-query-scope.md), prints result rows in the expected risk-to-cost shape, and asserts that the expected positive vendors appear for each curated query. The module behind the CLI is reusable by the future notebook so notebook cells can import the same query definitions, assertions, and row-shaping logic instead of duplicating demo behavior.
 
 ## Phase 2 notebook
 

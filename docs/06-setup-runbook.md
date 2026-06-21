@@ -1,4 +1,4 @@
-﻿# Setup Runbook
+# Setup Runbook
 
 ## Phase 0 and Phase 1 bootstrap
 
@@ -98,7 +98,7 @@ cd agent-brain
 python -m agent_brain.cli.run_curated_demo
 ```
 
-This runs the reusable curated demo module aligned to [`plans/query-scope.md`](../plans/query-scope.md). It executes all four curated query definitions, prints rows in the expected risk-to-cost shape, and fails if any expected positive vendor is missing.
+This runs the reusable curated demo module aligned to [`plans/03-query-scope.md`](../plans/03-query-scope.md). It executes all four curated query definitions, prints rows in the expected risk-to-cost shape, and fails if any expected positive vendor is missing.
 
 ### 9. Open the documented Phase 2 notebook
 
@@ -188,7 +188,7 @@ When a real local embedding model is introduced, update the embedding generator,
 
 ## Repeatable demo reset strategy
 
-The curated demo queries in [`plans/query-scope.md`](../plans/query-scope.md) are intentionally aligned to the synthetic fixtures in [`database-layer/data/subscriptions.json`](../database-layer/data/subscriptions.json) and [`database-layer/data/documents/`](../database-layer/data/documents/). To keep every demo run deterministic, persisted runtime state should be treated as rebuildable demo output, not as source data.
+The curated demo queries in [`plans/03-query-scope.md`](../plans/03-query-scope.md) are intentionally aligned to the synthetic fixtures in [`database-layer/data/subscriptions.json`](../database-layer/data/subscriptions.json) and [`database-layer/data/documents/`](../database-layer/data/documents/). To keep every demo run deterministic, persisted runtime state should be treated as rebuildable demo output, not as source data.
 
 ### Reset objectives
 
@@ -210,7 +210,7 @@ Use these files as the reset baseline:
 | [`database-layer/prisma/schema.prisma`](../database-layer/prisma/schema.prisma) | Authoritative relational schema and pgvector field definition. |
 | [`database-layer/data/subscriptions.json`](../database-layer/data/subscriptions.json) | Structured vendor, software, and subscription fixture data. |
 | [`database-layer/data/documents/`](../database-layer/data/documents/) | Synthetic SLA, GDPR, AI policy, DPA, and risk-register text fixtures. |
-| [`plans/query-scope.md`](../plans/query-scope.md) | Curated query definitions and expected positive matches. |
+| [`plans/03-query-scope.md`](../plans/03-query-scope.md) | Curated query definitions and expected positive matches. |
 | Future pricing fixture under [`mock-pricing-api/`](../mock-pricing-api/) | Synthetic pricing baseline for tool-call demonstrations. |
 
 ### Runtime artifacts that may be reset
@@ -283,7 +283,7 @@ The following scripts should be added as implementation matures:
 | [`agent-brain/src/agent_brain/tools/pricing.py`](../agent-brain/src/agent_brain/tools/pricing.py) | Call the local mock pricing API and append normalized pricing context to agent state. |
 | [`agent-brain/src/agent_brain/governance/hitl.py`](../agent-brain/src/agent_brain/governance/hitl.py) | Enforce mandatory HITL pause and approval before final recommendation output. |
 | `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
-| [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/query-scope.md`](../plans/query-scope.md). |
+| [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/03-query-scope.md`](../plans/03-query-scope.md). |
 | [`mock-pricing-api/src/mock_pricing_api/main.py`](../mock-pricing-api/src/mock_pricing_api/main.py) | Run the local FastAPI mock pricing service for Phase 3 tool-use validation. |
 | `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
 | `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
@@ -424,7 +424,7 @@ After a reset and re-ingestion, validate that:
 - Compliance documents are chunked and linked to their source records.
 - pgvector embeddings are regenerated for all document chunks.
 - PostgreSQL vector retrieval returns ranked evidence rows with document, vendor, software, subscription, and risk metadata.
-- Curated queries in [`plans/query-scope.md`](../plans/query-scope.md) return the expected positive matches.
+- Curated queries in [`plans/03-query-scope.md`](../plans/03-query-scope.md) return the expected positive matches.
 - Neo4j graph projections match the current PostgreSQL identifiers.
 - Neo4j graph traversal connects vendors, software, subscriptions, documents, chunks, and risk metadata.
 - Hybrid retrieval returns deterministic risk-to-cost rows with priority scores and recommended review actions.
