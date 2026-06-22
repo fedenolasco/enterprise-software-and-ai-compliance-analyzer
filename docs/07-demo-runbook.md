@@ -253,7 +253,7 @@ Expected local endpoints:
 |---|---|
 | Phoenix UI and HTTP collector | `http://localhost:6006` |
 | Phoenix OTLP gRPC collector | `http://localhost:4317` |
-| Langfuse UI/API | `http://localhost:3000` |
+| Langfuse UI/API | `http://localhost:3100` |
 | Langfuse MinIO API | `http://localhost:9090` |
 | Langfuse MinIO console | `http://localhost:9091` |
 

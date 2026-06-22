@@ -32,3 +32,9 @@
 # Local logs and editor files
 *.log
 .vscode/
+
+# Playwright MCP cache
+.playwright-mcp/
+
+# Next.js build output
+**/.next/

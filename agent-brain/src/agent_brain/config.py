@@ -52,7 +52,7 @@ class AgentBrainSettings:
     phoenix_endpoint: str = "http://localhost:6006"
     phoenix_grpc_endpoint: str = "http://localhost:4317"
     langfuse_enabled: bool = False
-    langfuse_host: str = "http://localhost:3000"
+    langfuse_host: str = "http://localhost:3100"
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
 
@@ -82,7 +82,7 @@ def get_settings() -> AgentBrainSettings:
         phoenix_endpoint=getenv("PHOENIX_ENDPOINT", "http://localhost:6006"),
         phoenix_grpc_endpoint=getenv("PHOENIX_GRPC_ENDPOINT", "http://localhost:4317"),
         langfuse_enabled=_bool_from_env("LANGFUSE_ENABLED", False),
-        langfuse_host=getenv("LANGFUSE_HOST", "http://localhost:3000"),
+        langfuse_host=getenv("LANGFUSE_HOST", "http://localhost:3100"),
         langfuse_public_key=getenv("LANGFUSE_PUBLIC_KEY"),
         langfuse_secret_key=getenv("LANGFUSE_SECRET_KEY"),
     )

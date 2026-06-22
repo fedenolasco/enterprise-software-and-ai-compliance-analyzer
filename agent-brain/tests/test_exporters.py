@@ -23,7 +23,7 @@ def _enabled_settings() -> AgentBrainSettings:
         phoenix_enabled=True,
         phoenix_endpoint="http://localhost:6006",
         langfuse_enabled=True,
-        langfuse_host="http://localhost:3000",
+        langfuse_host="http://localhost:3100",
         langfuse_public_key="pk-test",
         langfuse_secret_key="sk-test",
     )
@@ -135,7 +135,7 @@ def test_export_langfuse_usage_returns_disabled_when_not_enabled() -> None:
 def test_export_langfuse_usage_returns_missing_keys_error() -> None:
     settings = AgentBrainSettings(
         langfuse_enabled=True,
-        langfuse_host="http://localhost:3000",
+        langfuse_host="http://localhost:3100",
         langfuse_public_key=None,
         langfuse_secret_key=None,
     )

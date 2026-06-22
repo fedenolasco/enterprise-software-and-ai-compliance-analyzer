@@ -212,6 +212,46 @@ services:
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
 
+  ui-backend:
+    build:
+      context: ./ui/backend
+      dockerfile: Dockerfile
+    container_name: compliance-ui-backend
+    restart: unless-stopped
+    profiles:
+      - ui
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USERNAME=${NEO4J_USERNAME}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD}
+      - MOCK_PRICING_API_URL=http://mock-pricing-api:8000
+      - UI_API_HOST=0.0.0.0
+      - UI_API_PORT=3001
+      - CORS_ORIGINS=http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+
+  ui-frontend:
+    build:
+      context: ./ui/frontend
+      dockerfile: Dockerfile
+    container_name: compliance-ui-frontend
+    restart: unless-stopped
+    profiles:
+      - ui
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - ui-backend
+
 volumes:
   postgres_data:
   neo4j_data:

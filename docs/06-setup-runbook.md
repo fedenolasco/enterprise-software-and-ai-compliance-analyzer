@@ -642,7 +642,7 @@ Expected local endpoints are:
 |---|---|---|
 | Phoenix UI and HTTP collector | `http://localhost:6006` | Trace review and Phoenix-compatible collection. |
 | Phoenix OTLP gRPC collector | `http://localhost:4317` | Trace export from future agent instrumentation. |
-| Langfuse UI/API | `http://localhost:3000` | Token usage and simulated cost telemetry review. |
+| Langfuse UI/API | `http://localhost:3100` | Token usage and simulated cost telemetry review. |
 | Langfuse MinIO API | `http://localhost:9090` | Local object storage for Langfuse event payloads. |
 | Langfuse MinIO console | `http://localhost:9091` | Local object storage inspection. |
 
@@ -672,7 +672,7 @@ To enable live exporters, set these environment variables in `agent-brain/.env`:
 PHOENIX_ENABLED=true
 PHOENIX_ENDPOINT=http://localhost:6006
 LANGFUSE_ENABLED=true
-LANGFUSE_HOST=http://localhost:3000
+LANGFUSE_HOST=http://localhost:3100
 LANGFUSE_PUBLIC_KEY=pk-lf-local-development-placeholder
 LANGFUSE_SECRET_KEY=sk-lf-local-development-placeholder
 ```
