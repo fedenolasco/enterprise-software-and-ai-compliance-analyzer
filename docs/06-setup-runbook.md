@@ -445,6 +445,120 @@ Switching embedding providers changes the vector dimension. After switching, res
 .\scripts\reset-demo-environment.ps1
 ```
 
+### Microsoft Foundry Local setup
+
+Microsoft Foundry Local is a native install that runs AI models directly on your device using local hardware (CPU, GPU, or NPU). It is **not** a Docker service — it needs direct hardware access for inference. The project's [`docker-compose.yml`](../docker-compose.yml) runs PostgreSQL, pgvector, and Neo4j as data services; Foundry Local runs natively alongside them.
+
+#### Hardware requirements
+
+| Specification | Minimum | Recommended |
+|---|---|---|
+| RAM | 8 GB | 16 GB |
+| Free disk space | 3 GB | 15 GB |
+| GPU | Not required (CPU works) | GPU or NPU for faster inference |
+| Network | Required for model download | Not needed after models are cached |
+| OS | Windows 10/11, macOS | Windows 11 with NPU for best acceleration |
+
+Foundry Local automatically detects available hardware and selects the best execution provider:
+
+| Hardware | Execution provider | Performance |
+|---|---|---|
+| NPU (Neural Processing Unit) | QNN (Qualcomm) or OpenVINO (Intel) | Best for laptops with NPUs |
+| GPU (NVIDIA/AMD) | CUDA or DirectML | Fast inference |
+| CPU only | ONNX Runtime | Works everywhere, slower |
+
+#### Installation
+
+On Windows (recommended for hardware acceleration):
+
+```cmd
+winget install Microsoft.FoundryLocal
+```
+
+On macOS:
+
+```bash
+brew install microsoft/foundrylocal/foundrylocal
+```
+
+Install the Python SDK for the agent-brain workstream:
+
+```cmd
+pip install foundry-local-sdk-winml
+```
+
+Use `foundry-local-sdk-winml` on Windows for hardware acceleration via Windows ML. On macOS/Linux, use `foundry-local-sdk` instead.
+
+#### Downloading models
+
+After installing Foundry Local, download the models needed for this project:
+
+```cmd
+foundry model download phi-3.5-mini-instruct
+foundry model download all-MiniLM-L6-v2
+```
+
+List available models in the catalog:
+
+```cmd
+foundry model ls
+```
+
+Run a quick test to verify a model works:
+
+```cmd
+foundry model run phi-3.5-mini-instruct
+```
+
+Recommended models for this project:
+
+| Role | Model | Approximate download size | RAM when loaded | Why |
+|---|---|---|---|---|
+| LLM (recommendation drafting) | `phi-3.5-mini-instruct` | ~2.5 GB | ~3.5 GB | Strong reasoning, small footprint, good for compliance text |
+| LLM (alternative, larger) | `qwen2.5-7b-instruct` | ~4.5 GB | ~8 GB | Better quality, needs more RAM |
+| Embeddings | `all-MiniLM-L6-v2` | ~90 MB | ~200 MB | 384-dim, fast, good semantic quality, very small |
+
+For the minimum setup (Phi-3.5-mini + MiniLM), you need approximately 3 GB disk space and 8 GB RAM.
+
+#### Starting Foundry Local
+
+Foundry Local must be running before the project can use it:
+
+```cmd
+foundry service start
+```
+
+The service runs on `http://localhost:5272` by default, which matches the `FOUNDRY_LOCAL_ENDPOINT` in the [`.env.example`](../.env.example) files.
+
+#### Switching the project to Foundry Local
+
+After installing Foundry Local and downloading models, switch the project to the Foundry Local provider:
+
+```powershell
+.\scripts\setup-provider.ps1 -SwitchTo foundry
+```
+
+```bash
+bash scripts/setup-provider.sh --switch-to foundry
+```
+
+This updates the `.env` files with:
+
+```text
+EMBEDDING_PROVIDER=microsoft-foundry-local
+EMBEDDING_MODEL=all-MiniLM-L6-v2
+EMBEDDING_DIMENSION=384
+MODEL_PROVIDER=microsoft-foundry-local
+LOCAL_MODEL_NAME=Phi-3.5-mini-instruct
+FOUNDRY_LOCAL_ENDPOINT=http://localhost:5272
+```
+
+Then reset and re-ingest demo data because the embedding dimension changes from 8 to 384:
+
+```powershell
+.\scripts\reset-demo-environment.ps1
+```
+
 ### Current reset command
 
 Use the database-layer reset script before re-running ingestion or before building Phase 2 graph projections from a clean relational baseline:

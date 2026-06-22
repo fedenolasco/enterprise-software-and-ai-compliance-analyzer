@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for the next concrete model-runtime implementation
+Updated by [ADR 0005](0005-multi-provider-model-and-embedding-strategy.md). Foundry Local is now one of three supported providers alongside placeholder and OpenAI. The concrete adapter is implemented and uses the Chat Completions API. See also [ADR 0006](0006-openai-responses-api-strategy.md) for the OpenAI API strategy.
 
 ## Context
 

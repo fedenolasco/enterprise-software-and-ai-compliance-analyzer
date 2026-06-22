@@ -4,15 +4,42 @@ All notable project changes should be documented here as the implementation evol
 
 ## Unreleased
 
+- Implemented multi-provider model and embedding adapters (Option C):
+  - Added `OpenAIModelAdapter` using the OpenAI Responses API as primary with Chat Completions API fallback.
+  - Implemented concrete `MicrosoftFoundryLocalAdapter` using Chat Completions API against the local Foundry Local endpoint.
+  - Added `OPENAI` to the `ModelProvider` enum and `build_model_adapter()` factory.
+  - Added real embedding functions (OpenAI and Foundry Local) to both [`database-layer/src/embedding.ts`](database-layer/src/embedding.ts) and [`agent-brain/src/agent_brain/retrieval/vector.py`](agent-brain/src/agent_brain/retrieval/vector.py).
+  - Updated [`agent-brain/src/agent_brain/config.py`](agent-brain/src/agent_brain/config.py) with `embedding_provider`, `embedding_model`, `openai_api_key`, `openai_model`, and `openai_base_url` settings.
+  - Updated [`database-layer/scripts/ingest.ts`](database-layer/scripts/ingest.ts) to use async `createEmbedding()`.
+  - Added `openai` dependency to [`agent-brain/pyproject.toml`](agent-brain/pyproject.toml).
+  - Updated environment templates (`.env.example`, `agent-brain/.env.example`, `database-layer/.env.example`) with new provider variables.
+  - Added 16 tests covering placeholder, Foundry Local, OpenAI Responses API, and Chat Completions fallback.
+- Added provider setup scripts for secure API key configuration and provider switching:
+  - [`scripts/setup-provider.ps1`](scripts/setup-provider.ps1) for Windows PowerShell.
+  - [`scripts/setup-provider.sh`](scripts/setup-provider.sh) for WSL/Linux.
+  - Supports switching between `placeholder`, `foundry`, and `openai` providers.
+  - API key is entered with masked input and written only to gitignored `.env` files.
+- Added ADRs:
+  - [ADR 0005](docs/adr/0005-multi-provider-model-and-embedding-strategy.md): Multi-provider model and embedding strategy.
+  - [ADR 0006](docs/adr/0006-openai-responses-api-strategy.md): OpenAI Responses API as primary with Chat Completions fallback.
+  - Updated [ADR 0002](docs/adr/0002-placeholder-embedding-strategy.md) status to superseded by ADR 0005.
+  - Updated [ADR 0003](docs/adr/0003-microsoft-foundry-local-model-provider.md) status to reflect implemented multi-provider support.
+- Added [`plans/05-forward-looking-implementation-plan.md`](plans/05-forward-looking-implementation-plan.md) documenting remaining implementation priorities.
+- Documented Foundry Local setup in [`docs/06-setup-runbook.md`](docs/06-setup-runbook.md) including hardware requirements, installation, model download, and configuration.
+- Updated [`docs/06-setup-runbook.md`](docs/06-setup-runbook.md) with provider configuration section, setup script references, and explanation of why Python quality checks are required.
+- Updated [`docs/07-demo-runbook.md`](docs/07-demo-runbook.md) with provider switching guidance and updated caveats.
+- Updated [`README.md`](README.md) with model and embedding provider table.
+- Updated [`CONTRIBUTING.md`](CONTRIBUTING.md) with provider configuration section.
 - Added reset scripts for repeatable demo automation:
   - [`agent-brain/scripts/reset_graph.py`](agent-brain/scripts/reset_graph.py) to delete demo-owned Neo4j graph nodes and relationships.
   - [`mock-pricing-api/scripts/reset_pricing_fixture.py`](mock-pricing-api/scripts/reset_pricing_fixture.py) to validate or restore committed pricing fixtures.
   - [`scripts/reset-demo-environment.ps1`](scripts/reset-demo-environment.ps1) for Windows full demo reset orchestration.
   - [`scripts/reset-demo-environment.sh`](scripts/reset-demo-environment.sh) for WSL/Linux equivalent.
-- Updated [`docs/06-setup-runbook.md`](docs/06-setup-runbook.md) with present status for all reset scripts, full and targeted reset command guidance, and an explanation of why Python quality checks (`pytest`, `ruff`, `mypy`) are required.
-- Updated [`docs/07-demo-runbook.md`](docs/07-demo-runbook.md) with a note on why deterministic placeholder embedding vectors are used.
-- Added Phase 3 LangGraph HITL education notebook at [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) and corresponding test at [`agent-brain/tests/test_phase3_langgraph_notebook.py`](agent-brain/tests/test_phase3_langgraph_notebook.py).
-- Updated [`agent-brain/README.md`](agent-brain/README.md) and [`plans/02-implementation-plan-checklist.md`](plans/02-implementation-plan-checklist.md) to reflect the Phase 3 notebook.
+- Added tests for reset scripts (32 tests across both scripts).
+- Added Phase 3 LangGraph HITL education notebook at [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) and corresponding test.
+- Added MIT [`LICENSE`](LICENSE) file and updated license declarations in both `pyproject.toml` files.
+- Added [`CONTRIBUTING.md`](CONTRIBUTING.md) with setup, validation, branch, commit, and pull request guidance.
+- Consolidated [`CHANGELOG.md`](CHANGELOG.md) into v0.1.0 release covering Phase 0 through Phase 4.
 
 ## v0.1.0 — Phase 0 through Phase 4 complete
 

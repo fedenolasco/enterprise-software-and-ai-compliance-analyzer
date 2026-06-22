@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for Phase 1 scaffolding
+Superseded by [ADR 0005](0005-multi-provider-model-and-embedding-strategy.md). The placeholder strategy remains as the default provider, but the project now supports Foundry Local and OpenAI as configurable alternatives.
 
 ## Context
 
