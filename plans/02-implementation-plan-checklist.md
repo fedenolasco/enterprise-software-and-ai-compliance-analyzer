@@ -112,6 +112,7 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 - [x] Add mock pricing tool wrapper.
 - [x] Add recommendation drafting workflow.
 - [x] Add mandatory HITL pause before cancellation recommendation finalization.
+- [x] Add Phase 3 LangGraph HITL education notebook that imports reusable workflow code without adding business logic.
 
 ## Phase 4: Governance, observability, and FinOps
 
@@ -136,15 +137,14 @@ Round 1 created the written implementation plan and completed Phase 0 through Ph
 | Synthetic data | Completed | JSON and text fixtures were validated through successful ingestion. |
 | Ingestion | Completed | Runtime execution validated against local PostgreSQL. |
 | Concurrency validation | Completed | Optimistic concurrency validation executed successfully and audit events were reviewed. |
-| Agent brain | Completed | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, notebook, LangGraph runtime workflow, LangGraph-ready state model, mock pricing tool wrapper, recommendation drafting, HITL finalization gate, and unit tests are present. |
+| Agent brain | Completed | Python package scaffold, validation CLI, Neo4j graph projection, PostgreSQL vector retrieval, graph traversal, hybrid retrieval, curated demo module, Phase 2 retrieval notebook, Phase 3 LangGraph HITL education notebook, LangGraph runtime workflow, LangGraph-ready state model, mock pricing tool wrapper, recommendation drafting, HITL finalization gate, and unit tests are present. |
 | Mock pricing API | Completed | FastAPI scaffold, synthetic pricing fixture, typed models, tests, and pricing contract are present. |
 | Governance and FinOps | Completed | Docker Compose observability profile, local model adapter boundary, Phoenix-compatible traces, safety flag events, Langfuse-compatible token/cost records, audit persistence helpers, fallback documentation, compatibility validation, and unit tests are present. |
 
 ## Next recommended implementation steps
 
-1. Add a stakeholder-facing Phase 3 notebook for the LangGraph workflow after the runtime path is accepted.
-2. Run the optional Docker Compose `observability` profile and confirm Phoenix and Langfuse containers start locally.
-3. Run an end-to-end agent workflow with `PHOENIX_ENABLED=true` and `LANGFUSE_ENABLED=true` after exporter clients are wired to the placeholder payloads.
-4. Replace deterministic placeholder model responses with a concrete Microsoft Foundry Local client when the local model runtime is available.
-5. Add integration tests that persist governance audit events against a live local PostgreSQL database.
-6. Add UI or CLI review screens for Phoenix trace IDs, Langfuse usage events, and local audit records.
+1. Run the optional Docker Compose `observability` profile and confirm Phoenix and Langfuse containers start locally.
+2. Run an end-to-end agent workflow with `PHOENIX_ENABLED=true` and `LANGFUSE_ENABLED=true` after exporter clients are wired to the placeholder payloads.
+3. Replace deterministic placeholder model responses with a concrete Microsoft Foundry Local client when the local model runtime is available.
+4. Add integration tests that persist governance audit events against a live local PostgreSQL database.
+5. Add UI or CLI review screens for Phoenix trace IDs, Langfuse usage events, and local audit records.

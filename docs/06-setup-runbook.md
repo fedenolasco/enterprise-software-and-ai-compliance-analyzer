@@ -92,6 +92,14 @@ python -m mypy src
 
 This validates local configuration, unit tests, linting, and strict typing before running end-user retrieval or graph commands.
 
+Why these Python quality checks are required:
+
+- `python -m pytest` runs the automated tests and confirms the package still behaves as expected after setup or code changes.
+- `python -m ruff check src tests` checks the source and test code for common Python mistakes, unused code, import issues, and style problems before they become runtime defects.
+- `python -m mypy src` checks the typed source code and catches mismatched data shapes, incorrect function inputs, and other type-related bugs before the code is executed.
+
+Run all three because they answer different readiness questions: tests prove expected behavior, Ruff keeps the code clean and consistent, and mypy verifies that typed interfaces are being used safely. Passing all three gives confidence that the local demo, retrieval commands, graph workflows, pricing integration, and governance checks are running from a reliable Python baseline.
+
 ### 4. Project validated relational data into Neo4j
 
 ```cmd
@@ -205,7 +213,16 @@ python -m pytest tests/test_langgraph_workflow.py
 
 The LangGraph workflow in [`agent-brain/src/agent_brain/orchestration/workflow.py`](../agent-brain/src/agent_brain/orchestration/workflow.py) wraps the existing deterministic pricing, recommendation drafting, and HITL finalization logic. It uses LangGraph for node sequencing, conditional routing, and checkpoint-ready execution without introducing LLM calls or OpenAI Agents SDK behavior.
 
-### 16. Run future documented demo entry points
+### 16. Open the documented Phase 3 LangGraph HITL notebook
+
+```cmd
+cd agent-brain
+jupyter lab notebooks/phase3-langgraph-hitl-demo.ipynb
+```
+
+The notebook imports the reusable workflow functions from [`agent-brain/src/agent_brain/orchestration/workflow.py`](../agent-brain/src/agent_brain/orchestration/workflow.py). It is a demo/education artifact only: it demonstrates deterministic LangGraph execution, HITL pause/block behavior, approved finalization, and low-risk finalization without adding business logic, making LLM calls, using OpenAI Agents SDK behavior, or calling live local services.
+
+### 17. Run future documented demo entry points
 
 Future end-user scripts and notebooks must be added to this runbook when implemented. Each new entry point must document:
 
@@ -216,9 +233,7 @@ Future end-user scripts and notebooks must be added to this runbook when impleme
 - Expected deterministic outputs or assertions.
 - Known limitations, especially when deterministic placeholder embeddings are still in use.
 
-The next planned Phase 3 entry point is the LangGraph runtime workflow described in [`plans/04-langgraph-runtime-orchestration-plan.md`](../plans/04-langgraph-runtime-orchestration-plan.md). After implementation, add the exact command, required environment variables, checkpoint reset notes, and validation expectations here before treating the workflow as end-user ready.
-
-A future guided notebook, [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb), should be added only after the LangGraph workflow is implemented and validated. It must demonstrate deterministic LangGraph execution, mock pricing context, recommendation drafting, HITL pause or block behavior, and approved finalization without introducing LLM calls or OpenAI Agents SDK behavior. Link the notebook here with exact launch instructions before treating it as an end-user demo artifact.
+Future Phase 3 extensions that call live local services from [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) must update this runbook first with exact service prerequisites, environment variables, checkpoint reset notes, and validation expectations.
 
 ## Expected validation outcomes
 
@@ -318,26 +333,81 @@ flowchart TD
 
 ### Reset scripts and demo entry points
 
-The following scripts and entry points are present unless explicitly marked as future. Keep this table updated as demo automation matures:
+The following scripts and entry points support repeatable demo reset and validation. Keep this table updated as demo automation matures:
 
-| Script | Purpose |
-|---|---|
-| [`database-layer/scripts/reset-demo-data.ts`](../database-layer/scripts/reset-demo-data.ts) | Delete Prisma-managed rows in dependency-safe order and prepare PostgreSQL for fixture re-ingestion. |
-| [`agent-brain/src/agent_brain/cli/project_graph.py`](../agent-brain/src/agent_brain/cli/project_graph.py) | Project validated PostgreSQL records into Neo4j for Phase 2 graph traversal. |
-| [`agent-brain/src/agent_brain/cli/search_vectors.py`](../agent-brain/src/agent_brain/cli/search_vectors.py) | Run PostgreSQL pgvector retrieval against compliance document chunks for Phase 2 retrieval validation. |
-| [`agent-brain/src/agent_brain/cli/traverse_graph.py`](../agent-brain/src/agent_brain/cli/traverse_graph.py) | Traverse projected Neo4j relationships to connect vendors, software, subscriptions, and evidence chunks. |
-| [`agent-brain/src/agent_brain/cli/hybrid_retrieve.py`](../agent-brain/src/agent_brain/cli/hybrid_retrieve.py) | Merge PostgreSQL vector evidence and Neo4j graph context into deterministic risk-to-cost rows. |
-| [`agent-brain/src/agent_brain/cli/run_curated_demo.py`](../agent-brain/src/agent_brain/cli/run_curated_demo.py) | Run the curated Phase 2 query-scope demo and assert expected positive vendor matches. |
-| [`agent-brain/src/agent_brain/orchestration/state.py`](../agent-brain/src/agent_brain/orchestration/state.py) | Define LangGraph-ready state fields and HITL finalization checks for Phase 3 workflows. |
-| [`agent-brain/src/agent_brain/orchestration/recommendation.py`](../agent-brain/src/agent_brain/orchestration/recommendation.py) | Draft deterministic recommendations from retrieval, pricing, and risk context. |
-| [`agent-brain/src/agent_brain/tools/pricing.py`](../agent-brain/src/agent_brain/tools/pricing.py) | Call the local mock pricing API and append normalized pricing context to agent state. |
-| [`agent-brain/src/agent_brain/governance/hitl.py`](../agent-brain/src/agent_brain/governance/hitl.py) | Enforce mandatory HITL pause and approval before final recommendation output. |
-| Future `agent-brain/scripts/reset_graph.py` | Delete Neo4j demo graph nodes and relationships. |
-| [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/03-query-scope.md`](../plans/03-query-scope.md). |
-| [`mock-pricing-api/src/mock_pricing_api/main.py`](../mock-pricing-api/src/mock_pricing_api/main.py) | Run the local FastAPI mock pricing service for Phase 3 tool-use validation. |
-| Future `mock-pricing-api/scripts/reset_pricing_fixture.py` | Reload pricing fixtures if pricing state becomes mutable. |
-| Future `scripts/reset-demo-environment.ps1` | Root-level Windows orchestration script for repeatable demos. |
-| Future `scripts/reset-demo-environment.sh` | Optional WSL/Linux equivalent. |
+| Script | Status | Purpose |
+|---|---|---|
+| [`database-layer/scripts/reset-demo-data.ts`](../database-layer/scripts/reset-demo-data.ts) | Present | Delete Prisma-managed rows in dependency-safe order and prepare PostgreSQL for fixture re-ingestion. |
+| [`agent-brain/src/agent_brain/cli/project_graph.py`](../agent-brain/src/agent_brain/cli/project_graph.py) | Present | Project validated PostgreSQL records into Neo4j for Phase 2 graph traversal. |
+| [`agent-brain/src/agent_brain/cli/search_vectors.py`](../agent-brain/src/agent_brain/cli/search_vectors.py) | Present | Run PostgreSQL pgvector retrieval against compliance document chunks for Phase 2 retrieval validation. |
+| [`agent-brain/src/agent_brain/cli/traverse_graph.py`](../agent-brain/src/agent_brain/cli/traverse_graph.py) | Present | Traverse projected Neo4j relationships to connect vendors, software, subscriptions, and evidence chunks. |
+| [`agent-brain/src/agent_brain/cli/hybrid_retrieve.py`](../agent-brain/src/agent_brain/cli/hybrid_retrieve.py) | Present | Merge PostgreSQL vector evidence and Neo4j graph context into deterministic risk-to-cost rows. |
+| [`agent-brain/src/agent_brain/cli/run_curated_demo.py`](../agent-brain/src/agent_brain/cli/run_curated_demo.py) | Present | Run the curated Phase 2 query-scope demo and assert expected positive vendor matches. |
+| [`agent-brain/src/agent_brain/orchestration/state.py`](../agent-brain/src/agent_brain/orchestration/state.py) | Present | Define LangGraph-ready state fields and HITL finalization checks for Phase 3 workflows. |
+| [`agent-brain/src/agent_brain/orchestration/recommendation.py`](../agent-brain/src/agent_brain/orchestration/recommendation.py) | Present | Draft deterministic recommendations from retrieval, pricing, and risk context. |
+| [`agent-brain/src/agent_brain/tools/pricing.py`](../agent-brain/src/agent_brain/tools/pricing.py) | Present | Call the local mock pricing API and append normalized pricing context to agent state. |
+| [`agent-brain/src/agent_brain/governance/hitl.py`](../agent-brain/src/agent_brain/governance/hitl.py) | Present | Enforce mandatory HITL pause and approval before final recommendation output. |
+| [`agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb`](../agent-brain/notebooks/phase2-risk-to-cost-demo.ipynb) | Present | Import the reusable curated demo module and present the risk-to-cost retrieval demo from [`plans/03-query-scope.md`](../plans/03-query-scope.md). |
+| [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) | Present | Demonstrate deterministic LangGraph workflow execution and HITL finalization behavior without adding business logic. |
+| [`mock-pricing-api/src/mock_pricing_api/main.py`](../mock-pricing-api/src/mock_pricing_api/main.py) | Present | Run the local FastAPI mock pricing service for Phase 3 tool-use validation. |
+| [`agent-brain/scripts/reset_graph.py`](../agent-brain/scripts/reset_graph.py) | Present | Delete Neo4j demo graph nodes and relationships, then allow graph projection to rebuild from the current PostgreSQL fixture load. |
+| [`mock-pricing-api/scripts/reset_pricing_fixture.py`](../mock-pricing-api/scripts/reset_pricing_fixture.py) | Present | Reload or validate committed pricing fixtures if pricing state becomes mutable. |
+| [`scripts/reset-demo-environment.ps1`](../scripts/reset-demo-environment.ps1) | Present | Root-level Windows orchestration script that runs the repeatable reset path from PostgreSQL reset through ingestion, graph reset/projection, pricing fixture reset, and validation smoke tests. |
+| [`scripts/reset-demo-environment.sh`](../scripts/reset-demo-environment.sh) | Present | Root-level WSL/Linux equivalent of the Windows reset orchestration script. |
+
+Reset scripts must be documented here before they are considered demo-ready. Each script should state whether it performs a soft reset or hard reset, which services must already be running, which environment variables it reads, what data it deletes or regenerates, and which validation command proves the reset succeeded.
+
+Current reset responsibilities:
+
+- [`agent-brain/scripts/reset_graph.py`](../agent-brain/scripts/reset_graph.py) clears only demo-owned Neo4j nodes and relationships, leaving service configuration intact. After it runs, rebuild graph state with [`agent-brain/src/agent_brain/cli/project_graph.py`](../agent-brain/src/agent_brain/cli/project_graph.py).
+- [`mock-pricing-api/scripts/reset_pricing_fixture.py`](../mock-pricing-api/scripts/reset_pricing_fixture.py) restores or validates the mock pricing baseline from committed fixture data and verifies that pricing records remain loadable.
+- [`scripts/reset-demo-environment.ps1`](../scripts/reset-demo-environment.ps1) is the preferred Windows entry point for a full repeatable demo reset.
+- [`scripts/reset-demo-environment.sh`](../scripts/reset-demo-environment.sh) provides the same reset order for WSL/Linux environments.
+
+### Full reset orchestration commands
+
+On Windows PowerShell, run the full reset orchestration from the repository root:
+
+```powershell
+.\scripts\reset-demo-environment.ps1
+```
+
+Use `-SkipDocker` when PostgreSQL and Neo4j are already running, and use `-SkipValidation` when you only need to reset and rebuild state without running retrieval smoke tests:
+
+```powershell
+.\scripts\reset-demo-environment.ps1 -SkipDocker -SkipValidation
+```
+
+On WSL or Linux, run the equivalent shell script from the repository root:
+
+```bash
+bash scripts/reset-demo-environment.sh
+```
+
+Use `--skip-docker` and `--skip-validation` for the same optional behavior:
+
+```bash
+bash scripts/reset-demo-environment.sh --skip-docker --skip-validation
+```
+
+The root reset orchestration performs a soft reset. It starts local services unless skipped, applies the Prisma schema, enables pgvector, resets and re-ingests PostgreSQL fixture rows, resets and rebuilds the Neo4j graph projection, validates the mock pricing fixture, and optionally runs vector, graph, hybrid, and curated-demo smoke checks.
+
+### Targeted reset commands
+
+Reset only the Neo4j demo graph from [`agent-brain/`](../agent-brain/) when PostgreSQL fixture data has already been reset or re-ingested:
+
+```text
+cd agent-brain
+python scripts/reset_graph.py --yes
+python -m agent_brain.cli.project_graph
+```
+
+Reset or validate only the mock pricing fixture from [`mock-pricing-api/`](../mock-pricing-api/):
+
+```text
+cd mock-pricing-api
+python scripts/reset_pricing_fixture.py
+```
 
 ### Current reset command
 
@@ -480,6 +550,7 @@ After a reset and re-ingestion, validate that:
 - Hybrid retrieval returns deterministic risk-to-cost rows with priority scores and recommended review actions.
 - Curated Phase 2 demo assertions pass for expected positive vendor matches.
 - The Phase 2 notebook imports reusable demo code and documents prerequisites, outputs, and limitations.
+- The Phase 3 LangGraph HITL notebook imports reusable workflow code and documents deterministic HITL workflow behavior without adding business logic.
 - Mock pricing API health, listing, detail, and lookup endpoints return deterministic synthetic pricing data.
 - Agent state exports LangGraph-ready fields and blocks cancellation or renewal finalization without approval.
 - Mock pricing tool wrapper calls the pricing API contract and appends normalized live pricing context.

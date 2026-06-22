@@ -125,6 +125,18 @@ Open it after completing the runbook setup and graph projection steps:
 jupyter lab notebooks/phase2-risk-to-cost-demo.ipynb
 ```
 
+## Phase 3 LangGraph HITL notebook
+
+The documented Phase 3 LangGraph education notebook is available at [`notebooks/phase3-langgraph-hitl-demo.ipynb`](notebooks/phase3-langgraph-hitl-demo.ipynb). It demonstrates deterministic LangGraph workflow execution, HITL pause/block behavior, approved finalization, and low-risk finalization without adding new business logic.
+
+Open it after installing notebook dependencies and validating [`tests/test_langgraph_workflow.py`](tests/test_langgraph_workflow.py):
+
+```powershell
+jupyter lab notebooks/phase3-langgraph-hitl-demo.ipynb
+```
+
+This notebook is intentionally demo/education only. It imports reusable workflow functions from [`workflow.py`](src/agent_brain/orchestration/workflow.py), makes no LLM calls, uses no OpenAI Agents SDK behavior, and does not call live local services.
+
 ## Phase 3 agent state model
 
 The initial Phase 3 state model is defined in [`state.py`](src/agent_brain/orchestration/state.py). It includes the planned workflow fields from the implementation plan: `user_query`, `retrieved_context`, `compliance_risks`, `live_pricing`, `recommendation_draft`, `human_approval_status`, and `final_output`.

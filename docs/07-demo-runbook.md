@@ -117,6 +117,8 @@ python -m agent_brain.cli.project_graph
 
 This demonstrates that relational records from PostgreSQL can be projected into a graph structure for relationship traversal.
 
+Note: deterministic placeholder embedding vectors are used so the demo remains local-first, repeatable, inexpensive, and independent of external model services or network availability. They prove the ingestion, pgvector persistence, retrieval plumbing, and graph/vector integration paths without introducing nondeterministic semantic model behavior into stakeholder walkthroughs.
+
 ### 6. Demonstrate vector retrieval
 
 From [`agent-brain/`](../agent-brain/):
@@ -172,6 +174,17 @@ jupyter lab notebooks/phase2-risk-to-cost-demo.ipynb
 ```
 
 Use the notebook when the audience benefits from a guided, cell-by-cell walkthrough instead of CLI output.
+
+### 10a. Optionally open the Phase 3 LangGraph HITL education notebook
+
+From [`agent-brain/`](../agent-brain/):
+
+```cmd
+python -m pip install -e .[dev,notebook]
+jupyter lab notebooks/phase3-langgraph-hitl-demo.ipynb
+```
+
+Use this notebook when the audience needs to see the deterministic LangGraph runtime, HITL pause/block behavior, approved finalization, and low-risk finalization in a guided cell-by-cell walkthrough. The notebook is demo/education only: it imports reusable workflow code and does not add business logic, make LLM calls, use OpenAI Agents SDK behavior, or call live local services.
 
 ### 11. Demonstrate mock pricing tool readiness
 
@@ -327,7 +340,7 @@ Optional setup:
 1. Install notebook extras for the Jupyter walkthrough.
 2. Replace Langfuse secrets and start the Docker Compose `observability` profile.
 3. Add a concrete Microsoft Foundry Local runtime when replacing the placeholder model adapter.
-4. Add the future Phase 3 LangGraph notebook from [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) only after the runtime workflow is implemented, validated, and documented in [`docs/06-setup-runbook.md`](06-setup-runbook.md).
+4. Open the Phase 3 LangGraph education notebook at [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) when the audience needs a guided HITL workflow walkthrough.
 
 ## Recommended short demo path
 
@@ -348,5 +361,5 @@ This path demonstrates the core value without requiring optional Phoenix/Langfus
 - The embedding vectors are deterministic placeholders, not production semantic embeddings.
 - Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end.
 - Microsoft Foundry Local is represented by an adapter boundary, not a concrete model client.
-- The notebook is optional and requires notebook dependencies.
+- The notebooks are optional and require notebook dependencies.
 - The strongest live proof point is the deterministic local flow: ingestion ? graph projection ? vector retrieval ? graph traversal ? hybrid retrieval ? curated demo ? governance validation.
