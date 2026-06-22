@@ -9,10 +9,10 @@ rebuild graph state from the current PostgreSQL fixture load.
 from __future__ import annotations
 
 import argparse
+import sys
 from dataclasses import dataclass
 from os import getenv
 from pathlib import Path
-import sys
 from typing import Final
 
 from neo4j import Driver, GraphDatabase, Session
@@ -22,7 +22,10 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from agent_brain.config import AgentBrainSettings, get_settings
+from agent_brain.config import (  # noqa: E402, I001
+    AgentBrainSettings,
+    get_settings,
+)
 
 
 DEMO_LABELS: tuple[str, ...] = (

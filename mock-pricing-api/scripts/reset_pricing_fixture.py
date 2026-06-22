@@ -10,18 +10,21 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import dataclass
-from pathlib import Path
 import shutil
 import sys
+from dataclasses import dataclass
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from mock_pricing_api.config import DEFAULT_PRICING_FIXTURE_PATH, get_settings
-from mock_pricing_api.repository import PricingRepository
+from mock_pricing_api.config import (  # noqa: E402, I001
+    DEFAULT_PRICING_FIXTURE_PATH,
+    get_settings,
+)
+from mock_pricing_api.repository import PricingRepository  # noqa: E402, I001
 
 
 @dataclass(frozen=True)
