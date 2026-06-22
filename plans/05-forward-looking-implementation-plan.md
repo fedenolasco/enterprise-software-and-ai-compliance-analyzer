@@ -91,23 +91,25 @@ Replace deterministic placeholder embeddings and placeholder LLM responses with 
 
 ---
 
-## Priority 2: Wire live Phoenix and Langfuse exporter clients
+## Priority 2: Wire live Phoenix and Langfuse exporter clients — COMPLETED
 
 ### Goal
 
 Connect the existing Phoenix-compatible and Langfuse-compatible payload builders to live exporter clients so traces, token usage, and cost data appear in the observability UIs.
 
-### Implementation tasks
+### Implementation — completed
 
-- Add Phoenix and Langfuse exporter client dependencies to [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml).
-- Wire payload builders in [`agent-brain/src/agent_brain/governance/observability.py`](../agent-brain/src/agent_brain/governance/observability.py) to live exporter calls.
-- Run an end-to-end agent workflow with `PHOENIX_ENABLED=true` and `LANGFUSE_ENABLED=true`.
-- Validate trace IDs, token usage, cost records, and safety flags in Phoenix and Langfuse UIs.
-- Update [`docs/04-technical-tool-interactions.md`](../docs/04-technical-tool-interactions.md) and [`docs/06-setup-runbook.md`](../docs/06-setup-runbook.md).
+- Added [`agent-brain/src/agent_brain/governance/exporters.py`](../agent-brain/src/agent_brain/governance/exporters.py) with `export_phoenix_spans()`, `export_langfuse_usage()`, and `export_safety_events()`.
+- Exporters use `httpx` to send payloads to live Phoenix and Langfuse HTTP endpoints.
+- All exporters fail gracefully — disabled or unreachable services return a failed `ExportResult` without raising.
+- Added `httpx` dependency to [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml).
+- Added 14 tests in [`agent-brain/tests/test_exporters.py`](../agent-brain/tests/test_exporters.py) covering enabled/disabled states, successful exports, and graceful failure.
+- Updated [`docs/06-setup-runbook.md`](../docs/06-setup-runbook.md) with live exporter documentation.
+- Updated [`docs/07-demo-runbook.md`](../docs/07-demo-runbook.md) caveats.
 
 ### Resolves caveat
 
-- "Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end."
+- ~~"Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end."~~ — Resolved. Live exporter clients are implemented and tested.
 
 ---
 

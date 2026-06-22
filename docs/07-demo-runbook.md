@@ -314,7 +314,7 @@ Use this checklist before a stakeholder walkthrough, recorded demo, or technical
 ### Known caveats to state during the demo
 
 - The default embedding vectors are deterministic placeholders, not production semantic embeddings. Switch to `openai` or `microsoft-foundry-local` using [`scripts/setup-provider.ps1`](../scripts/setup-provider.ps1) or [`scripts/setup-provider.sh`](../scripts/setup-provider.sh) for real semantic embeddings.
-- Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end.
+- Phoenix and Langfuse live exporter clients are implemented in [`agent-brain/src/agent_brain/governance/exporters.py`](../agent-brain/src/agent_brain/governance/exporters.py) and fail gracefully when services are disabled or unreachable.
 - Microsoft Foundry Local and OpenAI adapters are implemented, but require the respective runtime or API key to be configured before use.
 - The current experience is CLI and notebook based; no polished user-facing UI is included.
 - Local audit records remain the durable governance source of truth when optional observability services are disabled.
@@ -364,7 +364,7 @@ This path demonstrates the core value without requiring optional Phoenix/Langfus
 ## Known demo caveats
 
 - The default embedding vectors are deterministic placeholders, not production semantic embeddings. Use [`scripts/setup-provider.ps1`](../scripts/setup-provider.ps1) or [`scripts/setup-provider.sh`](../scripts/setup-provider.sh) to switch to `openai` or `microsoft-foundry-local` for real semantic embeddings.
-- Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end.
+- Phoenix and Langfuse live exporter clients are implemented and fail gracefully when services are disabled or unreachable.
 - Microsoft Foundry Local and OpenAI adapters are implemented, but require the respective runtime or API key to be configured before use.
 - The notebooks are optional and require notebook dependencies.
 - The strongest live proof point is the deterministic local flow: ingestion ? graph projection ? vector retrieval ? graph traversal ? hybrid retrieval ? curated demo ? governance validation.

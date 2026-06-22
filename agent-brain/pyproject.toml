@@ -13,6 +13,7 @@ authors = [
   { name = "Enterprise Software & AI Compliance Analyzer" }
 ]
 dependencies = [
+  "httpx==0.28.1",
   "langgraph==1.0.8",
   "neo4j==5.21.0",
   "openai==1.106.1",

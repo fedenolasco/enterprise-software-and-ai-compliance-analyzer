@@ -654,14 +654,39 @@ docker compose --profile observability stop phoenix langfuse langfuse-worker lan
 
 If Phoenix or Langfuse are stopped, the agent workflow should continue with `PHOENIX_ENABLED=false` and `LANGFUSE_ENABLED=false`; local audit persistence remains the durable governance record.
 
-The Phase 4 Python payload builders can be validated without running Phoenix or Langfuse:
+### Live observability exporters
+
+When Phoenix and Langfuse are running and enabled, the live exporter clients in [`agent-brain/src/agent_brain/governance/exporters.py`](../agent-brain/src/agent_brain/governance/exporters.py) send payloads to the running services:
+
+| Exporter | Target | Payload | When enabled |
+|---|---|---|---|
+| `export_phoenix_spans()` | Phoenix HTTP collector (`/v1/spans`) | `PhoenixTraceSpan` payloads | `PHOENIX_ENABLED=true` |
+| `export_langfuse_usage()` | Langfuse API (`/api/public/ingestion`) | `LangfuseUsageEvent` payloads with token usage and cost | `LANGFUSE_ENABLED=true` |
+| `export_safety_events()` | Phoenix HTTP collector (`/v1/spans`) | `SafetyFlagEvent` payloads | `PHOENIX_ENABLED=true` |
+
+All exporters fail gracefully — if the service is unreachable, disabled, or returns an error, the exporter logs a warning and returns a failed `ExportResult` without raising. The agent workflow continues and local audit persistence remains the durable governance record.
+
+To enable live exporters, set these environment variables in `agent-brain/.env`:
+
+```text
+PHOENIX_ENABLED=true
+PHOENIX_ENDPOINT=http://localhost:6006
+LANGFUSE_ENABLED=true
+LANGFUSE_HOST=http://localhost:3000
+LANGFUSE_PUBLIC_KEY=pk-lf-local-development-placeholder
+LANGFUSE_SECRET_KEY=sk-lf-local-development-placeholder
+```
+
+Replace the Langfuse placeholder keys with the actual keys from your local Langfuse instance (visible in the Langfuse UI under Settings > API Keys).
+
+The Phase 4 Python payload builders and live exporters can be validated without running Phoenix or Langfuse:
 
 ```text
 cd agent-brain
-python -m pytest tests/test_model_adapter.py tests/test_observability.py tests/test_audit.py
+python -m pytest tests/test_model_adapter.py tests/test_observability.py tests/test_audit.py tests/test_exporters.py
 ```
 
-These tests validate the Microsoft Foundry Local adapter boundary, deterministic placeholder model fallback, Phoenix-compatible trace payloads, Langfuse-compatible token/cost payloads, safety flag records, and PostgreSQL AuditEvent-compatible governance records.
+These tests validate the multi-provider model adapters, Phoenix-compatible trace payloads, Langfuse-compatible token/cost payloads, safety flag records, PostgreSQL AuditEvent-compatible governance records, and live exporter client behavior with mocked HTTP calls.
 
 ## Notebook and end-user script documentation standard
 

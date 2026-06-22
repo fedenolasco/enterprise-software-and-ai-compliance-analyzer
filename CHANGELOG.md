@@ -4,6 +4,12 @@ All notable project changes should be documented here as the implementation evol
 
 ## Unreleased
 
+- Wired live Phoenix and Langfuse exporter clients:
+  - Added [`agent-brain/src/agent_brain/governance/exporters.py`](agent-brain/src/agent_brain/governance/exporters.py) with `export_phoenix_spans()`, `export_langfuse_usage()`, and `export_safety_events()`.
+  - Exporters use `httpx` to send payloads to live Phoenix and Langfuse HTTP endpoints.
+  - All exporters fail gracefully — disabled or unreachable services return a failed `ExportResult` without raising.
+  - Added `httpx` dependency to [`agent-brain/pyproject.toml`](agent-brain/pyproject.toml).
+  - Added 14 tests covering enabled/disabled states, successful exports, and graceful failure.
 - Implemented multi-provider model and embedding adapters (Option C):
   - Added `OpenAIModelAdapter` using the OpenAI Responses API as primary with Chat Completions API fallback.
   - Implemented concrete `MicrosoftFoundryLocalAdapter` using Chat Completions API against the local Foundry Local endpoint.
