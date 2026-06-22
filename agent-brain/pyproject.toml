@@ -60,3 +60,6 @@ warn_unused_configs = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+markers = [
+  "integration: requires a running local PostgreSQL instance with the Prisma schema applied"
+]

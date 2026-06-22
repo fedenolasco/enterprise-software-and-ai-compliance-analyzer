@@ -4,6 +4,12 @@ All notable project changes should be documented here as the implementation evol
 
 ## Unreleased
 
+- Added integration tests against live PostgreSQL:
+  - Added [`agent-brain/tests/test_audit_integration.py`](agent-brain/tests/test_audit_integration.py) with 5 integration tests marked `@pytest.mark.integration`.
+  - Tests verify single and multiple audit event persistence, model usage detail, empty event no-op, and durable audit when observability is disabled.
+  - Each test cleans up its own audit events by trace ID for idempotency.
+  - Added `integration` pytest marker to [`agent-brain/pyproject.toml`](agent-brain/pyproject.toml).
+  - Run with `pytest -m integration` (requires live PostgreSQL); skip with `pytest -m "not integration"`.
 - Wired live Phoenix and Langfuse exporter clients:
   - Added [`agent-brain/src/agent_brain/governance/exporters.py`](agent-brain/src/agent_brain/governance/exporters.py) with `export_phoenix_spans()`, `export_langfuse_usage()`, and `export_safety_events()`.
   - Exporters use `httpx` to send payloads to live Phoenix and Langfuse HTTP endpoints.

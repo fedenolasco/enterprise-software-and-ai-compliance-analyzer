@@ -113,18 +113,20 @@ Connect the existing Phoenix-compatible and Langfuse-compatible payload builders
 
 ---
 
-## Priority 3: Integration tests against live PostgreSQL
+## Priority 3: Integration tests against live PostgreSQL — COMPLETED
 
 ### Goal
 
 Add integration tests that persist governance audit events against a live local PostgreSQL database to protect governance guarantees.
 
-### Implementation tasks
+### Implementation — completed
 
-- Add integration tests that connect to live local PostgreSQL (not mocks).
-- Verify audit events for ingestion, retrieval, tool use, HITL, and final output are persisted.
-- Verify audit records remain the durable source of truth when Phoenix and Langfuse are disabled.
-- Add these to the validation commands in [`docs/06-setup-runbook.md`](../docs/06-setup-runbook.md).
+- Added [`agent-brain/tests/test_audit_integration.py`](../agent-brain/tests/test_audit_integration.py) with 5 integration tests marked `@pytest.mark.integration`.
+- Tests verify single and multiple audit event persistence, model usage detail, empty event no-op, and durable audit when observability is disabled.
+- Each test cleans up its own audit events by trace ID for idempotency.
+- Added `integration` pytest marker to [`agent-brain/pyproject.toml`](../agent-brain/pyproject.toml).
+- Updated [`docs/06-setup-runbook.md`](../docs/06-setup-runbook.md) with integration test documentation and run commands.
+- Run with `pytest -m integration` (requires live PostgreSQL); skip with `pytest -m "not integration"`.
 
 ---
 

@@ -688,6 +688,43 @@ python -m pytest tests/test_model_adapter.py tests/test_observability.py tests/t
 
 These tests validate the multi-provider model adapters, Phoenix-compatible trace payloads, Langfuse-compatible token/cost payloads, safety flag records, PostgreSQL AuditEvent-compatible governance records, and live exporter client behavior with mocked HTTP calls.
 
+### Integration tests against live PostgreSQL
+
+Integration tests that persist governance audit events against a live local PostgreSQL database are in [`agent-brain/tests/test_audit_integration.py`](../agent-brain/tests/test_audit_integration.py). These tests are marked with `@pytest.mark.integration` and are skipped by default when running `pytest -m "not integration"`.
+
+Prerequisites for running integration tests:
+
+1. Docker services running (`docker compose up -d`).
+2. Prisma schema applied (`npm run db:push` from [`database-layer/`](../database-layer/)).
+3. `DATABASE_URL` environment variable set or `.env` file present.
+
+Run integration tests from [`agent-brain/`](../agent-brain/):
+
+```text
+python -m pytest tests/test_audit_integration.py -v -m integration
+```
+
+Run all tests including integration tests:
+
+```text
+python -m pytest tests/ -v
+```
+
+Run all tests excluding integration tests (default for CI and offline validation):
+
+```text
+python -m pytest tests/ -v -m "not integration"
+```
+
+The integration tests verify:
+
+- Single governance audit event persistence to live PostgreSQL.
+- Multiple governance audit event persistence in a single transaction.
+- Audit event with model usage detail (token counts, cost, safety flags).
+- Empty event list is a no-op.
+- Audit events survive as the durable governance record when observability services are disabled.
+- Each test cleans up its own audit events by trace ID to remain idempotent.
+
 ## Notebook and end-user script documentation standard
 
 Every end-user script or notebook added for a demo must be self-documenting and linked from this runbook. Notebook markdown cells should explain each executable section before code is run.
