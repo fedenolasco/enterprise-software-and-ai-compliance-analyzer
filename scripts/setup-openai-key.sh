@@ -1,32 +1,50 @@
 #!/usr/bin/env bash
 #
-# Securely configures OpenAI API key in local .env files without exposing the key.
-#
-# Prompts the user for their OpenAI API key using a masked input, then writes
-# it to the three local .env files (root, agent-brain, database-layer). The key
-# is never printed, logged, or transmitted anywhere except the local .env files
-# which are gitignored.
+# Securely configures OpenAI API key in local .env files and optionally
+# switches provider settings between placeholder, foundry, and openai.
 #
 # Usage:
-#   bash scripts/setup-openai-key.sh [--switch-to-openai]
+#   bash scripts/setup-openai-key.sh                              # Set key only
+#   bash scripts/setup-openai-key.sh --switch-to openai           # Set key + switch to OpenAI
+#   bash scripts/setup-openai-key.sh --switch-to foundry          # Switch to Foundry Local
+#   bash scripts/setup-openai-key.sh --switch-to placeholder      # Switch back to placeholder
+#   bash scripts/setup-openai-key.sh --switch-to openai --skip-key # Switch to OpenAI without key prompt
 #
 
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SWITCH_TO_OPENAI="false"
+SWITCH_TO="none"
+SKIP_KEY="false"
 
 for arg in "$@"; do
   case "$arg" in
-    --switch-to-openai)
-      SWITCH_TO_OPENAI="true"
+    --switch-to)
+      shift
+      SWITCH_TO="${1:-none}"
+      shift || true
+      ;;
+    --switch-to=*)
+      SWITCH_TO="${arg#--switch-to=}"
+      ;;
+    --skip-key)
+      SKIP_KEY="true"
       ;;
     *)
       echo "Unknown argument: $arg" >&2
-      echo "Usage: scripts/setup-openai-key.sh [--switch-to-openai]" >&2
+      echo "Usage: scripts/setup-openai-key.sh [--switch-to openai|foundry|placeholder] [--skip-key]" >&2
       exit 2
       ;;
   esac
 done
+
+case "$SWITCH_TO" in
+  openai|foundry|placeholder|none) ;;
+  *)
+    echo "Invalid --switch-to value: $SWITCH_TO" >&2
+    echo "Valid values: openai, foundry, placeholder, none" >&2
+    exit 2
+    ;;
+esac
 
 set_env_value() {
   local file_path="$1"
@@ -58,13 +76,39 @@ set_env_value() {
   mv "$tmp_file" "$file_path"
 }
 
+get_provider_config() {
+  local provider="$1"
+  case "$provider" in
+    openai)
+      echo "EMBEDDING_PROVIDER=openai"
+      echo "EMBEDDING_MODEL=text-embedding-3-small"
+      echo "EMBEDDING_DIMENSION=1536"
+      echo "MODEL_PROVIDER=openai"
+      echo "OPENAI_MODEL=gpt-4o-mini"
+      ;;
+    foundry)
+      echo "EMBEDDING_PROVIDER=microsoft-foundry-local"
+      echo "EMBEDDING_MODEL=all-MiniLM-L6-v2"
+      echo "EMBEDDING_DIMENSION=384"
+      echo "MODEL_PROVIDER=microsoft-foundry-local"
+      echo "LOCAL_MODEL_NAME=Phi-3.5-mini-instruct"
+      ;;
+    placeholder)
+      echo "EMBEDDING_PROVIDER=placeholder"
+      echo "EMBEDDING_MODEL=deterministic-placeholder"
+      echo "EMBEDDING_DIMENSION=8"
+      echo "MODEL_PROVIDER=placeholder"
+      echo "LOCAL_MODEL_NAME=deterministic-placeholder-local-model"
+      ;;
+  esac
+}
+
 read_masked_input() {
   local prompt="$1"
   local input=""
 
   printf "%s" "$prompt" >&2
 
-  # Disable echo and read character by character
   if command -v stty &> /dev/null; then
     stty -echo 2> /dev/null || true
   fi
@@ -85,42 +129,51 @@ read_masked_input() {
   printf "%s" "$input"
 }
 
-echo "=== Secure OpenAI API Key Setup ==="
-echo ""
-echo "This script will:"
-echo "  1. Prompt you for your OpenAI API key (input will be masked)"
-echo "  2. Write the key to .env, agent-brain/.env, and database-layer/.env"
-echo "  3. The key is NEVER printed, logged, or transmitted"
-echo "  4. All .env files are gitignored and will never be committed"
+echo "=== Secure OpenAI API Key and Provider Setup ==="
 echo ""
 
-if [[ "$SWITCH_TO_OPENAI" == "true" ]]; then
-  echo "The --switch-to-openai flag is set."
-  echo "Provider settings will be switched from placeholder to openai."
+# Show provider switch info
+if [[ "$SWITCH_TO" != "none" ]]; then
+  echo "Switching provider to: $SWITCH_TO"
+  while IFS= read -r config_line; do
+    echo "  $config_line"
+  done < <(get_provider_config "$SWITCH_TO")
   echo ""
 fi
 
-API_KEY=$(read_masked_input "Enter your OpenAI API key: ")
-
-if [[ -z "$API_KEY" || -z "$(echo "$API_KEY" | tr -d '[:space:]')" ]]; then
-  echo "No API key entered. Exiting without changes."
-  exit 0
-fi
-
-API_KEY="$(echo "$API_KEY" | tr -d '[:space:]')"
-
-if [[ "$API_KEY" != sk-* ]]; then
+# Prompt for API key unless skipped or switching to non-OpenAI provider
+API_KEY=""
+if [[ "$SKIP_KEY" == "false" && "$SWITCH_TO" != "foundry" && "$SWITCH_TO" != "placeholder" ]]; then
+  echo "This script will prompt for your OpenAI API key (input will be masked)."
+  echo "The key is NEVER printed, logged, or transmitted."
+  echo "All .env files are gitignored and will never be committed."
   echo ""
-  echo "Warning: The key does not start with 'sk-'. This may not be a valid OpenAI API key."
-  read -p "Continue anyway? (y/N) " continue
-  if [[ "$continue" != "y" && "$continue" != "Y" ]]; then
-    echo "Cancelled. No changes made."
+
+  API_KEY=$(read_masked_input "Enter your OpenAI API key: ")
+
+  if [[ -z "$API_KEY" || -z "$(echo "$API_KEY" | tr -d '[:space:]')" ]]; then
+    echo "No API key entered. Exiting without changes."
     exit 0
   fi
+
+  API_KEY="$(echo "$API_KEY" | tr -d '[:space:]')"
+
+  if [[ "$API_KEY" != sk-* ]]; then
+    echo ""
+    echo "Warning: The key does not start with 'sk-'. This may not be a valid OpenAI API key."
+    read -p "Continue anyway? (y/N) " continue
+    if [[ "$continue" != "y" && "$continue" != "Y" ]]; then
+      echo "Cancelled. No changes made."
+      exit 0
+    fi
+  fi
+  echo ""
+elif [[ "$SKIP_KEY" == "true" ]]; then
+  echo "Skipping API key prompt (--skip-key flag set)."
+  echo ""
 fi
 
-echo ""
-echo "Writing API key to .env files..."
+echo "Updating .env files..."
 
 ENV_FILES=(
   "${REPO_ROOT}/.env"
@@ -135,36 +188,43 @@ ENV_LABELS=(
 )
 
 for i in "${!ENV_FILES[@]}"; do
-  set_env_value "${ENV_FILES[$i]}" "OPENAI_API_KEY" "$API_KEY"
-  echo "  Updated: ${ENV_LABELS[$i]}"
+  # Write API key if provided
+  if [[ -n "$API_KEY" ]]; then
+    set_env_value "${ENV_FILES[$i]}" "OPENAI_API_KEY" "$API_KEY"
+    echo "  Updated OPENAI_API_KEY in: ${ENV_LABELS[$i]}"
+  fi
 
-  if [[ "$SWITCH_TO_OPENAI" == "true" ]]; then
-    set_env_value "${ENV_FILES[$i]}" "EMBEDDING_PROVIDER" "openai"
-    set_env_value "${ENV_FILES[$i]}" "EMBEDDING_MODEL" "text-embedding-3-small"
-    set_env_value "${ENV_FILES[$i]}" "EMBEDDING_DIMENSION" "1536"
-    set_env_value "${ENV_FILES[$i]}" "MODEL_PROVIDER" "openai"
-    set_env_value "${ENV_FILES[$i]}" "OPENAI_MODEL" "gpt-4o-mini"
-    echo "    (provider switched to openai)"
+  # Switch provider settings if requested
+  if [[ "$SWITCH_TO" != "none" ]]; then
+    while IFS= read -r config_line; do
+      key="${config_line%%=*}"
+      value="${config_line#*=}"
+      set_env_value "${ENV_FILES[$i]}" "$key" "$value"
+    done < <(get_provider_config "$SWITCH_TO")
+    echo "  Switched provider to $SWITCH_TO in: ${ENV_LABELS[$i]}"
+  fi
+
+  if [[ -z "$API_KEY" && "$SWITCH_TO" == "none" ]]; then
+    echo "  No changes needed in: ${ENV_LABELS[$i]}"
   fi
 done
 
 echo ""
-echo "Done. Your API key has been written to the local .env files."
-echo "The key was NOT printed, logged, or transmitted anywhere else."
-echo ""
+echo "Done."
 
-if [[ "$SWITCH_TO_OPENAI" == "false" ]]; then
-  echo "To switch from placeholder to OpenAI providers, either:"
-  echo "  - Re-run this script with --switch-to-openai"
-  echo "  - Or manually edit the .env files:"
-  echo "      EMBEDDING_PROVIDER=openai"
-  echo "      EMBEDDING_MODEL=text-embedding-3-small"
-  echo "      EMBEDDING_DIMENSION=1536"
-  echo "      MODEL_PROVIDER=openai"
-  echo "      OPENAI_MODEL=gpt-4o-mini"
-  echo ""
+if [[ -n "$API_KEY" ]]; then
+  echo "Your API key has been written to the local .env files."
+  echo "The key was NOT printed, logged, or transmitted anywhere else."
 fi
 
+echo ""
 echo "IMPORTANT: Verify .env files are gitignored before committing:"
 echo "  git status --short"
 echo "  (no .env files should appear)"
+
+if [[ "$SWITCH_TO" != "none" && "$SWITCH_TO" != "placeholder" ]]; then
+  echo ""
+  echo "NOTE: Switching embedding model changes the vector dimension."
+  echo "You must reset and re-ingest demo data after switching:"
+  echo "  bash scripts/reset-demo-environment.sh"
+fi
