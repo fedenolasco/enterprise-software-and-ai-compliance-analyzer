@@ -173,7 +173,7 @@ def check_pricing_api() -> ServiceHealth:
             required=True,
             host=base_url,
             port=None,
-            detail="Running and responding to health checks at " + base_url,
+            detail="Running and accepting health checks on port 8000",
             remediation="",
         )
     return ServiceHealth(
@@ -183,7 +183,7 @@ def check_pricing_api() -> ServiceHealth:
         host=base_url,
         port=None,
         detail=detail,
-        remediation="Start pricing API: cd mock-pricing-api && python -m mock_pricing_api.main",
+        remediation="Start pricing API: cd mock-pricing-api && py -3.11 -m mock_pricing_api.main",
     )
 
 

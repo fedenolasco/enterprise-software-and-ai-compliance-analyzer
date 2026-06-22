@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 from fastapi import APIRouter
 
@@ -16,6 +17,7 @@ _CONFIG_METADATA: dict[str, dict[str, str]] = {
         "category": "Database",
         "description": "The PostgreSQL connection string. Defaults to a local Docker container.",
         "editable": "false",
+        "sensitive": "true",
     },
     "neo4j_uri": {
         "category": "Graph",
@@ -135,7 +137,11 @@ _CONFIG_METADATA: dict[str, dict[str, str]] = {
 
 
 def _mask_sensitive(value: object) -> str:
-    """Mask sensitive values for display."""
+    """Mask sensitive values for display.
+
+    Uses a fixed number of asterisks so the masked representation does not grow
+    with the value length (which previously caused layout overlap in the UI).
+    """
     if value is None:
         return "None"
     value_str = str(value)
@@ -143,7 +149,38 @@ def _mask_sensitive(value: object) -> str:
         return ""
     if len(value_str) <= 4:
         return "*" * len(value_str)
-    return value_str[:2] + "*" * (len(value_str) - 4) + value_str[-2:]
+    return value_str[:2] + "****" + value_str[-2:]
+
+
+def _mask_connection_string(value: object) -> str:
+    """Mask credentials in a database/connection URL while keeping host and path visible.
+
+    For example ``postgresql://user:password@host:5432/db?schema=public`` becomes
+    ``postgresql://user:****@host:5432/db?schema=public``. Falls back to
+    :func:`_mask_sensitive` if the value cannot be parsed as a URL.
+    """
+    if value is None:
+        return "None"
+    value_str = str(value)
+    if not value_str:
+        return ""
+    try:
+        parsed = urlparse(value_str)
+    except ValueError:
+        return _mask_sensitive(value_str)
+    # Only redact when there is userinfo to redact.
+    if parsed.username:
+        # Preserve the username but replace the password with a fixed mask.
+        userinfo = parsed.username
+        if parsed.password is not None:
+            userinfo += ":****"
+        # Rebuild netloc preserving port.
+        host = parsed.hostname or ""
+        if parsed.port:
+            host = f"{host}:{parsed.port}"
+        masked = parsed._replace(netloc=f"{userinfo}@{host}" if host else userinfo)
+        return urlunparse(masked)
+    return value_str
 
 
 @router.get("")
@@ -155,7 +192,14 @@ async def get_config() -> dict[str, Any]:
         metadata = _CONFIG_METADATA[field_name]
         raw_value = getattr(settings, field_name, None)
         is_sensitive = metadata.get("sensitive", "false") == "true"
-        display_value = _mask_sensitive(raw_value) if is_sensitive else str(raw_value)
+        if is_sensitive:
+            # Connection strings get dedicated masking that keeps host/db visible.
+            if field_name == "database_url":
+                display_value = _mask_connection_string(raw_value)
+            else:
+                display_value = _mask_sensitive(raw_value)
+        else:
+            display_value = str(raw_value)
         parameters.append(
             {
                 "name": field_name,

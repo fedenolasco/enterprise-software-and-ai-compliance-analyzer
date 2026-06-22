@@ -469,33 +469,48 @@ Foundry Local automatically detects available hardware and selects the best exec
 
 #### Installation
 
-On Windows (recommended for hardware acceleration):
+The current UI integration uses the Foundry Local Python SDK. On Windows, install `foundry-local-sdk-winml` into the same Python environment that runs the UI backend; this package enables Windows ML hardware acceleration when supported by local hardware.
+
+If the UI backend is running, the Configuration page exposes the exact interpreter-specific install command from `GET /api/provider/foundry-status`. It will look like:
 
 ```cmd
-winget install Microsoft.FoundryLocal
+"C:\Path\To\python.exe" -m pip install foundry-local-sdk-winml==1.2.3
 ```
 
-On macOS:
+For a clean Windows setup using the project baseline Python 3.11:
+
+```cmd
+py -3.11 -m pip install foundry-local-sdk-winml==1.2.3
+```
+
+On macOS/Linux, install the non-Windows SDK package into the backend interpreter:
 
 ```bash
-brew install microsoft/foundrylocal/foundrylocal
+python -m pip install foundry-local-sdk==1.2.3
 ```
 
-Install the Python SDK for the agent-brain workstream:
+Restart the UI backend after installing the SDK so the running process can import `foundry_local_sdk`.
 
-```cmd
-pip install foundry-local-sdk-winml
+The older native CLI can still be useful for manual inspection where available, but the UI path uses the Python SDK first and only falls back to CLI commands for compatibility.
+
+On macOS, if you need the optional legacy CLI:
+
+```bash
+brew tap microsoft/foundrylocal
+brew install foundrylocal
 ```
 
 Use `foundry-local-sdk-winml` on Windows for hardware acceleration via Windows ML. On macOS/Linux, use `foundry-local-sdk` instead.
 
 #### Downloading models
 
-After installing Foundry Local, download the models needed for this project:
+The Configuration page can download/load the selected model through the SDK. For a quick-start local model, select `qwen2.5-0.5b` and use the Download/Load controls on the page.
+
+If you have the optional legacy CLI installed, you can also inspect or download models manually:
 
 ```cmd
-foundry model download phi-3.5-mini-instruct
-foundry model download all-MiniLM-L6-v2
+foundry model load qwen2.5-0.5b
+foundry model load all-MiniLM-L6-v2
 ```
 
 List available models in the catalog:
@@ -522,13 +537,15 @@ For the minimum setup (Phi-3.5-mini + MiniLM), you need approximately 3 GB disk 
 
 #### Starting Foundry Local
 
-Foundry Local must be running before the project can use it:
+When `MODEL_PROVIDER=microsoft-foundry-local`, the Configuration page starts the SDK-managed Foundry Local web service as needed through `PUT /api/provider/foundry-model`. SDK-managed endpoints are process/session scoped; after restarting the UI backend, the Configuration page may show "Start Service Now" again even though the SDK is installed. Click the button to restart the local service and load the selected model.
+
+If you are using an optional legacy CLI service instead, it can be started manually:
 
 ```cmd
 foundry service start
 ```
 
-The service runs on `http://localhost:5272` by default, which matches the `FOUNDRY_LOCAL_ENDPOINT` in the [`.env.example`](../.env.example) files.
+The legacy service commonly runs on `http://localhost:5272`. SDK-managed services may choose a local dynamic port; the UI writes the active endpoint to `.env` when it changes.
 
 #### Switching the project to Foundry Local
 
@@ -549,8 +566,8 @@ EMBEDDING_PROVIDER=microsoft-foundry-local
 EMBEDDING_MODEL=all-MiniLM-L6-v2
 EMBEDDING_DIMENSION=384
 MODEL_PROVIDER=microsoft-foundry-local
-LOCAL_MODEL_NAME=Phi-3.5-mini-instruct
-FOUNDRY_LOCAL_ENDPOINT=http://localhost:5272
+LOCAL_MODEL_NAME=qwen2.5-0.5b
+FOUNDRY_LOCAL_ENDPOINT=<active-local-foundry-endpoint>
 ```
 
 Then reset and re-ingest demo data because the embedding dimension changes from 8 to 384:

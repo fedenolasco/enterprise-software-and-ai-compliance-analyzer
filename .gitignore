@@ -38,3 +38,27 @@
 
 # Next.js build output
 **/.next/
+
+# Foundry Local model cache and downloaded models (2-10 GB each)
+# Foundry Local stores models in ~/.cache/foundry-local/ on Linux/macOS
+# and %USERPROFILE%\.cache\foundry-local\ on Windows
+**/.foundry-local/
+**/foundry-local-cache/
+**/.cache/foundry-local/
+*.onnx
+*.gguf
+*.bin
+# Allow small test fixtures that might use .bin extension
+!**/tests/**/*.bin
+!**/test/**/*.bin
+
+# Large model artifacts and checkpoints
+**/models/*.pt
+**/models/*.pth
+**/models/*.safetensors
+**/checkpoints/
+
+# Docker volumes (local data)
+**/docker-data/
+**/pgdata/
+**/neo4j-data/

@@ -34,7 +34,7 @@ _SERVICE_START_CONFIG: dict[str, dict[str, Any]] = {
     },
     "pricing-api": {
         "docker_service": None,  # Not a Docker service — started manually
-        "start_command": "cd mock-pricing-api && python -m mock_pricing_api.main",
+        "start_command": "cd mock-pricing-api && py -3.11 -m mock_pricing_api.main",
         "description": "Mock Pricing API (FastAPI)",
     },
     "phoenix": {
@@ -98,7 +98,7 @@ async def auto_start_required_services() -> dict[str, Any]:
     """
     from ui_api.services.health_checker import check_all_services
 
-    services_to_auto_start = ["postgres", "neo4j"]
+    services_to_auto_start = ["postgres", "neo4j", "pricing-api"]
 
     # Check current health
     health_results = check_all_services()
@@ -189,8 +189,31 @@ async def start_service(service: str) -> dict[str, Any]:
         # Execute the start command
         parts = config["start_command"].split()
 
-        # Handle cd && command pattern for pricing-api
-        if "cd" in parts:
+        # The pricing API is a sibling source tree and may not be installed in
+        # the backend interpreter. Start it with the same Python executable as
+        # the UI backend and add its src directory to PYTHONPATH.
+        if service == "pricing-api":
+            import os
+            import sys
+
+            working_dir = settings.repo_root / "mock-pricing-api"
+            env = dict(os.environ)
+            src_path = str(working_dir / "src")
+            existing_pythonpath = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = (
+                src_path if not existing_pythonpath else src_path + os.pathsep + existing_pythonpath
+            )
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable,
+                "-m",
+                "mock_pricing_api.main",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=str(working_dir),
+                env=env,
+            )
+        # Handle cd && command pattern for other source-tree services
+        elif "cd" in parts:
             # Find the cd and the directory
             cd_idx = parts.index("cd")
             dir_name = parts[cd_idx + 1]

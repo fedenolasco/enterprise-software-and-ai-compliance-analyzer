@@ -12,6 +12,16 @@ The API is local-only and serves synthetic data from [`mock-pricing-api/src/mock
 - Default base URL: `http://127.0.0.1:8000`
 - Local runner: [`mock_pricing_api.main`](../mock-pricing-api/src/mock_pricing_api/main.py)
 - FastAPI app factory: [`create_app()`](../mock-pricing-api/src/mock_pricing_api/app.py)
+- Dashboard health: the UI backend treats this as a required local service and can start it from the source tree with Python 3.11 and `mock-pricing-api/src` on `PYTHONPATH`.
+
+Manual local startup from the repository root:
+
+```powershell
+$env:PYTHONPATH="C:\app\enterprise-software-and-ai-compliance-analyzer\mock-pricing-api\src"
+py -3.11 -m mock_pricing_api.main
+```
+
+The Dashboard healthy state is intentionally shown in the same port-focused style as PostgreSQL and Neo4j: `Running and accepting health checks on port 8000`.
 
 ## REST endpoints
 

@@ -58,16 +58,14 @@ export default function DashboardPage() {
     setAutoStarting(true);
     try {
       const result = await apiPost<{
-        auto_started: Array<{ service: string; was_unhealthy: boolean }>;
-        summary: { attempted_start: number; now_healthy: number };
+        auto_started: string[];
+        summary: { attempted_start: number; needs_start: string[] };
       }>("/services/auto-start-required");
 
       if (result.summary.attempted_start > 0) {
         const messages: Record<string, string> = {};
-        for (const item of result.auto_started) {
-          if (item.was_unhealthy) {
-            messages[item.service] = `Auto-started. ${result.summary.now_healthy} of 2 required services now healthy.`;
-          }
+        for (const serviceName of result.auto_started) {
+          messages[serviceName] = "Auto-started. Health will update shortly.";
         }
         setServiceMessages(messages);
       }
@@ -207,11 +205,13 @@ export default function DashboardPage() {
             {autoStarting && (
               <div className="mb-3 flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Auto-starting required services (PostgreSQL, Neo4j)...
+                Auto-starting required services (PostgreSQL, Neo4j, Pricing API)...
               </div>
             )}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {health?.services.map((service: ServiceHealth) => (
+            {health?.services
+              .filter((service: ServiceHealth) => service.name !== "foundry-local")
+              .map((service: ServiceHealth) => (
               <div
                 key={service.name}
                 className={cn(

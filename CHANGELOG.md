@@ -4,6 +4,41 @@ All notable project changes should be documented here as the implementation evol
 
 ## Unreleased
 
+- Improved Configuration page security and UX:
+  - Fixed redacted OpenAI API key overlap by using fixed-length masking (5 asterisks) instead of one asterisk per character.
+  - Marked `database_url` as sensitive and added dedicated connection-string masking that redacts the password while keeping host/db visible.
+  - Added `break-all` CSS to prevent long values from overflowing grid cells.
+  - See [ADR 0007](docs/adr/0007-foundry-local-integration-and-config-ui.md) for full details.
+- Reorganized Configuration page layout:
+  - Moved "OpenAI API Key & Model" section inside the Model Provider Switcher card (only shown when `openai` is active).
+  - Moved Embeddings config table inside the Embedding Provider Switcher card.
+  - Added Foundry Local Model selector (only shown when `microsoft-foundry-local` is active).
+  - Removed duplicate parameters already shown in status cards or switcher active states.
+  - Removed irrelevant CLI equivalent message from the Embedding Provider Switcher.
+- Synced embedding parameters on provider switch:
+  - `EMBEDDING_MODEL` and `EMBEDDING_DIMENSION` now update automatically when switching embedding providers.
+- Added Foundry Local integration:
+  - Curated catalog of Foundry Local models with device information.
+  - `PUT /api/provider/foundry-model` endpoint: checks service, starts if needed, downloads model if needed, updates `.env`.
+  - `GET /api/provider/foundry-status` endpoint: checks SDK availability, service status, cache directory.
+  - `POST /api/provider/foundry-install` endpoint: installs the Foundry Local Python SDK into the backend interpreter, using `foundry-local-sdk-winml` on Windows for Windows ML hardware acceleration.
+  - `PUT /api/provider/foundry-cache` endpoint: changes model cache directory.
+  - Auto-starts Foundry Local service when switching to `microsoft-foundry-local` (does NOT auto-stop when switching away).
+  - Frontend shows install button, step-by-step progress, and folder picker for cache directory.
+  - Keeps Foundry Local service management on the Configuration page rather than duplicating it on the Dashboard health grid.
+  - Uses the backend Python interpreter for SDK installation so the running UI API can import the SDK after restart.
+  - Notes that SDK-managed service endpoints are process/session scoped and may need restart after backend restarts.
+- Improved Dashboard service health:
+  - Hid the redundant Foundry Local health card because Foundry usage is provider-dependent and managed on the Configuration page.
+  - Added the mock Pricing API to required-service auto-start.
+  - Fixed Pricing API startup from the UI by launching it with Python 3.11 and a source-tree `PYTHONPATH`.
+  - Shortened the Pricing API healthy message to use the port-based style used by other services.
+- Fixed scroll position loss on provider switch:
+  - `fetchAll` now accepts a `silent` parameter to skip the loading spinner on refetches.
+  - All post-action refetches use `fetchAll(true)` to preserve scroll position.
+- Updated `.gitignore` to exclude large Foundry Local model files (`.onnx`, `.gguf`, `.bin`, model caches, Docker volumes).
+- Added [ADR 0007](docs/adr/0007-foundry-local-integration-and-config-ui.md) documenting all architectural decisions.
+
 - Added integration tests against live PostgreSQL:
   - Added [`agent-brain/tests/test_audit_integration.py`](agent-brain/tests/test_audit_integration.py) with 5 integration tests marked `@pytest.mark.integration`.
   - Tests verify single and multiple audit event persistence, model usage detail, empty event no-op, and durable audit when observability is disabled.
