@@ -354,6 +354,8 @@ The following scripts and entry points support repeatable demo reset and validat
 | [`mock-pricing-api/scripts/reset_pricing_fixture.py`](../mock-pricing-api/scripts/reset_pricing_fixture.py) | Present | Reload or validate committed pricing fixtures if pricing state becomes mutable. |
 | [`scripts/reset-demo-environment.ps1`](../scripts/reset-demo-environment.ps1) | Present | Root-level Windows orchestration script that runs the repeatable reset path from PostgreSQL reset through ingestion, graph reset/projection, pricing fixture reset, and validation smoke tests. |
 | [`scripts/reset-demo-environment.sh`](../scripts/reset-demo-environment.sh) | Present | Root-level WSL/Linux equivalent of the Windows reset orchestration script. |
+| [`scripts/setup-provider.ps1`](../scripts/setup-provider.ps1) | Present | Windows script to securely configure the OpenAI API key and switch between placeholder, Foundry Local, and OpenAI providers. |
+| [`scripts/setup-provider.sh`](../scripts/setup-provider.sh) | Present | WSL/Linux equivalent of the provider setup script. |
 
 Reset scripts must be documented here before they are considered demo-ready. Each script should state whether it performs a soft reset or hard reset, which services must already be running, which environment variables it reads, what data it deletes or regenerates, and which validation command proves the reset succeeded.
 
@@ -407,6 +409,40 @@ Reset or validate only the mock pricing fixture from [`mock-pricing-api/`](../mo
 ```text
 cd mock-pricing-api
 python scripts/reset_pricing_fixture.py
+```
+
+### Provider configuration
+
+The project supports three model and embedding providers. Use the setup scripts to securely configure the OpenAI API key and switch between providers:
+
+| Provider | `MODEL_PROVIDER` | LLM | Embeddings | API key | Offline |
+|---|---|---|---|---|---|
+| Placeholder | `placeholder` | Deterministic | 8-dim placeholder | None | Yes |
+| Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5-mini / Qwen2.5 | all-MiniLM-L6-v2 (384-dim) | None | Yes |
+| OpenAI | `openai` | gpt-4o-mini | text-embedding-3-small (1536-dim) | Required | No |
+
+On Windows PowerShell:
+
+```powershell
+.\scripts\setup-provider.ps1 -SwitchTo openai
+.\scripts\setup-provider.ps1 -SwitchTo foundry
+.\scripts\setup-provider.ps1 -SwitchTo placeholder
+```
+
+On WSL/Linux:
+
+```bash
+bash scripts/setup-provider.sh --switch-to openai
+bash scripts/setup-provider.sh --switch-to foundry
+bash scripts/setup-provider.sh --switch-to placeholder
+```
+
+The setup script prompts for the OpenAI API key with masked input when switching to OpenAI. The key is written only to gitignored `.env` files and is never printed, logged, or transmitted. Use `-SkipKey` (PowerShell) or `--skip-key` (bash) to switch to OpenAI without re-entering the key if it is already configured.
+
+Switching embedding providers changes the vector dimension. After switching, reset and re-ingest demo data:
+
+```powershell
+.\scripts\reset-demo-environment.ps1
 ```
 
 ### Current reset command

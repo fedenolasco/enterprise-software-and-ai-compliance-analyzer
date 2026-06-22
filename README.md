@@ -48,6 +48,24 @@ Within folders that use two-digit prefixes, read files in ascending numeric orde
 
 Use `docker-compose.yml` with `.env.example` values to start PostgreSQL with pgvector and Neo4j.
 
+## Model and embedding providers
+
+The project supports three providers configurable via environment variables:
+
+| Provider | Mode | LLM | Embeddings | API key | Offline |
+|---|---|---|---|---|---|
+| Placeholder | `placeholder` | Deterministic | 8-dim placeholder | None | Yes |
+| Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5 / Qwen2.5 | all-MiniLM-L6-v2 (384-dim) | None | Yes |
+| OpenAI | `openai` | gpt-4o-mini | text-embedding-3-small (1536-dim) | Required | No |
+
+Use the setup scripts to securely configure the OpenAI API key and switch providers:
+
+```powershell
+.\scripts\setup-provider.ps1 -SwitchTo openai
+```
+
+See [`docs/06-setup-runbook.md`](docs/06-setup-runbook.md) for full provider configuration details.
+
 ## Local generated files
 
 The root [`.gitignore`](.gitignore) excludes local virtual environments, dependency folders, tool caches, logs, Jupyter checkpoints, and uncommitted `.env` files. Keep committed templates such as [`.env.example`](.env.example) and workstream `.env.example` files in source control, but do not commit machine-specific `.env` files or generated folders such as `.venv`, `.venv-py311`, `node_modules`, `.mypy_cache`, `.pytest_cache`, or `.ruff_cache`.

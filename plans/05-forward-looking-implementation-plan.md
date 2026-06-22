@@ -9,6 +9,8 @@ This plan documents the remaining implementation steps after the Phase 0–4 bas
 - All Phase 0–4 implementation is complete (see [`plans/02-implementation-plan-checklist.md`](02-implementation-plan-checklist.md)).
 - Pre-sharing tasks are complete: changelog updated, MIT license added, reset script tests added, CONTRIBUTING.md added, GitHub visibility verified.
 - The repo is public and ready for sharing as a demonstration and educational project.
+- Multi-provider model and embedding adapters are implemented (Option C): placeholder, Microsoft Foundry Local, and OpenAI are all supported via environment configuration.
+- Provider setup scripts are available at [`scripts/setup-provider.ps1`](../scripts/setup-provider.ps1) and [`scripts/setup-provider.sh`](../scripts/setup-provider.sh).
 
 ## Priority 1: Multi-provider model and embedding adapters (Option C)
 

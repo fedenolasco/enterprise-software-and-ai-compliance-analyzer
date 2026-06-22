@@ -308,13 +308,14 @@ Use this checklist before a stakeholder walkthrough, recorded demo, or technical
 - [ ] Langfuse placeholder secrets in `.env` have been replaced before starting the optional observability profile.
 - [ ] Phoenix and Langfuse containers start with `docker compose --profile observability up -d phoenix langfuse langfuse-worker` when showing observability UIs.
 - [ ] Phase 4 payload-builder tests pass with `python -m pytest tests/test_model_adapter.py tests/test_observability.py tests/test_audit.py` from [`agent-brain/`](../agent-brain/).
-- [ ] A concrete Microsoft Foundry Local runtime is available only if replacing the deterministic placeholder model adapter for a future model demo.
+- [ ] A concrete Microsoft Foundry Local runtime is available only if switching from the placeholder provider to `microsoft-foundry-local` for a real model demo.
+- [ ] An OpenAI API key is configured only if switching from the placeholder provider to `openai` for a real embedding and model demo.
 
 ### Known caveats to state during the demo
 
-- The embedding vectors are deterministic placeholders, not production semantic embeddings.
+- The default embedding vectors are deterministic placeholders, not production semantic embeddings. Switch to `openai` or `microsoft-foundry-local` using [`scripts/setup-provider.ps1`](../scripts/setup-provider.ps1) or [`scripts/setup-provider.sh`](../scripts/setup-provider.sh) for real semantic embeddings.
 - Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end.
-- Microsoft Foundry Local is represented by an adapter boundary, not a concrete model client.
+- Microsoft Foundry Local and OpenAI adapters are implemented, but require the respective runtime or API key to be configured before use.
 - The current experience is CLI and notebook based; no polished user-facing UI is included.
 - Local audit records remain the durable governance source of truth when optional observability services are disabled.
 
@@ -339,8 +340,12 @@ Optional setup:
 
 1. Install notebook extras for the Jupyter walkthrough.
 2. Replace Langfuse secrets and start the Docker Compose `observability` profile.
-3. Add a concrete Microsoft Foundry Local runtime when replacing the placeholder model adapter.
-4. Open the Phase 3 LangGraph education notebook at [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) when the audience needs a guided HITL workflow walkthrough.
+3. Switch to a real model provider using [`scripts/setup-provider.ps1`](../scripts/setup-provider.ps1) or [`scripts/setup-provider.sh`](../scripts/setup-provider.sh):
+   - `openai` for hosted OpenAI embeddings and LLM (requires API key).
+   - `microsoft-foundry-local` for local Foundry Local embeddings and LLM (requires Foundry Local installed).
+   - `placeholder` to return to deterministic offline mode.
+4. After switching providers, reset and re-ingest demo data with [`scripts/reset-demo-environment.ps1`](../scripts/reset-demo-environment.ps1) or [`scripts/reset-demo-environment.sh`](../scripts/reset-demo-environment.sh) because the embedding vector dimension changes.
+5. Open the Phase 3 LangGraph education notebook at [`agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb`](../agent-brain/notebooks/phase3-langgraph-hitl-demo.ipynb) when the audience needs a guided HITL workflow walkthrough.
 
 ## Recommended short demo path
 
@@ -358,8 +363,8 @@ This path demonstrates the core value without requiring optional Phoenix/Langfus
 
 ## Known demo caveats
 
-- The embedding vectors are deterministic placeholders, not production semantic embeddings.
+- The default embedding vectors are deterministic placeholders, not production semantic embeddings. Use [`scripts/setup-provider.ps1`](../scripts/setup-provider.ps1) or [`scripts/setup-provider.sh`](../scripts/setup-provider.sh) to switch to `openai` or `microsoft-foundry-local` for real semantic embeddings.
 - Phoenix and Langfuse payload compatibility is implemented, but live exporter clients are not yet wired end-to-end.
-- Microsoft Foundry Local is represented by an adapter boundary, not a concrete model client.
+- Microsoft Foundry Local and OpenAI adapters are implemented, but require the respective runtime or API key to be configured before use.
 - The notebooks are optional and require notebook dependencies.
 - The strongest live proof point is the deterministic local flow: ingestion ? graph projection ? vector retrieval ? graph traversal ? hybrid retrieval ? curated demo ? governance validation.

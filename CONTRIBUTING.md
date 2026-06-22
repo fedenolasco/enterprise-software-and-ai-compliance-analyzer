@@ -136,6 +136,20 @@ The root [`.gitignore`](.gitignore) excludes:
 
 Before committing, run `git status --short` and confirm none of these are staged.
 
+## Provider configuration
+
+The project supports three model and embedding providers: placeholder (default, offline), Microsoft Foundry Local (local real models), and OpenAI (cloud API). Use the setup scripts to securely configure the OpenAI API key and switch providers:
+
+```powershell
+.\scripts\setup-provider.ps1 -SwitchTo openai
+.\scripts\setup-provider.ps1 -SwitchTo foundry
+.\scripts\setup-provider.ps1 -SwitchTo placeholder
+```
+
+The setup script prompts for the OpenAI API key with masked input. The key is written only to gitignored `.env` files and is never printed, logged, or transmitted. See [`docs/06-setup-runbook.md`](docs/06-setup-runbook.md) for the full provider configuration table and environment variables.
+
+Switching embedding providers changes the vector dimension. After switching, reset and re-ingest demo data with the reset orchestration script.
+
 ## Reset scripts
 
 For a full repeatable demo reset, use the root orchestration scripts:
