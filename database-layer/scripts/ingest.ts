@@ -6,7 +6,7 @@ import { PrismaClient, AuditEventType, AuditStatus, DocumentType, RiskCategory, 
 import { Client } from "pg";
 import { z } from "zod";
 import { chunkText, inferRisk, readTextFile, resolveDataPath } from "../src/document-utils.js";
-import { createDeterministicEmbedding, toPgvectorLiteral } from "../src/embedding.js";
+import { createEmbedding, toPgvectorLiteral } from "../src/embedding.js";
 
 const vendorSchema = z.object({
   vendorCode: z.string(),
@@ -212,7 +212,7 @@ async function main() {
         }
       });
 
-      const vector = createDeterministicEmbedding(chunk.chunkText);
+      const vector = await createEmbedding(chunk.chunkText);
       await pgClient.query(
         'UPDATE "DocumentChunk" SET "embedding" = $1::vector WHERE "id" = $2::uuid',
         [toPgvectorLiteral(vector), chunkRecord.id]

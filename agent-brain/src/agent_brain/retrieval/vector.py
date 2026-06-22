@@ -84,7 +84,7 @@ def vector_search(
 
     active_settings = settings or get_settings()
     limit = top_k or active_settings.vector_top_k
-    query_embedding = create_deterministic_embedding(query, active_settings.embedding_dimension)
+    query_embedding = create_query_embedding(query, active_settings)
     rows = fetch_vector_search_rows(
         active_settings.database_url,
         to_pgvector_literal(query_embedding),
@@ -129,6 +129,61 @@ def vector_search_result_from_row(row: Mapping[str, Any]) -> VectorSearchResult:
         risk_score=_optional_float(row.get("risk_score")),
         distance=float(row["distance"]),
     )
+
+
+def create_query_embedding(query: str, settings: AgentBrainSettings) -> list[float]:
+    """Create a query embedding using the configured embedding provider.
+
+    Falls back to deterministic placeholder embeddings when the provider is
+    ``placeholder`` or when no API key / endpoint is configured.
+    """
+
+    provider = settings.embedding_provider.strip().lower()
+    if provider == "openai" and settings.openai_api_key:
+        return create_openai_embedding(
+            query,
+            api_key=settings.openai_api_key,
+            model=settings.embedding_model,
+            base_url=settings.openai_base_url,
+        )
+    if provider == "microsoft-foundry-local" and settings.foundry_local_endpoint:
+        return create_foundry_local_embedding(
+            query,
+            endpoint=settings.foundry_local_endpoint,
+            model=settings.embedding_model,
+        )
+    return create_deterministic_embedding(query, settings.embedding_dimension)
+
+
+def create_openai_embedding(
+    query: str,
+    *,
+    api_key: str,
+    model: str,
+    base_url: str = "https://api.openai.com/v1",
+) -> list[float]:
+    """Create an embedding vector using the hosted OpenAI embeddings API."""
+
+    from openai import OpenAI  # noqa: PLC0415 — deferred import for optional dependency
+
+    client = OpenAI(base_url=base_url, api_key=api_key)
+    response = client.embeddings.create(model=model, input=query)
+    return list(response.data[0].embedding)
+
+
+def create_foundry_local_embedding(
+    query: str,
+    *,
+    endpoint: str,
+    model: str,
+) -> list[float]:
+    """Create an embedding vector using Microsoft Foundry Local's OpenAI-compatible API."""
+
+    from openai import OpenAI  # noqa: PLC0415 — deferred import for optional dependency
+
+    client = OpenAI(base_url=f"{endpoint.rstrip('/')}/v1", api_key="local")
+    response = client.embeddings.create(model=model, input=query)
+    return list(response.data[0].embedding)
 
 
 def create_deterministic_embedding(input_text: str, dimension: int) -> list[float]:
