@@ -850,12 +850,12 @@ export default function ConfigPage() {
         {/* OpenVINO Model Server settings — shown when model or embedding provider uses openvino */}
         {(config.model_provider === "openvino" || config.embedding_provider === "openvino") && (
           <div className="mt-4 space-y-3 rounded-md border p-4">
-            <h4 className="text-sm font-semibold">OpenVINO Model Server</h4>
+            <h4 className="text-sm font-semibold">OpenVINO Model Server (shared local runtime)</h4>
             <p className="text-xs text-muted-foreground">
-              OpenVINO Model Server can provide both local text inference and local embeddings via an
-              OpenAI-compatible API. Start OVMS separately, then point this app at its endpoint.
-              Hugging Face tokens are optional for public OpenVINO models and only needed for gated,
-              private, or rate-limit-free downloads.
+              You can mix and match providers. The text model below is used only when the Model Provider
+              is OpenVINO; the embedding model below is used only when the Embedding Provider is OpenVINO.
+              Both settings point at the same local OVMS endpoint. Hugging Face tokens are optional for
+              public OpenVINO models and only needed for gated, private, or rate-limit-free downloads.
             </p>
 
             <div className={`rounded-md border p-3 text-xs ${openvinoRunning ? "border-green-200 bg-green-50 text-green-900" : "border-yellow-200 bg-yellow-50 text-yellow-900"}`}>
@@ -888,7 +888,12 @@ export default function ConfigPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium">Text Generation Model</label>
+                <label className="mb-1 block text-xs font-medium">
+                  Text Generation Model{" "}
+                  <span className="text-muted-foreground">
+                    {config.model_provider === "openvino" ? "(active)" : "(saved for when Model Provider = OpenVINO)"}
+                  </span>
+                </label>
                 <select
                   value={openvinoModel || providerInfo.current.openvino_model || "OpenVINO/Qwen3-8B-int4-cw-ov"}
                   onChange={(e) => setOpenvinoModel(e.target.value)}
@@ -900,7 +905,12 @@ export default function ConfigPage() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs font-medium">Embedding Model</label>
+                <label className="mb-1 block text-xs font-medium">
+                  Embedding Model{" "}
+                  <span className="text-muted-foreground">
+                    {config.embedding_provider === "openvino" ? "(active)" : "(saved for when Embedding Provider = OpenVINO)"}
+                  </span>
+                </label>
                 <select
                   value={openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model || "OpenVINO/Qwen3-Embedding-0.6B"}
                   onChange={(e) => setOpenvinoEmbeddingModel(e.target.value)}
@@ -942,14 +952,14 @@ export default function ConfigPage() {
                 disabled={downloadingOpenVINO}
                 className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Download Text Model
+                Download Selected Text Model
               </button>
               <button
                 onClick={() => handleDownloadOpenVINOModel(openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model)}
                 disabled={downloadingOpenVINO}
                 className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Download Embedding Model
+                Download Selected Embedding Model
               </button>
               <button
                 onClick={handleCheckOpenVINOStatus}
