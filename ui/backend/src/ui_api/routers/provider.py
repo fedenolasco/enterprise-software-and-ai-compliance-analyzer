@@ -142,6 +142,54 @@ FOUNDRY_LOCAL_MODELS: list[dict[str, str]] = [
 
 OPENVINO_LLM_MODELS: list[dict[str, str]] = [
     {
+        "alias": "OpenVINO/Qwen3-0.6B-int4-ov",
+        "label": "Qwen3 0.6B INT4 (smallest quick start)",
+        "description": "Very small text-generation model for fast OpenVINO smoke tests on constrained hardware.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/Qwen2-0.5B-Instruct-int4-ov",
+        "label": "Qwen2 0.5B Instruct INT4",
+        "description": "Small instruction-tuned model for lightweight local chat/inference checks.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov",
+        "label": "Qwen2.5 1.5B Instruct INT4",
+        "description": "Compact instruction model with better quality than 0.5B-class quick-start models.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/Qwen3-1.7B-int4-ov",
+        "label": "Qwen3 1.7B INT4",
+        "description": "Small Qwen3 model balancing footprint and reasoning quality for local inference.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/DeepSeek-R1-Distill-Qwen-1.5B-int4-ov",
+        "label": "DeepSeek R1 Distill Qwen 1.5B INT4",
+        "description": "Small reasoning-oriented model from the OpenVINO Hugging Face collection.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/Phi-3-mini-4k-instruct-int4-ov",
+        "label": "Phi-3 Mini 4K Instruct INT4",
+        "description": "Compact Microsoft Phi instruct model for local reasoning workloads.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/Phi-4-mini-instruct-int4-ov",
+        "label": "Phi-4 Mini Instruct INT4",
+        "description": "Compact Phi-4 generation model for stronger local responses with moderate footprint.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/gemma-2b-it-int4-ov",
+        "label": "Gemma 2B IT INT4",
+        "description": "Small Gemma instruction model. May require accepting upstream model terms on Hugging Face.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
         "alias": "OpenVINO/Qwen3-8B-int4-cw-ov",
         "label": "Qwen3 8B INT4 (NPU-optimised)",
         "description": "Text-generation model for OpenVINO Model Server with Intel NPU support.",
@@ -168,7 +216,21 @@ OPENVINO_EMBEDDING_MODELS: list[dict[str, str]] = [
         "description": "Semantic embedding model supported by OpenVINO for local RAG workloads.",
         "device": "NPU/GPU/CPU",
         "dimension": "1024",
-    }
+    },
+    {
+        "alias": "OpenVINO/bge-base-en-v1.5-int8-ov",
+        "label": "BGE Base EN v1.5 INT8",
+        "description": "Compact English embedding model from the OpenVINO Hugging Face collection.",
+        "device": "NPU/GPU/CPU",
+        "dimension": "768",
+    },
+    {
+        "alias": "OpenVINO/bge-base-en-v1.5-fp16-ov",
+        "label": "BGE Base EN v1.5 FP16",
+        "description": "Higher-precision BGE embedding model for local semantic retrieval.",
+        "device": "GPU/CPU",
+        "dimension": "768",
+    },
 ]
 
 _FOUNDRY_DOWNLOAD_JOBS: dict[str, dict[str, Any]] = {}
