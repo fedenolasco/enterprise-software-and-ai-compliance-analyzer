@@ -2,6 +2,7 @@ export const EMBEDDING_DIMENSION = Number(process.env.EMBEDDING_DIMENSION ?? 8);
 export const EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER ?? "placeholder";
 export const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL ?? "deterministic-placeholder";
 export const FOUNDRY_LOCAL_ENDPOINT = process.env.FOUNDRY_LOCAL_ENDPOINT ?? "";
+export const OPENVINO_ENDPOINT = process.env.OPENVINO_ENDPOINT ?? "http://localhost:8000";
 export const OPENAI_API_KEY = process.env.OPENAI_API_KEY ?? "";
 export const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1";
 
@@ -35,6 +36,10 @@ export async function createEmbedding(input: string): Promise<number[]> {
 
   if (provider === "microsoft-foundry-local" && FOUNDRY_LOCAL_ENDPOINT) {
     return createFoundryLocalEmbedding(input, FOUNDRY_LOCAL_ENDPOINT, EMBEDDING_MODEL);
+  }
+
+  if (provider === "openvino" && OPENVINO_ENDPOINT) {
+    return createOpenVINOEmbedding(input, OPENVINO_ENDPOINT, EMBEDDING_MODEL);
   }
 
   return createDeterministicEmbedding(input);
@@ -82,6 +87,29 @@ async function createFoundryLocalEmbedding(
     throw new Error(
       `Foundry Local embeddings API error: ${response.status} ${response.statusText}`,
     );
+  }
+
+  const payload = (await response.json()) as { data: Array<{ embedding: number[] }> };
+  return payload.data[0].embedding;
+}
+
+async function createOpenVINOEmbedding(
+  input: string,
+  endpoint: string,
+  model: string,
+): Promise<number[]> {
+  const baseUrl = endpoint.replace(/\/$/, "");
+  const response = await fetch(`${baseUrl}/v1/embeddings`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer local",
+    },
+    body: JSON.stringify({ model, input }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`OpenVINO embeddings API error: ${response.status} ${response.statusText}`);
   }
 
   const payload = (await response.json()) as { data: Array<{ embedding: number[] }> };

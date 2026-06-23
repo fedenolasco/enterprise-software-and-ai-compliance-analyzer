@@ -6,6 +6,7 @@ from agent_brain.orchestration.model_adapter import (
     ModelProvider,
     ModelRequest,
     ModelResponse,
+    OpenVINOModelAdapter,
     PlaceholderLocalModelAdapter,
     build_model_adapter,
 )
@@ -33,6 +34,7 @@ __all__ = [
     "ModelProvider",
     "ModelRequest",
     "ModelResponse",
+    "OpenVINOModelAdapter",
     "PlaceholderLocalModelAdapter",
     "RecommendationDraft",
     "RetrievedContext",

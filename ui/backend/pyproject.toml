@@ -16,6 +16,7 @@ dependencies = [
   "fastapi==0.115.0",
   "foundry-local-sdk-winml==1.2.3; platform_system == 'Windows'",
   "foundry-local-sdk==1.2.3; platform_system != 'Windows'",
+  "huggingface-hub==1.20.1",
   "uvicorn[standard]==0.34.0",
   "websockets==14.0",
   "httpx==0.28.1",

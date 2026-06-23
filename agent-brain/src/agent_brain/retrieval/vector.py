@@ -152,6 +152,12 @@ def create_query_embedding(query: str, settings: AgentBrainSettings) -> list[flo
             endpoint=settings.foundry_local_endpoint,
             model=settings.embedding_model,
         )
+    if provider == "openvino" and settings.openvino_endpoint:
+        return create_openvino_embedding(
+            query,
+            endpoint=settings.openvino_endpoint,
+            model=settings.embedding_model,
+        )
     return create_deterministic_embedding(query, settings.embedding_dimension)
 
 
@@ -178,6 +184,21 @@ def create_foundry_local_embedding(
     model: str,
 ) -> list[float]:
     """Create an embedding vector using Microsoft Foundry Local's OpenAI-compatible API."""
+
+    from openai import OpenAI  # noqa: PLC0415 — deferred import for optional dependency
+
+    client = OpenAI(base_url=f"{endpoint.rstrip('/')}/v1", api_key="local")
+    response = client.embeddings.create(model=model, input=query)
+    return list(response.data[0].embedding)
+
+
+def create_openvino_embedding(
+    query: str,
+    *,
+    endpoint: str,
+    model: str,
+) -> list[float]:
+    """Create an embedding vector using OpenVINO Model Server's OpenAI-compatible API."""
 
     from openai import OpenAI  # noqa: PLC0415 — deferred import for optional dependency
 

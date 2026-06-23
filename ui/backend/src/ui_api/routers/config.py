@@ -52,7 +52,7 @@ _CONFIG_METADATA: dict[str, dict[str, str]] = {
     },
     "embedding_provider": {
         "category": "Embeddings",
-        "description": "The provider for embedding generation: 'placeholder' (deterministic), 'openai', or 'microsoft-foundry-local'.",
+        "description": "The provider for embedding generation: 'placeholder' (deterministic), 'openai', 'microsoft-foundry-local', or 'openvino'.",
         "editable": "false",
     },
     "vector_top_k": {
@@ -67,7 +67,7 @@ _CONFIG_METADATA: dict[str, dict[str, str]] = {
     },
     "model_provider": {
         "category": "Model",
-        "description": "The LLM provider: 'placeholder' (deterministic), 'microsoft-foundry-local', or 'openai'.",
+        "description": "The LLM provider: 'placeholder' (deterministic), 'microsoft-foundry-local', 'openvino', or 'openai'.",
         "editable": "false",
     },
     "foundry_local_endpoint": {
@@ -79,6 +79,32 @@ _CONFIG_METADATA: dict[str, dict[str, str]] = {
         "category": "Model",
         "description": "The name of the local model used for responses.",
         "editable": "false",
+    },
+    "openvino_endpoint": {
+        "category": "OpenVINO",
+        "description": "The OpenVINO Model Server endpoint. Defaults to http://localhost:8100 to avoid the mock Pricing API on port 8000.",
+        "editable": "false",
+    },
+    "openvino_model": {
+        "category": "OpenVINO",
+        "description": "The OpenVINO text-generation model ID for local inference.",
+        "editable": "false",
+    },
+    "openvino_embedding_model": {
+        "category": "OpenVINO",
+        "description": "The OpenVINO embedding model ID for local semantic embeddings.",
+        "editable": "false",
+    },
+    "openvino_device": {
+        "category": "OpenVINO",
+        "description": "The OpenVINO target device: NPU, GPU, or CPU.",
+        "editable": "false",
+    },
+    "hf_token": {
+        "category": "OpenVINO",
+        "description": "Optional Hugging Face token for gated/private models or higher download limits. Public OpenVINO models do not require it.",
+        "editable": "false",
+        "sensitive": "true",
     },
     "openai_api_key": {
         "category": "Model",

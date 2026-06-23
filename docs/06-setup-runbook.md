@@ -422,12 +422,13 @@ python scripts/reset_pricing_fixture.py
 
 ### Provider configuration
 
-The project supports three model and embedding providers. Use the setup scripts to securely configure the OpenAI API key and switch between providers:
+The project supports four model and embedding providers. Use the setup scripts to securely configure the OpenAI API key and switch between providers where supported by the scripts. The Configuration page supports the full provider set.
 
 | Provider | `MODEL_PROVIDER` | LLM | Embeddings | API key | Offline |
 |---|---|---|---|---|---|
 | Placeholder | `placeholder` | Deterministic | 8-dim placeholder | None | Yes |
 | Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5-mini / Qwen2.5 | all-MiniLM-L6-v2 (384-dim) | None | Yes |
+| OpenVINO Model Server | `openvino` | Qwen3 via OVMS | Qwen3-Embedding-0.6B (1024-dim) | Optional HF token | Yes |
 | OpenAI | `openai` | gpt-4o-mini | text-embedding-3-small (1536-dim) | Required | No |
 
 On Windows PowerShell:
@@ -453,6 +454,33 @@ Switching embedding providers changes the vector dimension. After switching, res
 ```powershell
 .\scripts\reset-demo-environment.ps1
 ```
+
+### OpenVINO Model Server setup
+
+OpenVINO Model Server (OVMS) is an optional local provider for Intel hardware. It can serve both text generation and embeddings through OpenAI-compatible APIs. The project defaults OVMS to port `8100` so it does not conflict with the mock Pricing API on port `8000`.
+
+Core environment values:
+
+```text
+MODEL_PROVIDER=openvino
+EMBEDDING_PROVIDER=openvino
+OPENVINO_ENDPOINT=http://localhost:8100
+OPENVINO_MODEL=OpenVINO/Qwen3-8B-int4-cw-ov
+OPENVINO_EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B
+OPENVINO_DEVICE=NPU
+# Optional; only needed for gated/private models or higher download limits.
+# HF_TOKEN=hf-your-token-here
+```
+
+Start the optional Docker profile:
+
+```powershell
+docker compose --profile openvino up -d openvino-model-server
+```
+
+The Compose service is a starter configuration for text generation. To serve both the LLM and embedding models from one OVMS endpoint, configure OVMS with a model repository/config that includes both models. The UI can cache the curated Hugging Face models locally and stores `HF_TOKEN` only in gitignored `.env` files. Public OpenVINO models do not require a token.
+
+Switching to OpenVINO embeddings changes vector dimension to 1024. Reset and re-ingest data after switching.
 
 ### Microsoft Foundry Local setup
 

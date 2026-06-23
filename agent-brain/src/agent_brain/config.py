@@ -45,6 +45,11 @@ class AgentBrainSettings:
     model_provider: str = "placeholder"
     foundry_local_endpoint: str | None = None
     local_model_name: str = "deterministic-placeholder-local-model"
+    openvino_endpoint: str = "http://localhost:8100"
+    openvino_model: str = "OpenVINO/Qwen3-8B-int4-cw-ov"
+    openvino_embedding_model: str = "OpenVINO/Qwen3-Embedding-0.6B"
+    openvino_device: str = "NPU"
+    hf_token: str | None = None
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
     openai_base_url: str = "https://api.openai.com/v1"
@@ -75,6 +80,13 @@ def get_settings() -> AgentBrainSettings:
         model_provider=getenv("MODEL_PROVIDER", "placeholder"),
         foundry_local_endpoint=getenv("FOUNDRY_LOCAL_ENDPOINT"),
         local_model_name=getenv("LOCAL_MODEL_NAME", "deterministic-placeholder-local-model"),
+        openvino_endpoint=getenv("OPENVINO_ENDPOINT", "http://localhost:8100"),
+        openvino_model=getenv("OPENVINO_MODEL", "OpenVINO/Qwen3-8B-int4-cw-ov"),
+        openvino_embedding_model=getenv(
+            "OPENVINO_EMBEDDING_MODEL", "OpenVINO/Qwen3-Embedding-0.6B"
+        ),
+        openvino_device=getenv("OPENVINO_DEVICE", "NPU"),
+        hf_token=getenv("HF_TOKEN"),
         openai_api_key=getenv("OPENAI_API_KEY"),
         openai_model=getenv("OPENAI_MODEL", "gpt-4o-mini"),
         openai_base_url=getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),

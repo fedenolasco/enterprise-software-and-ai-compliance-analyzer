@@ -14,8 +14,8 @@ from ui_api.config import get_settings as get_ui_settings
 
 router = APIRouter(prefix="/api/provider", tags=["provider"])
 
-VALID_MODEL_PROVIDERS = ["placeholder", "microsoft-foundry-local", "openai"]
-VALID_EMBEDDING_PROVIDERS = ["placeholder", "microsoft-foundry-local", "openai"]
+VALID_MODEL_PROVIDERS = ["placeholder", "microsoft-foundry-local", "openvino", "openai"]
+VALID_EMBEDDING_PROVIDERS = ["placeholder", "microsoft-foundry-local", "openvino", "openai"]
 
 
 class SwitchProviderRequest(BaseModel):
@@ -41,6 +41,28 @@ class UpdateOpenAISettingsRequest(BaseModel):
     openai_model: str | None = Field(
         default=None, description="New OpenAI model name (e.g. gpt-4o-mini, gpt-4o, gpt-4-turbo)."
     )
+
+
+class UpdateOpenVINOSettingsRequest(BaseModel):
+    """Request to update OpenVINO Model Server settings."""
+
+    endpoint: str | None = Field(default=None, description="OpenVINO Model Server endpoint.")
+    model: str | None = Field(default=None, description="OpenVINO text-generation model ID.")
+    embedding_model: str | None = Field(default=None, description="OpenVINO embedding model ID.")
+    device: str | None = Field(default=None, description="OpenVINO target device: NPU, GPU, or CPU.")
+    hf_token: str | None = Field(default=None, description="Optional Hugging Face token.")
+
+
+class DownloadOpenVINOModelRequest(BaseModel):
+    """Request to download/cache an OpenVINO model from Hugging Face."""
+
+    model_id: str = Field(..., description="Hugging Face model ID, e.g. OpenVINO/Qwen3-8B-int4-cw-ov.")
+
+
+class OpenVINODownloadJobRequest(BaseModel):
+    """Request to start an OpenVINO Hugging Face model download job."""
+
+    model_id: str = Field(..., description="Hugging Face model ID to cache locally.")
 
 
 def _update_env_file(updates: dict[str, str]) -> None:
@@ -118,7 +140,39 @@ FOUNDRY_LOCAL_MODELS: list[dict[str, str]] = [
     },
 ]
 
+OPENVINO_LLM_MODELS: list[dict[str, str]] = [
+    {
+        "alias": "OpenVINO/Qwen3-8B-int4-cw-ov",
+        "label": "Qwen3 8B INT4 (NPU-optimised)",
+        "description": "Text-generation model for OpenVINO Model Server with Intel NPU support.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/Qwen3-4B-int4-ov",
+        "label": "Qwen3 4B INT4",
+        "description": "Smaller Qwen3 text-generation model for local Intel acceleration.",
+        "device": "NPU/GPU/CPU",
+    },
+    {
+        "alias": "OpenVINO/Qwen2.5-1B-Instruct-int4-ov",
+        "label": "Qwen2.5 1B Instruct INT4",
+        "description": "Small instruction model suitable for fast local smoke tests.",
+        "device": "NPU/GPU/CPU",
+    },
+]
+
+OPENVINO_EMBEDDING_MODELS: list[dict[str, str]] = [
+    {
+        "alias": "OpenVINO/Qwen3-Embedding-0.6B",
+        "label": "Qwen3 Embedding 0.6B",
+        "description": "Semantic embedding model supported by OpenVINO for local RAG workloads.",
+        "device": "NPU/GPU/CPU",
+        "dimension": "1024",
+    }
+]
+
 _FOUNDRY_DOWNLOAD_JOBS: dict[str, dict[str, Any]] = {}
+_OPENVINO_DOWNLOAD_JOBS: dict[str, dict[str, Any]] = {}
 _FOUNDRY_MANAGER: Any | None = None
 
 
@@ -132,6 +186,12 @@ async def get_provider_info() -> dict[str, Any]:
             "embedding_provider": settings.embedding_provider,
             "foundry_local_endpoint": settings.foundry_local_endpoint,
             "local_model_name": settings.local_model_name,
+            "openvino_endpoint": settings.openvino_endpoint,
+            "openvino_model": settings.openvino_model,
+            "openvino_embedding_model": settings.openvino_embedding_model,
+            "openvino_device": settings.openvino_device,
+            "hf_configured": settings.hf_token is not None,
+            "hf_token_masked": _mask_key(settings.hf_token) if settings.hf_token else None,
             "openai_configured": settings.openai_api_key is not None,
             "openai_key_masked": _mask_key(settings.openai_api_key) if settings.openai_api_key else None,
             "openai_model": settings.openai_model,
@@ -158,6 +218,13 @@ async def get_provider_info() -> dict[str, Any]:
                 "requires_api_key": True,
                 "requires_local_runtime": False,
             },
+            {
+                "value": "openvino",
+                "label": "OpenVINO Model Server (Intel NPU/GPU)",
+                "description": "Uses OpenVINO Model Server locally for text inference. Optional HF token only needed for gated/private models.",
+                "requires_api_key": False,
+                "requires_local_runtime": True,
+            },
         ],
         "available_embedding_providers": [
             {
@@ -178,8 +245,16 @@ async def get_provider_info() -> dict[str, Any]:
                 "description": "Uses text-embedding-3-small via OpenAI API. Requires API key. Note: changing embedding dimension requires schema migration and re-ingestion.",
                 "requires_api_key": True,
             },
+            {
+                "value": "openvino",
+                "label": "OpenVINO (1024-dim, local)",
+                "description": "Uses Qwen3-Embedding-0.6B via OpenVINO Model Server. Runs locally on NPU/GPU/CPU when OVMS is available.",
+                "requires_api_key": False,
+            },
         ],
         "foundry_local_models": FOUNDRY_LOCAL_MODELS,
+        "openvino_models": OPENVINO_LLM_MODELS,
+        "openvino_embedding_models": OPENVINO_EMBEDDING_MODELS,
     }
 
 
@@ -207,6 +282,9 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
                 updates["OPENAI_API_KEY"] = request.openai_api_key
 
         updates["MODEL_PROVIDER"] = request.model_provider
+        if request.model_provider == "openvino":
+            updates.setdefault("OPENVINO_MODEL", "OpenVINO/Qwen3-8B-int4-cw-ov")
+            updates.setdefault("LOCAL_MODEL_NAME", "OpenVINO/Qwen3-8B-int4-cw-ov")
 
     if request.embedding_provider is not None:
         if request.embedding_provider not in VALID_EMBEDDING_PROVIDERS:
@@ -232,6 +310,7 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
         _EMBEDDING_DEFAULTS: dict[str, dict[str, str]] = {
             "placeholder": {"EMBEDDING_MODEL": "deterministic-placeholder", "EMBEDDING_DIMENSION": "8"},
             "microsoft-foundry-local": {"EMBEDDING_MODEL": "all-MiniLM-L6-v2", "EMBEDDING_DIMENSION": "384"},
+            "openvino": {"EMBEDDING_MODEL": "OpenVINO/Qwen3-Embedding-0.6B", "EMBEDDING_DIMENSION": "1024"},
             "openai": {"EMBEDDING_MODEL": "text-embedding-3-small", "EMBEDDING_DIMENSION": "1536"},
         }
         defaults = _EMBEDDING_DEFAULTS.get(request.embedding_provider)
@@ -291,6 +370,19 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
             "Embedding dimension change detected. Foundry Local embeddings use 384-dim. "
             f"Current dimension is {new_settings.embedding_dimension}. A schema migration and re-ingestion may be needed."
         )
+    if request.embedding_provider == "openvino" and new_settings.embedding_dimension != 1024:
+        warnings.append(
+            "Embedding dimension change detected. OpenVINO Qwen3 embeddings use 1024-dim. "
+            f"Current dimension is {new_settings.embedding_dimension}. A schema migration and re-ingestion may be needed."
+        )
+    if request.model_provider == "openvino" or request.embedding_provider == "openvino":
+        ovms_running = await _check_openvino_running(new_settings.openvino_endpoint)
+        if not ovms_running:
+            warnings.append(
+                "OpenVINO Model Server is not responding. Start OVMS locally before running "
+                "OpenVINO text generation or embedding workloads. Public OpenVINO Hugging Face "
+                "models can be downloaded without a token; gated/private models require HF_TOKEN."
+            )
 
     return {
         "success": True,
@@ -312,6 +404,164 @@ def _reload_settings() -> Any:
     import agent_brain.config as config_module
     importlib.reload(config_module)
     return config_module.get_settings()
+
+
+async def _check_openvino_running(endpoint: str | None) -> bool:
+    """Check if OpenVINO Model Server is responding."""
+    if not endpoint:
+        return False
+    import urllib.request
+
+    base = endpoint.rstrip("/")
+    for path in ("/v1/models", "/v2/health/ready"):
+        try:
+            req = urllib.request.Request(f"{base}{path}", method="GET")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status in {200, 204}:
+                    return True
+        except Exception:
+            continue
+    return False
+
+
+def _openvino_model_is_curated(model_id: str) -> bool:
+    """Return whether a model ID is in the curated OpenVINO model lists."""
+    return model_id in {m["alias"] for m in [*OPENVINO_LLM_MODELS, *OPENVINO_EMBEDDING_MODELS]}
+
+
+@router.get("/openvino-status")
+async def get_openvino_status() -> dict[str, Any]:
+    """Return OpenVINO Model Server and Hugging Face configuration status."""
+    settings = get_agent_brain_settings()
+    service_running = await _check_openvino_running(settings.openvino_endpoint)
+    return {
+        "service_running": service_running,
+        "endpoint": settings.openvino_endpoint,
+        "model": settings.openvino_model,
+        "embedding_model": settings.openvino_embedding_model,
+        "device": settings.openvino_device,
+        "hf_configured": settings.hf_token is not None,
+        "hf_token_masked": _mask_key(settings.hf_token) if settings.hf_token else None,
+        "models": OPENVINO_LLM_MODELS,
+        "embedding_models": OPENVINO_EMBEDDING_MODELS,
+        "helper_text": (
+            "HF_TOKEN is optional for public OpenVINO models. Configure it only for gated/private "
+            "models or to avoid anonymous Hugging Face download limits."
+        ),
+    }
+
+
+@router.put("/openvino-settings")
+async def update_openvino_settings(request: UpdateOpenVINOSettingsRequest) -> dict[str, Any]:
+    """Update OpenVINO Model Server endpoint, model IDs, device, and optional HF token."""
+    updates: dict[str, str] = {}
+    if request.endpoint is not None:
+        endpoint = request.endpoint.strip().rstrip("/")
+        if not endpoint:
+            raise HTTPException(status_code=422, detail="OpenVINO endpoint cannot be empty.")
+        updates["OPENVINO_ENDPOINT"] = endpoint
+    if request.model is not None:
+        model = request.model.strip()
+        if not model:
+            raise HTTPException(status_code=422, detail="OpenVINO model cannot be empty.")
+        updates["OPENVINO_MODEL"] = model
+        updates["LOCAL_MODEL_NAME"] = model
+    if request.embedding_model is not None:
+        embedding_model = request.embedding_model.strip()
+        if not embedding_model:
+            raise HTTPException(status_code=422, detail="OpenVINO embedding model cannot be empty.")
+        updates["OPENVINO_EMBEDDING_MODEL"] = embedding_model
+        updates["EMBEDDING_MODEL"] = embedding_model
+    if request.device is not None:
+        device = request.device.strip().upper()
+        if device not in {"NPU", "GPU", "CPU"}:
+            raise HTTPException(status_code=422, detail="OpenVINO device must be NPU, GPU, or CPU.")
+        updates["OPENVINO_DEVICE"] = device
+    if request.hf_token is not None:
+        updates["HF_TOKEN"] = request.hf_token.strip()
+
+    if not updates:
+        raise HTTPException(status_code=422, detail="No OpenVINO settings were provided.")
+
+    _update_env_file(updates)
+    new_settings = _reload_settings()
+    return {
+        "success": True,
+        "message": "OpenVINO settings updated successfully.",
+        "endpoint": new_settings.openvino_endpoint,
+        "model": new_settings.openvino_model,
+        "embedding_model": new_settings.openvino_embedding_model,
+        "device": new_settings.openvino_device,
+        "hf_configured": new_settings.hf_token is not None,
+        "hf_token_masked": _mask_key(new_settings.hf_token) if new_settings.hf_token else None,
+    }
+
+
+async def _run_openvino_download_job(job_id: str, model_id: str) -> None:
+    """Download a Hugging Face model snapshot in the background."""
+    import asyncio
+
+    job = _OPENVINO_DOWNLOAD_JOBS[job_id]
+    job["status"] = "running"
+    job["message"] = f"Downloading {model_id} from Hugging Face..."
+    try:
+        from huggingface_hub import snapshot_download  # type: ignore[import-not-found]
+
+        settings = get_agent_brain_settings()
+        path = await asyncio.to_thread(snapshot_download, repo_id=model_id, token=settings.hf_token)
+        job.update({
+            "status": "complete",
+            "message": f"Model '{model_id}' downloaded successfully.",
+            "path": path,
+            "percent": 100,
+        })
+    except Exception as exc:
+        job.update({"status": "error", "message": f"Model download failed: {exc}", "percent": 0})
+
+
+@router.post("/openvino-model/download")
+async def start_openvino_model_download(request: OpenVINODownloadJobRequest) -> dict[str, Any]:
+    """Start downloading/caching a curated OpenVINO Hugging Face model."""
+    import asyncio
+    import uuid
+
+    model_id = request.model_id.strip()
+    if not model_id:
+        raise HTTPException(status_code=422, detail="OpenVINO model ID cannot be empty.")
+    if not _openvino_model_is_curated(model_id):
+        raise HTTPException(status_code=422, detail=f"'{model_id}' is not in the curated OpenVINO model list.")
+    existing = next(
+        (
+            job
+            for job in _OPENVINO_DOWNLOAD_JOBS.values()
+            if job.get("model") == model_id and job.get("status") in {"queued", "running"}
+        ),
+        None,
+    )
+    if existing:
+        return existing
+
+    job_id = str(uuid.uuid4())
+    job: dict[str, Any] = {
+        "job_id": job_id,
+        "model": model_id,
+        "status": "queued",
+        "message": f"Queued OpenVINO model download for {model_id}.",
+        "percent": 0,
+        "path": None,
+    }
+    _OPENVINO_DOWNLOAD_JOBS[job_id] = job
+    asyncio.create_task(_run_openvino_download_job(job_id, model_id))
+    return job
+
+
+@router.get("/openvino-model/download/{job_id}")
+async def get_openvino_model_download(job_id: str) -> dict[str, Any]:
+    """Return current status for an OpenVINO model download job."""
+    job = _OPENVINO_DOWNLOAD_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"OpenVINO download job not found: {job_id}")
+    return job
 
 
 class UpdateFoundryModelRequest(BaseModel):

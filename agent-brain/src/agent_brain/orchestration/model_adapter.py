@@ -12,6 +12,7 @@ class ModelProvider(StrEnum):
 
     PLACEHOLDER = "placeholder"
     MICROSOFT_FOUNDRY_LOCAL = "microsoft-foundry-local"
+    OPENVINO = "openvino"
     OPENAI = "openai"
 
 
@@ -263,10 +264,48 @@ class OpenAIModelAdapter:
         )
 
 
+@dataclass(frozen=True)
+class OpenVINOModelAdapter:
+    """Concrete adapter for OpenVINO Model Server using the OpenAI-compatible API."""
+
+    endpoint: str = "http://localhost:8000"
+    model_name: str = "OpenVINO/Qwen3-8B-int4-cw-ov"
+    cost_per_1k_tokens_usd: float = 0.0
+    provider: ModelProvider = ModelProvider.OPENVINO
+
+    def generate(self, request: ModelRequest) -> ModelResponse:
+        """Call the OpenVINO Model Server chat completions endpoint."""
+
+        from openai import OpenAI  # noqa: PLC0415 — deferred import for optional dependency
+
+        client = OpenAI(base_url=f"{self.endpoint.rstrip('/')}/v1", api_key="local")
+        completion = client.chat.completions.create(
+            model=self.model_name,
+            messages=[{"role": "user", "content": request.prompt}],
+        )
+        response_text = completion.choices[0].message.content or ""
+        usage = completion.usage
+        prompt_tokens = usage.prompt_tokens if usage else _estimate_tokens(request.prompt)
+        completion_tokens = usage.completion_tokens if usage else _estimate_tokens(response_text)
+        total_tokens = usage.total_tokens if usage else prompt_tokens + completion_tokens
+        return ModelResponse(
+            text=response_text,
+            provider=self.provider,
+            model_name=self.model_name,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            simulated_cost_usd=round(total_tokens / 1000 * self.cost_per_1k_tokens_usd, 6),
+            trace_id=request.trace_id,
+            metadata={"mode": "openvino-model-server", "endpoint": self.endpoint, **request.metadata},
+        )
+
+
 def build_model_adapter(
     provider: str = ModelProvider.PLACEHOLDER.value,
     *,
     foundry_endpoint: str | None = None,
+    openvino_endpoint: str | None = None,
     model_name: str | None = None,
     openai_api_key: str | None = None,
     openai_base_url: str = "https://api.openai.com/v1",
@@ -285,6 +324,13 @@ def build_model_adapter(
         return MicrosoftFoundryLocalAdapter(
             endpoint=foundry_endpoint,
             model_name=model_name or "foundry-local-model",
+        )
+    if normalized == ModelProvider.OPENVINO.value:
+        if openvino_endpoint is None or openvino_endpoint.strip() == "":
+            raise ValueError("openvino_endpoint is required for OpenVINO Model Server.")
+        return OpenVINOModelAdapter(
+            endpoint=openvino_endpoint,
+            model_name=model_name or "OpenVINO/Qwen3-8B-int4-cw-ov",
         )
     if normalized == ModelProvider.OPENAI.value:
         if openai_api_key is None or openai_api_key.strip() == "":

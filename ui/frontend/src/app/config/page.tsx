@@ -6,7 +6,6 @@ import { apiGet, apiPost, apiPut, apiDelete, type ConfigResponse, type ConfigPar
 import { PageIntro } from "@/components/common/PageIntro";
 import { Tooltip } from "@/components/common/Tooltip";
 import { Callout } from "@/components/common/Callout";
-import { CliEquivalent } from "@/components/common/CliEquivalent";
 
 const DEFAULT_FOUNDRY_CACHE_DIR = "C:\\Users\\feden\\.foundry\\cache\\models";
 
@@ -16,6 +15,12 @@ interface ProviderInfo {
     embedding_provider: string;
     foundry_local_endpoint: string | null;
     local_model_name: string;
+    openvino_endpoint: string;
+    openvino_model: string;
+    openvino_embedding_model: string;
+    openvino_device: string;
+    hf_configured: boolean;
+    hf_token_masked: string | null;
     openai_configured: boolean;
     openai_key_masked: string | null;
     openai_model: string;
@@ -38,6 +43,19 @@ interface ProviderInfo {
     label: string;
     description: string;
     device: string;
+  }>;
+  openvino_models: Array<{
+    alias: string;
+    label: string;
+    description: string;
+    device: string;
+  }>;
+  openvino_embedding_models: Array<{
+    alias: string;
+    label: string;
+    description: string;
+    device: string;
+    dimension: string;
   }>;
 }
 
@@ -82,6 +100,19 @@ export default function ConfigPage() {
   const [cacheDirMessage, setCacheDirMessage] = useState<string | null>(null);
   const [cacheDirError, setCacheDirError] = useState<string | null>(null);
   const _cacheDirInputRef = useRef<HTMLInputElement | null>(null);
+  // OpenVINO Model Server management
+  const [openvinoEndpoint, setOpenvinoEndpoint] = useState("");
+  const [openvinoModel, setOpenvinoModel] = useState("");
+  const [openvinoEmbeddingModel, setOpenvinoEmbeddingModel] = useState("");
+  const [openvinoDevice, setOpenvinoDevice] = useState("NPU");
+  const [hfToken, setHfToken] = useState("");
+  const [savingOpenVINO, setSavingOpenVINO] = useState(false);
+  const [openvinoMessage, setOpenvinoMessage] = useState<string | null>(null);
+  const [openvinoError, setOpenvinoError] = useState<string | null>(null);
+  const [openvinoRunning, setOpenvinoRunning] = useState<boolean | null>(null);
+  const [downloadingOpenVINO, setDownloadingOpenVINO] = useState(false);
+  const [openvinoDownloadJobId, setOpenvinoDownloadJobId] = useState<string | null>(null);
+  const [openvinoDownloadMessage, setOpenvinoDownloadMessage] = useState<string | null>(null);
 
   const fetchAll = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -126,6 +157,9 @@ export default function ConfigPage() {
     if (provider === "microsoft-foundry-local") {
       setSwitchMessage("Switching to Foundry Local — starting service if needed, this may take a few seconds...");
     }
+    if (provider === "openvino") {
+      setSwitchMessage("Switching to OpenVINO Model Server. Start OVMS locally before running text generation or embeddings.");
+    }
 
     try {
       const body: Record<string, unknown> = {};
@@ -157,6 +191,9 @@ export default function ConfigPage() {
         handleCheckFoundryStatus();
         // Retry after 5 seconds in case the service was still initializing
         setTimeout(() => handleCheckFoundryStatus(), 5000);
+      }
+      if (provider === "openvino") {
+        handleCheckOpenVINOStatus();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to switch provider");
@@ -454,12 +491,102 @@ export default function ConfigPage() {
     }
   };
 
+  const handleCheckOpenVINOStatus = useCallback(async () => {
+    try {
+      const result = await apiGet<{
+        service_running: boolean;
+        endpoint: string;
+        model: string;
+        embedding_model: string;
+        device: string;
+        hf_configured: boolean;
+      }>("/provider/openvino-status");
+      setOpenvinoRunning(result.service_running);
+      setOpenvinoEndpoint(result.endpoint || "http://localhost:8100");
+      setOpenvinoModel(result.model || "OpenVINO/Qwen3-8B-int4-cw-ov");
+      setOpenvinoEmbeddingModel(result.embedding_model || "OpenVINO/Qwen3-Embedding-0.6B");
+      setOpenvinoDevice(result.device || "NPU");
+    } catch (err) {
+      setOpenvinoRunning(false);
+      setOpenvinoError(err instanceof Error ? err.message : "Failed to check OpenVINO status");
+    }
+  }, []);
+
+  const handleSaveOpenVINOSettings = async () => {
+    setSavingOpenVINO(true);
+    setOpenvinoMessage(null);
+    setOpenvinoError(null);
+    try {
+      const body: Record<string, string> = {
+        endpoint: openvinoEndpoint.trim() || providerInfo?.current.openvino_endpoint || "http://localhost:8100",
+        model: openvinoModel.trim() || providerInfo?.current.openvino_model || "OpenVINO/Qwen3-8B-int4-cw-ov",
+        embedding_model: openvinoEmbeddingModel.trim() || providerInfo?.current.openvino_embedding_model || "OpenVINO/Qwen3-Embedding-0.6B",
+        device: openvinoDevice,
+      };
+      if (hfToken.trim()) body.hf_token = hfToken.trim();
+      const result = await apiPut<{ success: boolean; message: string }>("/provider/openvino-settings", body);
+      setOpenvinoMessage(result.message);
+      setHfToken("");
+      await fetchAll(true);
+      await handleCheckOpenVINOStatus();
+    } catch (err) {
+      setOpenvinoError(err instanceof Error ? err.message : "Failed to update OpenVINO settings");
+    } finally {
+      setSavingOpenVINO(false);
+    }
+  };
+
+  const handleDownloadOpenVINOModel = async (modelId: string) => {
+    setDownloadingOpenVINO(true);
+    setOpenvinoDownloadMessage(`Starting Hugging Face download for ${modelId}...`);
+    setOpenvinoError(null);
+    try {
+      const result = await apiPost<{ job_id: string; message: string; status: string }>("/provider/openvino-model/download", { model_id: modelId });
+      setOpenvinoDownloadJobId(result.job_id);
+      setOpenvinoDownloadMessage(result.message);
+    } catch (err) {
+      setOpenvinoError(err instanceof Error ? err.message : "Failed to start OpenVINO model download");
+      setDownloadingOpenVINO(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!openvinoDownloadJobId || !downloadingOpenVINO) return;
+    const interval = window.setInterval(async () => {
+      try {
+        const result = await apiGet<{ status: string; message: string; path: string | null }>(`/provider/openvino-model/download/${openvinoDownloadJobId}`);
+        setOpenvinoDownloadMessage(result.message);
+        if (result.status === "complete") {
+          setOpenvinoMessage(`${result.message} Cache path: ${result.path}`);
+          setDownloadingOpenVINO(false);
+          window.clearInterval(interval);
+        }
+        if (result.status === "error") {
+          setOpenvinoError(result.message);
+          setDownloadingOpenVINO(false);
+          window.clearInterval(interval);
+        }
+      } catch (err) {
+        setOpenvinoError(err instanceof Error ? err.message : "Failed to fetch OpenVINO download status");
+        setDownloadingOpenVINO(false);
+        window.clearInterval(interval);
+      }
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [openvinoDownloadJobId, downloadingOpenVINO]);
+
   // Check Foundry Local installation status when microsoft-foundry-local is active
   useEffect(() => {
     if (config?.model_provider === "microsoft-foundry-local") {
       handleCheckFoundryStatus();
     }
   }, [config?.model_provider, handleCheckFoundryStatus]);
+
+  useEffect(() => {
+    if (config?.model_provider === "openvino" || config?.embedding_provider === "openvino") {
+      handleCheckOpenVINOStatus();
+    }
+  }, [config?.model_provider, config?.embedding_provider, handleCheckOpenVINOStatus]);
 
   if (loading)
     return (
@@ -717,9 +844,136 @@ export default function ConfigPage() {
               </div>
             )}
 
-            <div className="mt-3">
-              <CliEquivalent command="OPENAI_API_KEY=sk-...  # and OPENAI_MODEL=gpt-4o-mini  in .env" />
+          </div>
+        )}
+
+        {/* OpenVINO Model Server settings — shown when model or embedding provider uses openvino */}
+        {(config.model_provider === "openvino" || config.embedding_provider === "openvino") && (
+          <div className="mt-4 space-y-3 rounded-md border p-4">
+            <h4 className="text-sm font-semibold">OpenVINO Model Server</h4>
+            <p className="text-xs text-muted-foreground">
+              OpenVINO Model Server can provide both local text inference and local embeddings via an
+              OpenAI-compatible API. Start OVMS separately, then point this app at its endpoint.
+              Hugging Face tokens are optional for public OpenVINO models and only needed for gated,
+              private, or rate-limit-free downloads.
+            </p>
+
+            <div className={`rounded-md border p-3 text-xs ${openvinoRunning ? "border-green-200 bg-green-50 text-green-900" : "border-yellow-200 bg-yellow-50 text-yellow-900"}`}>
+              {openvinoRunning === true
+                ? `✓ OVMS is responding at ${providerInfo.current.openvino_endpoint}`
+                : `⚠ OVMS is not responding at ${providerInfo.current.openvino_endpoint || "http://localhost:8100"}. Start OpenVINO Model Server before using OpenVINO providers.`}
             </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium">OVMS Endpoint</label>
+                <input
+                  type="text"
+                  value={openvinoEndpoint || providerInfo.current.openvino_endpoint || "http://localhost:8100"}
+                  onChange={(e) => setOpenvinoEndpoint(e.target.value)}
+                  className="w-full rounded-md border p-2 text-sm font-mono"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">Default uses port 8100 to avoid the mock Pricing API on port 8000.</p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium">Target Device</label>
+                <select
+                  value={openvinoDevice || providerInfo.current.openvino_device || "NPU"}
+                  onChange={(e) => setOpenvinoDevice(e.target.value)}
+                  className="w-full rounded-md border p-2 text-sm"
+                >
+                  <option value="NPU">NPU (Intel AI Boost)</option>
+                  <option value="GPU">GPU</option>
+                  <option value="CPU">CPU</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium">Text Generation Model</label>
+                <select
+                  value={openvinoModel || providerInfo.current.openvino_model || "OpenVINO/Qwen3-8B-int4-cw-ov"}
+                  onChange={(e) => setOpenvinoModel(e.target.value)}
+                  className="w-full rounded-md border p-2 text-sm"
+                >
+                  {providerInfo.openvino_models.map((m) => (
+                    <option key={m.alias} value={m.alias}>{m.label} ({m.alias})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium">Embedding Model</label>
+                <select
+                  value={openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model || "OpenVINO/Qwen3-Embedding-0.6B"}
+                  onChange={(e) => setOpenvinoEmbeddingModel(e.target.value)}
+                  className="w-full rounded-md border p-2 text-sm"
+                >
+                  {providerInfo.openvino_embedding_models.map((m) => (
+                    <option key={m.alias} value={m.alias}>{m.label} ({m.dimension}-dim)</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium">
+                Hugging Face Token <span className="text-muted-foreground">(optional)</span>
+              </label>
+              <input
+                type="password"
+                value={hfToken}
+                onChange={(e) => setHfToken(e.target.value)}
+                placeholder={providerInfo.current.hf_configured ? `Configured (${providerInfo.current.hf_token_masked})` : "hf_... only needed for gated/private models"}
+                className="w-full rounded-md border p-2 text-sm"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Public OpenVINO models do not require a token. Use one only after accepting gated model terms on Hugging Face or for private models.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleSaveOpenVINOSettings}
+                disabled={savingOpenVINO}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingOpenVINO ? "Saving..." : "Save OpenVINO Settings"}
+              </button>
+              <button
+                onClick={() => handleDownloadOpenVINOModel(openvinoModel || providerInfo.current.openvino_model)}
+                disabled={downloadingOpenVINO}
+                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Download Text Model
+              </button>
+              <button
+                onClick={() => handleDownloadOpenVINOModel(openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model)}
+                disabled={downloadingOpenVINO}
+                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Download Embedding Model
+              </button>
+              <button
+                onClick={handleCheckOpenVINOStatus}
+                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
+              >
+                Check OVMS Status
+              </button>
+            </div>
+
+            {openvinoDownloadMessage && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                {openvinoDownloadMessage}
+              </div>
+            )}
+            {openvinoMessage && (
+              <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+                {openvinoMessage}
+              </div>
+            )}
+            {openvinoError && (
+              <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                {openvinoError}
+              </div>
+            )}
           </div>
         )}
 

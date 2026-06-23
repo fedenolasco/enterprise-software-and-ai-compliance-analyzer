@@ -34,6 +34,12 @@ All notable project changes should be documented here as the implementation evol
   - Added the mock Pricing API to required-service auto-start.
   - Fixed Pricing API startup from the UI by launching it with Python 3.11 and a source-tree `PYTHONPATH`.
   - Shortened the Pricing API healthy message to use the port-based style used by other services.
+- Added OpenVINO Model Server provider support:
+  - Added `openvino` as a local model and embedding provider using OVMS OpenAI-compatible APIs.
+  - Added OpenVINO settings for endpoint, LLM model, embedding model, target device, and optional Hugging Face token.
+  - Added curated OpenVINO LLM and embedding model lists, including Qwen3 Embedding 0.6B for local semantic embeddings.
+  - Added UI controls for OpenVINO provider selection, OVMS status checks, model download/caching from Hugging Face, and optional `HF_TOKEN` management.
+  - Added an optional `openvino` Docker Compose profile for OpenVINO Model Server on port 8100.
 - Fixed scroll position loss on provider switch:
   - `fetchAll` now accepts a `silent` parameter to skip the loading spinner on refetches.
   - All post-action refetches use `fetchAll(true)` to preserve scroll position.
