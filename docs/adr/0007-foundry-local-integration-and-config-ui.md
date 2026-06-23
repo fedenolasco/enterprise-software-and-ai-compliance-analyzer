@@ -40,7 +40,7 @@ When switching embedding providers, the `switch_provider` endpoint now updates `
 | Provider | `EMBEDDING_MODEL` | `EMBEDDING_DIMENSION` |
 |---|---|---|
 | `placeholder` | `deterministic-placeholder` | `8` |
-| `microsoft-foundry-local` | `all-MiniLM-L6-v2` | `384` |
+| `microsoft-foundry-local` | `qwen3-embedding-0.6b` | `1024` |
 | `openai` | `text-embedding-3-small` | `1536` |
 
 ### 4. Foundry Local model catalog and selector

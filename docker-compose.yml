@@ -212,51 +212,6 @@ services:
       LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
       LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
 
-  openvino-model-server:
-    image: openvino/model_server:2026.2-gpu
-    container_name: compliance-openvino-model-server
-    restart: unless-stopped
-    profiles:
-      - openvino
-    ports:
-      - "${OPENVINO_PORT:-8100}:8000"
-    volumes:
-      - openvino_models:/models
-      - openvino_cache:/cache
-    # NPU passthrough works on Linux/WSL hosts with Intel NPU devices exposed.
-    # On native Windows, use the OpenVINO Model Server bare-metal package if Docker
-    # device passthrough is unavailable.
-    devices:
-      - /dev/accel:/dev/accel
-    command: >
-      --rest_port 8000
-      --model_repository_path /models
-      --source_model ${OPENVINO_MODEL:-OpenVINO/Qwen3-8B-int4-cw-ov}
-      --task text_generation
-      --target_device ${OPENVINO_DEVICE:-NPU}
-      --cache_dir /cache
-      --model_name ${OPENVINO_MODEL_NAME:-openvino-local-llm}
-
-  openvino-model-server-cpu:
-    image: openvino/model_server:2026.2
-    container_name: compliance-openvino-model-server-cpu
-    restart: unless-stopped
-    profiles:
-      - openvino-cpu
-    ports:
-      - "${OPENVINO_PORT:-8100}:8000"
-    volumes:
-      - openvino_models:/models
-      - openvino_cache:/cache
-    command: >
-      --rest_port 8000
-      --model_repository_path /models
-      --source_model ${OPENVINO_MODEL:-OpenVINO/Qwen3-8B-int4-cw-ov}
-      --task text_generation
-      --target_device CPU
-      --cache_dir /cache
-      --model_name ${OPENVINO_MODEL_NAME:-openvino-local-llm}
-
   ui-backend:
     build:
       context: ./ui/backend
@@ -307,5 +262,3 @@ volumes:
   langfuse_clickhouse_logs:
   langfuse_redis_data:
   langfuse_minio_data:
-  openvino_models:
-  openvino_cache:

@@ -446,7 +446,7 @@ Hover explanations for technical terms, parameters, and fields. Implemented as i
 | `graph_result_limit` | "Maximum number of graph traversal rows to return from Neo4j. Higher values return more vendor-to-evidence paths but increase query time." |
 | Phoenix | "Arize Phoenix is an open-source LLM observability tool. When enabled, the system emits trace spans for each workflow node, visible in the Phoenix UI at localhost:6006." |
 | Langfuse | "Langfuse is an open-source LLM engineering platform. When enabled, the system emits token usage and simulated cost events, visible in the Langfuse UI at localhost:3100." |
-| Microsoft Foundry Local | "A local model runtime that runs AI models on your machine without cloud APIs. When configured, the system uses Phi-3.5-mini for LLM responses and all-MiniLM-L6-v2 for embeddings." |
+| Microsoft Foundry Local | "A local model runtime that runs AI models on your machine without cloud APIs. When configured, the system uses local chat models for LLM responses and qwen3-embedding-0.6b for embeddings." |
 
 ### Layer 4: Why-this-matters callouts
 

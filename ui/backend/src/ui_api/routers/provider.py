@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -50,6 +51,7 @@ class UpdateOpenVINOSettingsRequest(BaseModel):
     model: str | None = Field(default=None, description="OpenVINO text-generation model ID.")
     embedding_model: str | None = Field(default=None, description="OpenVINO embedding model ID.")
     device: str | None = Field(default=None, description="OpenVINO target device: NPU, GPU, or CPU.")
+    ovms_path: str | None = Field(default=None, description="Optional absolute path to ovms.exe.")
     hf_token: str | None = Field(default=None, description="Optional Hugging Face token.")
 
 
@@ -142,70 +144,92 @@ FOUNDRY_LOCAL_MODELS: list[dict[str, str]] = [
 
 OPENVINO_LLM_MODELS: list[dict[str, str]] = [
     {
-        "alias": "OpenVINO/Qwen3-0.6B-int4-ov",
-        "label": "Qwen3 0.6B INT4 (smallest quick start)",
-        "description": "Very small text-generation model for fast OpenVINO smoke tests on constrained hardware.",
+        "alias": "OpenVINO/Qwen3-8B-int4-cw-ov",
+        "label": "Qwen3 8B INT4 CW (NPU recommended)",
+        "description": "NPU-optimised continuous-batching text-generation model. Best default for Intel AI Boost NPU inference speed when sufficient memory is available.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "OVMS downloads/caches this Hugging Face model when it is not local, compiles it for the selected target device, and serves inference there.",
+    },
+    {
+        "alias": "OpenVINO/Qwen3-0.6B-int4-ov",
+        "label": "Qwen3 0.6B INT4 (fast smoke test)",
+        "description": "Very small text-generation model for fast OpenVINO smoke tests on constrained hardware. Useful before starting larger NPU models.",
+        "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Smallest local validation model; OVMS still compiles and runs inference on the selected target device.",
     },
     {
         "alias": "OpenVINO/Qwen2-0.5B-Instruct-int4-ov",
         "label": "Qwen2 0.5B Instruct INT4",
         "description": "Small instruction-tuned model for lightweight local chat/inference checks.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Lightweight NPU/GPU/CPU compatible model; download can be initiated from the UI.",
     },
     {
         "alias": "OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov",
         "label": "Qwen2.5 1.5B Instruct INT4",
         "description": "Compact instruction model with better quality than 0.5B-class quick-start models.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Balanced small model for local Intel acceleration.",
     },
     {
         "alias": "OpenVINO/Qwen3-1.7B-int4-ov",
         "label": "Qwen3 1.7B INT4",
         "description": "Small Qwen3 model balancing footprint and reasoning quality for local inference.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Good NPU-first balance of latency and quality for demos.",
     },
     {
         "alias": "OpenVINO/DeepSeek-R1-Distill-Qwen-1.5B-int4-ov",
         "label": "DeepSeek R1 Distill Qwen 1.5B INT4",
         "description": "Small reasoning-oriented model from the OpenVINO Hugging Face collection.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Reasoning-oriented small model; OVMS serves it on the selected target device.",
     },
     {
         "alias": "OpenVINO/Phi-3-mini-4k-instruct-int4-ov",
         "label": "Phi-3 Mini 4K Instruct INT4",
         "description": "Compact Microsoft Phi instruct model for local reasoning workloads.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Compact instruct model for local Intel acceleration.",
     },
     {
         "alias": "OpenVINO/Phi-4-mini-instruct-int4-ov",
         "label": "Phi-4 Mini Instruct INT4",
         "description": "Compact Phi-4 generation model for stronger local responses with moderate footprint.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Higher-quality mini model; first NPU compile may take longer.",
     },
     {
         "alias": "OpenVINO/gemma-2b-it-int4-ov",
         "label": "Gemma 2B IT INT4",
         "description": "Small Gemma instruction model. May require accepting upstream model terms on Hugging Face.",
         "device": "NPU/GPU/CPU",
-    },
-    {
-        "alias": "OpenVINO/Qwen3-8B-int4-cw-ov",
-        "label": "Qwen3 8B INT4 (NPU-optimised)",
-        "description": "Text-generation model for OpenVINO Model Server with Intel NPU support.",
-        "device": "NPU/GPU/CPU",
+        "npu_recommended": "false",
+        "serving_note": "May require accepting upstream model terms before download.",
     },
     {
         "alias": "OpenVINO/Qwen3-4B-int4-ov",
         "label": "Qwen3 4B INT4",
         "description": "Smaller Qwen3 text-generation model for local Intel acceleration.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Mid-sized Qwen model; compile/cache time is expected on first start.",
     },
     {
         "alias": "OpenVINO/Qwen2.5-1B-Instruct-int4-ov",
         "label": "Qwen2.5 1B Instruct INT4",
         "description": "Small instruction model suitable for fast local smoke tests.",
         "device": "NPU/GPU/CPU",
+        "npu_recommended": "true",
+        "serving_note": "Fast local model for NPU/GPU/CPU inference checks.",
     },
 ]
 
@@ -216,6 +240,8 @@ OPENVINO_EMBEDDING_MODELS: list[dict[str, str]] = [
         "description": "Semantic embedding model supported by OpenVINO for local RAG workloads.",
         "device": "NPU/GPU/CPU",
         "dimension": "1024",
+        "npu_recommended": "true",
+        "serving_note": "Recommended OpenVINO embedding model for local semantic retrieval; served on the selected OVMS target device.",
     },
     {
         "alias": "OpenVINO/bge-base-en-v1.5-int8-ov",
@@ -223,6 +249,8 @@ OPENVINO_EMBEDDING_MODELS: list[dict[str, str]] = [
         "description": "Compact English embedding model from the OpenVINO Hugging Face collection.",
         "device": "NPU/GPU/CPU",
         "dimension": "768",
+        "npu_recommended": "true",
+        "serving_note": "Compact English embedding model; changes embedding dimension to 768 if used for ingestion.",
     },
     {
         "alias": "OpenVINO/bge-base-en-v1.5-fp16-ov",
@@ -230,11 +258,30 @@ OPENVINO_EMBEDDING_MODELS: list[dict[str, str]] = [
         "description": "Higher-precision BGE embedding model for local semantic retrieval.",
         "device": "GPU/CPU",
         "dimension": "768",
+        "npu_recommended": "false",
+        "serving_note": "GPU/CPU-focused FP16 model; not NPU-first.",
     },
 ]
 
+OPENVINO_LATEST_RELEASE = "2026.2.1"
+OPENVINO_WINDOWS_PYTHON_ON_URL = (
+    "https://github.com/openvinotoolkit/model_server/releases/download/v2026.2.1/"
+    "ovms_windows_2026.2.1_python_on.zip"
+)
+OPENVINO_WINDOWS_PYTHON_ON_SHA256_URL = (
+    "https://github.com/openvinotoolkit/model_server/releases/download/v2026.2.1/"
+    "ovms_windows_2026.2.1_python_on.sha256"
+)
+OPENVINO_BAREMETAL_DOCS_URL = "https://docs.openvino.ai/2026/model-server/ovms_docs_deploying_server_baremetal.html"
+
 _FOUNDRY_DOWNLOAD_JOBS: dict[str, dict[str, Any]] = {}
+_FOUNDRY_MODEL_JOBS: dict[str, dict[str, Any]] = {}
+_FOUNDRY_INSTALL_JOBS: dict[str, dict[str, Any]] = {}
 _OPENVINO_DOWNLOAD_JOBS: dict[str, dict[str, Any]] = {}
+_OPENVINO_START_JOBS: dict[str, dict[str, Any]] = {}
+_OPENVINO_STOP_JOBS: dict[str, dict[str, Any]] = {}
+_FOUNDRY_STOP_JOBS: dict[str, dict[str, Any]] = {}
+_PROVIDER_SWITCH_JOBS: dict[str, dict[str, Any]] = {}
 _FOUNDRY_MANAGER: Any | None = None
 
 
@@ -252,6 +299,7 @@ async def get_provider_info() -> dict[str, Any]:
             "openvino_model": settings.openvino_model,
             "openvino_embedding_model": settings.openvino_embedding_model,
             "openvino_device": settings.openvino_device,
+            "openvino_ovms_path": settings.openvino_ovms_path,
             "hf_configured": settings.hf_token is not None,
             "hf_token_masked": _mask_key(settings.hf_token) if settings.hf_token else None,
             "openai_configured": settings.openai_api_key is not None,
@@ -269,7 +317,7 @@ async def get_provider_info() -> dict[str, Any]:
             {
                 "value": "microsoft-foundry-local",
                 "label": "Microsoft Foundry Local (local AI)",
-                "description": "Uses the Foundry Local Python SDK with Windows ML hardware acceleration when available. No cloud API needed; managed on this Configuration page.",
+            "description": "Uses the Microsoft Foundry Local Python SDK with Windows ML hardware acceleration when available. No cloud API needed; managed on this Configuration page.",
                 "requires_api_key": False,
                 "requires_local_runtime": True,
             },
@@ -297,8 +345,8 @@ async def get_provider_info() -> dict[str, Any]:
             },
             {
                 "value": "microsoft-foundry-local",
-                "label": "Foundry Local (384-dim)",
-                "description": "Uses all-MiniLM-L6-v2 via Foundry Local. Requires Foundry Local installed.",
+                "label": "Microsoft Foundry Local (1024-dim)",
+                "description": "Uses qwen3-embedding-0.6b via Microsoft Foundry Local. Requires Foundry Local SDK/runtime installed.",
                 "requires_api_key": False,
             },
             {
@@ -344,9 +392,12 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
                 updates["OPENAI_API_KEY"] = request.openai_api_key
 
         updates["MODEL_PROVIDER"] = request.model_provider
+        if request.model_provider == "microsoft-foundry-local":
+            settings = get_agent_brain_settings()
+            if not _model_alias_is_curated(settings.local_model_name):
+                updates.setdefault("LOCAL_MODEL_NAME", "phi-4-mini")
         if request.model_provider == "openvino":
             updates.setdefault("OPENVINO_MODEL", "OpenVINO/Qwen3-8B-int4-cw-ov")
-            updates.setdefault("LOCAL_MODEL_NAME", "OpenVINO/Qwen3-8B-int4-cw-ov")
 
     if request.embedding_provider is not None:
         if request.embedding_provider not in VALID_EMBEDDING_PROVIDERS:
@@ -371,7 +422,7 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
         # provider so the Embeddings section of the config table stays accurate.
         _EMBEDDING_DEFAULTS: dict[str, dict[str, str]] = {
             "placeholder": {"EMBEDDING_MODEL": "deterministic-placeholder", "EMBEDDING_DIMENSION": "8"},
-            "microsoft-foundry-local": {"EMBEDDING_MODEL": "all-MiniLM-L6-v2", "EMBEDDING_DIMENSION": "384"},
+            "microsoft-foundry-local": {"EMBEDDING_MODEL": "qwen3-embedding-0.6b", "EMBEDDING_DIMENSION": "1024"},
             "openvino": {"EMBEDDING_MODEL": "OpenVINO/Qwen3-Embedding-0.6B", "EMBEDDING_DIMENSION": "1024"},
             "openai": {"EMBEDDING_MODEL": "text-embedding-3-small", "EMBEDDING_DIMENSION": "1536"},
         }
@@ -427,9 +478,9 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
             "a schema migration, data reset, and re-ingestion. Current dimension is "
             f"{new_settings.embedding_dimension}. Run 'Reset PostgreSQL data' after switching."
         )
-    if request.embedding_provider == "microsoft-foundry-local" and new_settings.embedding_dimension != 384:
+    if request.embedding_provider == "microsoft-foundry-local" and new_settings.embedding_dimension != 1024:
         warnings.append(
-            "Embedding dimension change detected. Foundry Local embeddings use 384-dim. "
+            "Embedding dimension change detected. Microsoft Foundry Local qwen3 embeddings use 1024-dim. "
             f"Current dimension is {new_settings.embedding_dimension}. A schema migration and re-ingestion may be needed."
         )
     if request.embedding_provider == "openvino" and new_settings.embedding_dimension != 1024:
@@ -460,6 +511,70 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
     }
 
 
+async def _run_provider_switch_job(job_id: str, request: SwitchProviderRequest) -> None:
+    """Run a potentially slow provider switch in the background."""
+    job = _PROVIDER_SWITCH_JOBS[job_id]
+    job.update({"status": "running", "message": "Saving provider settings...", "percent": 15})
+    try:
+        if request.model_provider == "microsoft-foundry-local" or request.embedding_provider == "microsoft-foundry-local":
+            job["message"] = "Switching to Microsoft Foundry Local and starting the local runtime if needed..."
+            job["percent"] = 35
+        result = await switch_provider(request)
+        job.update({
+            "status": "complete",
+            "message": result.get("message", "Provider updated successfully."),
+            "percent": 100,
+            "result": result,
+            "warnings": result.get("warnings", []),
+            "foundry_auto_started": result.get("foundry_auto_started", False),
+        })
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        job.update({"status": "error", "message": f"Provider switch failed: {detail}", "percent": int(job.get("percent", 0))})
+
+
+@router.post("/switch-job")
+async def start_provider_switch_job(request: SwitchProviderRequest) -> dict[str, Any]:
+    """Start a provider switch job for transitions that can lag due to child processes."""
+    import asyncio
+    import uuid
+
+    slow_switch = request.model_provider == "microsoft-foundry-local" or request.embedding_provider == "microsoft-foundry-local"
+    if not slow_switch:
+        result = await switch_provider(request)
+        return {
+            "job_id": "synchronous",
+            "status": "complete",
+            "message": result.get("message", "Provider updated successfully."),
+            "percent": 100,
+            "result": result,
+            "warnings": result.get("warnings", []),
+        }
+
+    job_id = str(uuid.uuid4())
+    job: dict[str, Any] = {
+        "job_id": job_id,
+        "status": "queued",
+        "message": "Queued provider switch. Microsoft Foundry Local may need to start a child process.",
+        "percent": 0,
+        "warnings": [],
+    }
+    _PROVIDER_SWITCH_JOBS[job_id] = job
+    asyncio.create_task(_run_provider_switch_job(job_id, request))
+    return job
+
+
+@router.get("/switch-job/{job_id}")
+async def get_provider_switch_job(job_id: str) -> dict[str, Any]:
+    """Return current status for a provider switch job."""
+    if job_id == "synchronous":
+        return {"job_id": job_id, "status": "complete", "message": "Provider switch completed synchronously.", "percent": 100}
+    job = _PROVIDER_SWITCH_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Provider switch job not found: {job_id}")
+    return job
+
+
 def _reload_settings() -> Any:
     """Force-reload agent_brain config and return fresh settings."""
     import importlib
@@ -486,6 +601,26 @@ async def _check_openvino_running(endpoint: str | None) -> bool:
     return False
 
 
+def _extract_endpoint_port(endpoint: str | None, default: int) -> int:
+    """Extract the port from an OVMS endpoint URL."""
+    if not endpoint:
+        return default
+    parsed = urlparse(endpoint)
+    return parsed.port or default
+
+
+def _friendly_ovms_script_output(output: str) -> str:
+    """Trim PowerShell noise and return actionable native OVMS guidance."""
+    if "OVMS executable not found" in output:
+        return (
+            "OVMS executable not found. Install the OpenVINO Model Server Windows package, then either add "
+            "the folder containing ovms.exe to PATH and restart the UI backend, or start OVMS manually with "
+            "scripts/setup-ovms.ps1 -Start -OvmsPath C:\\Path\\To\\ovms.exe. Deployment guide: "
+            + OPENVINO_BAREMETAL_DOCS_URL
+        )
+    return output
+
+
 def _openvino_model_is_curated(model_id: str) -> bool:
     """Return whether a model ID is in the curated OpenVINO model lists."""
     return model_id in {m["alias"] for m in [*OPENVINO_LLM_MODELS, *OPENVINO_EMBEDDING_MODELS]}
@@ -502,11 +637,58 @@ def _get_huggingface_cache_dir() -> str:
     return str(Path.home() / ".cache" / "huggingface" / "hub")
 
 
+def _openvino_model_repo_path(model_id: str) -> str:
+    """Return the expected local OVMS model repository path for a Hugging Face model ID."""
+    settings = get_ui_settings()
+    return str(settings.repo_root / ".openvino" / "models" / Path(*model_id.split("/")))
+
+
+def _openvino_model_cached(model_id: str) -> bool:
+    """Return whether OVMS has a local model repository directory for this model."""
+    return Path(_openvino_model_repo_path(model_id)).exists()
+
+
+def _normalize_ovms_path(raw_path: str) -> str:
+    """Normalize a user-provided OVMS executable path.
+
+    Accepts forward slashes, backslashes, quoted paths, and either the path to
+    ovms.exe or a directory containing ovms.exe. Returns a normalized Windows
+    display path with backslashes.
+    """
+    cleaned = raw_path.strip().strip('"').strip("'")
+    if not cleaned:
+        return ""
+    normalized = cleaned.replace("/", "\\")
+    path = Path(normalized)
+    if path.suffix.lower() != ".exe":
+        path = path / "ovms.exe"
+    if path.name.lower() != "ovms.exe":
+        raise HTTPException(status_code=422, detail="OpenVINO OVMS path must point to ovms.exe or a folder containing ovms.exe.")
+    return str(path)
+
+
+def _openvino_served_model_from_log() -> str | None:
+    """Best-effort extraction of the currently served model from the latest OVMS log."""
+    settings = get_ui_settings()
+    log_path = settings.repo_root / ".openvino" / "ovms-text_generation-8100.log"
+    if not log_path.exists():
+        return None
+    try:
+        for line in reversed(log_path.read_text(encoding="utf-8", errors="replace").splitlines()[-120:]):
+            marker = "Model: "
+            if marker in line and " downloaded to:" in line:
+                return line.split(marker, 1)[1].split(" downloaded to:", 1)[0].strip()
+    except Exception:
+        return None
+    return None
+
+
 @router.get("/openvino-status")
 async def get_openvino_status() -> dict[str, Any]:
     """Return OpenVINO Model Server and Hugging Face configuration status."""
     settings = get_agent_brain_settings()
     service_running = await _check_openvino_running(settings.openvino_endpoint)
+    served_model = _openvino_served_model_from_log() if service_running else None
     return {
         "service_running": service_running,
         "endpoint": settings.openvino_endpoint,
@@ -518,24 +700,45 @@ async def get_openvino_status() -> dict[str, Any]:
         "models": OPENVINO_LLM_MODELS,
         "embedding_models": OPENVINO_EMBEDDING_MODELS,
         "model_cache_dir": _get_huggingface_cache_dir(),
-        "docker_models_volume": "openvino_models",
-        "docker_cache_volume": "openvino_cache",
+        "model_repository_path": _openvino_model_repo_path(settings.openvino_model),
+        "embedding_model_repository_path": _openvino_model_repo_path(settings.openvino_embedding_model),
+        "model_cached": _openvino_model_cached(settings.openvino_model),
+        "embedding_model_cached": _openvino_model_cached(settings.openvino_embedding_model),
+        "served_model": served_model,
+        "served_model_matches_selection": served_model == settings.openvino_model if served_model else False,
+        "runtime_mode": "native-windows",
+        "setup_script": "scripts/setup-ovms.ps1",
+        "ovms_path": settings.openvino_ovms_path,
+        "latest_release": OPENVINO_LATEST_RELEASE,
+        "windows_download_url": OPENVINO_WINDOWS_PYTHON_ON_URL,
+        "windows_checksum_url": OPENVINO_WINDOWS_PYTHON_ON_SHA256_URL,
+        "baremetal_docs_url": OPENVINO_BAREMETAL_DOCS_URL,
         "helper_text": (
-            "HF_TOKEN is optional for public OpenVINO models. Configure it only for gated/private "
-            "models or to avoid anonymous Hugging Face download limits."
+            "OVMS runs as a native Windows process for direct Intel NPU/GPU/CPU access. "
+            "Use scripts/setup-ovms.ps1 -Start to start it. Set OPENVINO_OVMS_PATH when ovms.exe "
+            "is not on PATH. HF_TOKEN is optional for public "
+            "OpenVINO models and only needed for gated/private models or higher download limits."
         ),
     }
 
 
-async def _run_compose_command(args: list[str], timeout: int = 120) -> tuple[bool, str]:
-    """Run a docker compose command from the repository root."""
+async def _run_ovms_script(args: list[str], timeout: int = 120) -> tuple[bool, str]:
+    """Run the native Windows OVMS helper script from the repository root."""
     import asyncio
 
     settings = get_ui_settings()
+    script_path = settings.repo_root / "scripts" / "setup-ovms.ps1"
+    if not script_path.exists():
+        return False, f"OVMS setup script not found: {script_path}"
+
     try:
         proc = await asyncio.create_subprocess_exec(
-            "docker",
-            "compose",
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script_path),
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -543,71 +746,331 @@ async def _run_compose_command(args: list[str], timeout: int = 120) -> tuple[boo
         )
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         output = (stdout.decode("utf-8", errors="replace") + stderr.decode("utf-8", errors="replace")).strip()
-        return proc.returncode == 0, output
+        return proc.returncode == 0, _friendly_ovms_script_output(output)
     except FileNotFoundError:
-        return False, "Docker CLI not found. Install Docker Desktop or start OpenVINO Model Server manually."
+        return False, "PowerShell was not found. Start native OpenVINO Model Server manually or run scripts/setup-ovms.ps1 from PowerShell."
     except asyncio.TimeoutError:
-        return False, f"Docker compose command timed out after {timeout}s."
+        return False, f"Native OVMS helper command timed out after {timeout}s."
     except Exception as exc:
-        return False, f"Error running docker compose: {exc}"
+        return False, f"Error running native OVMS helper script: {exc}"
+
+
+async def _run_openvino_stop_job(job_id: str) -> None:
+    """Stop native OVMS in a background job."""
+    job = _OPENVINO_STOP_JOBS[job_id]
+    settings = get_agent_brain_settings()
+    port = _extract_endpoint_port(settings.openvino_endpoint, default=8100)
+    job.update({"status": "running", "message": f"Stopping native OVMS on port {port}...", "percent": 25})
+    success, output = await _run_ovms_script(["-Stop", "-Port", str(port)], timeout=60)
+    job.update({"message": "Verifying OVMS stopped...", "percent": 75, "output": output})
+    running = await _check_openvino_running(settings.openvino_endpoint)
+    if not running:
+        job.update({
+            "status": "complete",
+            "success": True,
+            "stopped": True,
+            "message": "Native Windows OpenVINO Model Server stopped.",
+            "percent": 100,
+            "endpoint": settings.openvino_endpoint,
+            "runtime_mode": "native-windows",
+        })
+    else:
+        job.update({
+            "status": "error" if not success else "complete",
+            "success": False,
+            "stopped": False,
+            "message": "Stop command completed, but OVMS still appears to be responding.",
+            "percent": 100,
+            "endpoint": settings.openvino_endpoint,
+            "runtime_mode": "native-windows",
+        })
+
+
+def _openvino_progress_from_line(line: str, current: int) -> int:
+    """Estimate OVMS start progress from setup-ovms output/log lines."""
+    lower = line.lower()
+    if "loading ovms environment" in lower:
+        return max(current, 10)
+    if "starting native ovms" in lower:
+        return max(current, 20)
+    if "started ovms process" in lower:
+        return max(current, 35)
+    if "rest server listening" in lower or "started rest server" in lower:
+        return max(current, 60)
+    if "downloaded to" in lower or "skipping download" in lower:
+        return max(current, 70)
+    if "state changed to: available" in lower or "servablemanagermodule started" in lower:
+        return max(current, 90)
+    if "ovms is responding" in lower:
+        return 100
+    return current
+
+
+async def _run_openvino_start_job(job_id: str, args: list[str]) -> None:
+    """Start native OVMS in a background subprocess and collect progress output."""
+    import asyncio
+
+    job = _OPENVINO_START_JOBS[job_id]
+    settings = get_ui_settings()
+    script_path = settings.repo_root / "scripts" / "setup-ovms.ps1"
+    job.update({"status": "running", "message": "Starting native OpenVINO Model Server...", "percent": 5})
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script_path),
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+            cwd=str(settings.repo_root),
+        )
+    except FileNotFoundError:
+        job.update({"status": "error", "message": "PowerShell was not found.", "percent": 0})
+        return
+    except Exception as exc:
+        job.update({"status": "error", "message": f"Could not start OVMS helper script: {exc}", "percent": 0})
+        return
+
+    assert proc.stdout is not None
+    output: list[str] = job["output"]
+    try:
+        while True:
+            line_bytes = await proc.stdout.readline()
+            if not line_bytes:
+                break
+            line = line_bytes.decode("utf-8", errors="replace").strip()
+            if not line:
+                continue
+            output.append(line)
+            job["percent"] = _openvino_progress_from_line(line, int(job.get("percent", 0)))
+            if "OVMS is responding" in line:
+                job["message"] = "OVMS is responding."
+            elif "Waiting for readiness" in line:
+                job["message"] = "OVMS process started; waiting for readiness."
+            elif "Downloading" in line or "download" in line.lower():
+                job["message"] = "OVMS is downloading or locating the model."
+            elif "AVAILABLE" in line:
+                job["message"] = "Model is available; finalizing readiness check."
+
+        return_code = await proc.wait()
+    except Exception as exc:
+        job.update({"status": "error", "message": f"Error while reading OVMS progress: {exc}", "percent": int(job.get("percent", 0))})
+        return
+
+    fresh_settings = get_agent_brain_settings()
+    running = await _check_openvino_running(fresh_settings.openvino_endpoint)
+    job["endpoint"] = fresh_settings.openvino_endpoint
+    if return_code == 0 and running:
+        job.update({"status": "complete", "message": "Native Windows OpenVINO Model Server is responding.", "percent": 100, "started": True, "success": True})
+    elif running:
+        job.update({"status": "complete", "message": "OVMS is responding, but the helper exited with a non-zero code.", "percent": 100, "started": True, "success": True})
+    else:
+        tail = "\n".join(output[-12:])
+        job.update({
+            "status": "error",
+            "message": f"OVMS did not become ready. Helper exit code: {return_code}.",
+            "percent": int(job.get("percent", 0)),
+            "started": False,
+            "success": False,
+            "error_tail": tail,
+        })
 
 
 @router.post("/openvino-start")
 async def start_openvino_service() -> dict[str, Any]:
-    """Start the OpenVINO Model Server Docker Compose profile."""
-    success, output = await _run_compose_command(["--profile", "openvino", "up", "-d", "openvino-model-server"], timeout=180)
-    fallback_used = False
-    if not success and "/dev/accel" in output and "no such file or directory" in output.lower():
-        fallback_used = True
-        fallback_success, fallback_output = await _run_compose_command(
-            ["--profile", "openvino-cpu", "up", "-d", "openvino-model-server-cpu"],
-            timeout=180,
-        )
-        success = fallback_success
-        output = (
-            "NPU device /dev/accel is not available to Docker Desktop/WSL, so the backend "
-            "attempted to start the CPU fallback service instead.\n\n"
-            f"NPU start output:\n{output}\n\nCPU fallback output:\n{fallback_output}"
-        )
+    """Start the native Windows OpenVINO Model Server process as a background job."""
+    import asyncio
+    import uuid
+
     settings = get_agent_brain_settings()
     running = await _check_openvino_running(settings.openvino_endpoint)
-    if running and fallback_used:
-        message = "OpenVINO Model Server started with CPU fallback because Docker could not access /dev/accel."
-    elif running:
-        message = "OpenVINO Model Server started."
-    elif fallback_used:
-        message = (
-            "OpenVINO CPU fallback start command completed, but OVMS is not responding yet. "
-            "It may still be downloading/compiling the model."
-        )
-    else:
-        message = (
-            "OpenVINO start command completed, but OVMS is not responding yet. "
-            "It may still be downloading/compiling the model."
-        )
-    return {
-        "success": success,
-        "started": running,
-        "message": message,
-        "output": output,
+    if running:
+        return {
+            "job_id": "already-running",
+            "status": "complete",
+            "success": True,
+            "started": True,
+            "message": "Native Windows OpenVINO Model Server is already responding.",
+            "percent": 100,
+            "output": ["OVMS is already responding at " + settings.openvino_endpoint],
+            "endpoint": settings.openvino_endpoint,
+            "runtime_mode": "native-windows",
+        }
+
+    args = [
+        "-Start",
+        "-Model",
+        settings.openvino_model,
+        "-EmbeddingModel",
+        settings.openvino_embedding_model,
+        "-Device",
+        settings.openvino_device,
+        "-Port",
+        str(_extract_endpoint_port(settings.openvino_endpoint, default=8100)),
+    ] + (["-OvmsPath", settings.openvino_ovms_path] if settings.openvino_ovms_path else [])
+    job_id = str(uuid.uuid4())
+    job: dict[str, Any] = {
+        "job_id": job_id,
+        "status": "queued",
+        "message": f"Queued native OVMS start on {settings.openvino_device} for {settings.openvino_model}.",
+        "percent": 0,
+        "output": [],
+        "success": False,
+        "started": False,
         "endpoint": settings.openvino_endpoint,
-        "fallback_used": fallback_used,
+        "runtime_mode": "native-windows",
+        "model": settings.openvino_model,
+        "embedding_model": settings.openvino_embedding_model,
+        "device": settings.openvino_device,
     }
+    _OPENVINO_START_JOBS[job_id] = job
+    asyncio.create_task(_run_openvino_start_job(job_id, args))
+    return job
+
+
+@router.get("/openvino-start/{job_id}")
+async def get_openvino_start_job(job_id: str) -> dict[str, Any]:
+    """Return current status for a native OVMS start job."""
+    if job_id == "already-running":
+        settings = get_agent_brain_settings()
+        running = await _check_openvino_running(settings.openvino_endpoint)
+        return {
+            "job_id": job_id,
+            "status": "complete" if running else "error",
+            "message": "OVMS is responding." if running else "OVMS is no longer responding.",
+            "percent": 100 if running else 0,
+            "success": running,
+            "started": running,
+            "output": [],
+            "endpoint": settings.openvino_endpoint,
+        }
+    job = _OPENVINO_START_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"OpenVINO start job not found: {job_id}")
+    return job
 
 
 @router.post("/openvino-stop")
 async def stop_openvino_service() -> dict[str, Any]:
-    """Stop the OpenVINO Model Server Docker Compose service."""
-    success, output = await _run_compose_command(["stop", "openvino-model-server", "openvino-model-server-cpu"], timeout=60)
+    """Queue a native OVMS stop job."""
+    import asyncio
+    import uuid
+
+    existing = next(
+        (job for job in _OPENVINO_STOP_JOBS.values() if job.get("status") in {"queued", "running"}),
+        None,
+    )
+    if existing:
+        return existing
     settings = get_agent_brain_settings()
-    running = await _check_openvino_running(settings.openvino_endpoint)
-    return {
-        "success": success and not running,
-        "stopped": not running,
-        "message": "OpenVINO Model Server stopped." if not running else "Stop command completed, but OVMS still appears to be responding.",
-        "output": output,
+    job_id = str(uuid.uuid4())
+    job: dict[str, Any] = {
+        "job_id": job_id,
+        "status": "queued",
+        "success": False,
+        "stopped": False,
+        "message": "Queued native OVMS stop.",
+        "percent": 0,
+        "output": "",
         "endpoint": settings.openvino_endpoint,
+        "runtime_mode": "native-windows",
     }
+    _OPENVINO_STOP_JOBS[job_id] = job
+    asyncio.create_task(_run_openvino_stop_job(job_id))
+    return job
+
+
+@router.get("/openvino-stop/{job_id}")
+async def get_openvino_stop_job(job_id: str) -> dict[str, Any]:
+    """Return current status for a native OVMS stop job."""
+    job = _OPENVINO_STOP_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"OpenVINO stop job not found: {job_id}")
+    return job
+
+
+@router.post("/foundry-stop")
+async def stop_foundry_service() -> dict[str, Any]:
+    """Queue a best-effort Foundry Local stop job."""
+    import asyncio
+    import uuid
+
+    existing = next(
+        (job for job in _FOUNDRY_STOP_JOBS.values() if job.get("status") in {"queued", "running"}),
+        None,
+    )
+    if existing:
+        return existing
+    settings = get_agent_brain_settings()
+    job_id = str(uuid.uuid4())
+    job: dict[str, Any] = {
+        "job_id": job_id,
+        "status": "queued",
+        "success": False,
+        "stopped": False,
+        "message": "Queued Microsoft Foundry Local stop.",
+        "percent": 0,
+        "output": "",
+        "endpoint": settings.foundry_local_endpoint,
+    }
+    _FOUNDRY_STOP_JOBS[job_id] = job
+    asyncio.create_task(_run_foundry_stop_job(job_id))
+    return job
+
+
+async def _run_foundry_stop_job(job_id: str) -> None:
+    """Best-effort stop for Foundry Local to free local runtime resources."""
+    job = _FOUNDRY_STOP_JOBS[job_id]
+    settings = get_agent_brain_settings()
+    job.update({"status": "running", "message": "Stopping Microsoft Foundry Local...", "percent": 20})
+    output_parts: list[str] = []
+
+    # SDK-managed Foundry web services are process/session scoped. The SDK API
+    # surface has changed across previews, so try common stop/shutdown methods
+    # when a manager is available, then fall back to the CLI service commands.
+    global _FOUNDRY_MANAGER
+    if _FOUNDRY_MANAGER is not None:
+        for method_name in ("stop_service", "stop", "shutdown", "close"):
+            method = getattr(_FOUNDRY_MANAGER, method_name, None)
+            if callable(method):
+                try:
+                    method()
+                    output_parts.append(f"Called Foundry SDK manager method: {method_name}.")
+                    break
+                except Exception as exc:
+                    output_parts.append(f"Foundry SDK manager method {method_name} failed: {exc}")
+
+    cli_success, cli_output = await _run_foundry_cli_first([
+        ["server", "stop"],
+        ["service", "stop"],
+    ], timeout=60)
+    output_parts.append(cli_output)
+
+    job.update({"message": "Verifying Microsoft Foundry Local stopped...", "percent": 80})
+    running = await _check_foundry_running(settings.foundry_local_endpoint)
+    stopped = not running
+    job.update({
+        "status": "complete" if stopped or cli_success else "error",
+        "success": stopped or cli_success,
+        "stopped": stopped,
+        "message": "Foundry Local service stopped." if stopped else "Stop command completed, but Foundry Local still appears to be running.",
+        "output": "\n".join(part for part in output_parts if part),
+        "endpoint": settings.foundry_local_endpoint,
+        "percent": 100,
+    })
+
+
+@router.get("/foundry-stop/{job_id}")
+async def get_foundry_stop_job(job_id: str) -> dict[str, Any]:
+    """Return current status for a Foundry Local stop job."""
+    job = _FOUNDRY_STOP_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Foundry Local stop job not found: {job_id}")
+    return job
 
 
 @router.put("/openvino-settings")
@@ -636,6 +1099,12 @@ async def update_openvino_settings(request: UpdateOpenVINOSettingsRequest) -> di
         if device not in {"NPU", "GPU", "CPU"}:
             raise HTTPException(status_code=422, detail="OpenVINO device must be NPU, GPU, or CPU.")
         updates["OPENVINO_DEVICE"] = device
+    if request.ovms_path is not None:
+        ovms_path = _normalize_ovms_path(request.ovms_path)
+        if ovms_path:
+            updates["OPENVINO_OVMS_PATH"] = ovms_path
+        else:
+            updates["OPENVINO_OVMS_PATH"] = ""
     if request.hf_token is not None:
         updates["HF_TOKEN"] = request.hf_token.strip()
 
@@ -651,6 +1120,7 @@ async def update_openvino_settings(request: UpdateOpenVINOSettingsRequest) -> di
         "model": new_settings.openvino_model,
         "embedding_model": new_settings.openvino_embedding_model,
         "device": new_settings.openvino_device,
+        "ovms_path": new_settings.openvino_ovms_path,
         "hf_configured": new_settings.hf_token is not None,
         "hf_token_masked": _mask_key(new_settings.hf_token) if new_settings.hf_token else None,
     }
@@ -970,6 +1440,48 @@ async def reset_foundry_cache() -> dict[str, Any]:
 
 @router.post("/foundry-install")
 async def install_foundry_local() -> dict[str, Any]:
+    """Queue Foundry Local SDK installation in the backend interpreter."""
+    import asyncio
+    import platform
+    import sys
+    import uuid
+
+    existing = next(
+        (job for job in _FOUNDRY_INSTALL_JOBS.values() if job.get("status") in {"queued", "running"}),
+        None,
+    )
+    if existing:
+        return existing
+
+    job_id = str(uuid.uuid4())
+    system = platform.system()
+    backend_python = sys.executable
+    job: dict[str, Any] = {
+        "job_id": job_id,
+        "status": "queued",
+        "success": False,
+        "installed": False,
+        "message": "Queued Microsoft Foundry Local SDK installation.",
+        "percent": 0,
+        "output": "",
+        "platform": system,
+        "python": backend_python,
+    }
+    _FOUNDRY_INSTALL_JOBS[job_id] = job
+    asyncio.create_task(_run_foundry_install_job(job_id, system, backend_python))
+    return job
+
+
+@router.get("/foundry-install/{job_id}")
+async def get_foundry_install_job(job_id: str) -> dict[str, Any]:
+    """Return current status for a Foundry Local SDK installation job."""
+    job = _FOUNDRY_INSTALL_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Foundry Local install job not found: {job_id}")
+    return job
+
+
+async def _run_foundry_install_job(job_id: str, system: str, backend_python: str) -> None:
     """Attempt to install the Foundry Local SDK into the backend interpreter.
 
     On Windows this uses the winml SDK package for local acceleration. On macOS
@@ -977,11 +1489,8 @@ async def install_foundry_local() -> dict[str, Any]:
     The installation runs as a subprocess and may take several minutes.
     """
     import asyncio
-    import platform
-    import sys
-
-    system = platform.system()
-    backend_python = sys.executable
+    job = _FOUNDRY_INSTALL_JOBS[job_id]
+    job.update({"status": "running", "message": "Installing Microsoft Foundry Local SDK...", "percent": 10})
 
     if system == "Windows":
         cmd = [backend_python, "-m", "pip", "install", "foundry-local-sdk-winml==1.2.3"]
@@ -1000,16 +1509,20 @@ async def install_foundry_local() -> dict[str, Any]:
             stderr=asyncio.subprocess.PIPE,
             env=_get_full_env(),
         )
+        job.update({"message": "pip install is running...", "percent": 35})
         stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
         output = (stdout.decode("utf-8", errors="replace") + stderr.decode("utf-8", errors="replace")).strip()
 
         if proc.returncode == 0:
-            return {
+            job.update({
+                "status": "complete",
                 "success": True,
                 "message": "Foundry Local Python SDK installed successfully. Restart the UI backend so the SDK can be imported by the running process.",
                 "output": output,
                 "installed": True,
-            }
+                "percent": 100,
+            })
+            return
         else:
             # pip can return non-zero when the package is already installed and
             # no upgrade is available. Treat this as success.
@@ -1020,32 +1533,42 @@ async def install_foundry_local() -> dict[str, Any]:
                 "No newer package versions",
             ]
             if any(m in output for m in already_installed_markers):
-                return {
+                job.update({
+                    "status": "complete",
                     "success": True,
                     "message": "Foundry Local Python SDK is already installed. No upgrade needed.",
                     "output": output,
                     "installed": True,
-                }
-            return {
+                    "percent": 100,
+                })
+                return
+            job.update({
+                "status": "error",
                 "success": False,
                 "message": f"Installation failed (exit code {proc.returncode}). See output for details.",
                 "output": output,
                 "installed": False,
-            }
+                "percent": 100,
+            })
+            return
     except FileNotFoundError:
-        return {
+        job.update({
+            "status": "error",
             "success": False,
             "message": f"Python interpreter not found for the running backend on {system}: {backend_python}. Please install the Foundry Local Python SDK manually in the backend environment.",
             "output": "",
             "installed": False,
-        }
+            "percent": 100,
+        })
     except asyncio.TimeoutError:
-        return {
+        job.update({
+            "status": "error",
             "success": False,
             "message": f"Installation timed out after {timeout}s. The process may still be running in the background.",
             "output": "",
             "installed": False,
-        }
+            "percent": 100,
+        })
 
 
 async def _run_foundry_cli_cmd(args: list[str], timeout: int = 120) -> tuple[bool, str]:
@@ -1201,7 +1724,16 @@ def _try_get_foundry_model(alias: str) -> Any | None:
     """Return a Foundry SDK model object, or None if SDK/catalog lookup fails."""
     try:
         manager = _get_foundry_manager()
-        return manager.catalog.get_model(alias)
+        model = manager.catalog.get_model(alias)
+        if model is not None:
+            return model
+        # Keep compatibility with the alias shape that appeared in some docs but
+        # is not present in the installed Foundry Local SDK 1.2.3 catalog.
+        alias_map = {"qwen3-0.6b-embedding": "qwen3-embedding-0.6b"}
+        mapped_alias = alias_map.get(alias)
+        if mapped_alias:
+            return manager.catalog.get_model(mapped_alias)
+        return None
     except Exception:
         return None
 
@@ -1383,6 +1915,89 @@ async def get_foundry_model_download(job_id: str) -> dict[str, Any]:
     return job
 
 
+async def _run_foundry_model_job(job_id: str, request: UpdateFoundryModelRequest) -> None:
+    """Run Foundry Local service start and model load in the background."""
+    job = _FOUNDRY_MODEL_JOBS[job_id]
+    alias = request.local_model_name.strip()
+    job.update({
+        "status": "running",
+        "message": f"Starting Microsoft Foundry Local and loading {alias}...",
+        "percent": 10,
+    })
+    try:
+        result = await update_foundry_model(request)
+        job.update({
+            "status": "complete",
+            "success": result.get("success", True),
+            "message": result.get("message", f"Foundry Local model '{alias}' is ready."),
+            "percent": 100,
+            "result": result,
+            "steps": result.get("steps", []),
+            "warnings": result.get("warnings", []),
+            "service_running": result.get("service_running", False),
+            "model_downloaded": result.get("model_downloaded", False),
+            "embedding_model_downloaded": result.get("embedding_model_downloaded", False),
+        })
+    except Exception as exc:
+        detail = getattr(exc, "detail", str(exc))
+        job.update({
+            "status": "error",
+            "success": False,
+            "message": f"Foundry Local readiness failed: {detail}",
+            "percent": int(job.get("percent", 0)),
+        })
+
+
+@router.post("/foundry-model/job")
+async def start_foundry_model_job(request: UpdateFoundryModelRequest) -> dict[str, Any]:
+    """Queue Foundry service start plus configured model load."""
+    import asyncio
+    import uuid
+
+    alias = request.local_model_name.strip()
+    if not alias:
+        raise HTTPException(status_code=422, detail="Foundry Local model name cannot be empty.")
+    existing = next(
+        (
+            job
+            for job in _FOUNDRY_MODEL_JOBS.values()
+            if job.get("model") == alias and job.get("status") in {"queued", "running"}
+        ),
+        None,
+    )
+    if existing:
+        return existing
+    job_id = str(uuid.uuid4())
+    job: dict[str, Any] = {
+        "job_id": job_id,
+        "model": alias,
+        "status": "queued",
+        "success": False,
+        "message": f"Queued Microsoft Foundry Local readiness for {alias}.",
+        "percent": 0,
+        "steps": [],
+        "warnings": [],
+    }
+    _FOUNDRY_MODEL_JOBS[job_id] = job
+    asyncio.create_task(_run_foundry_model_job(job_id, request))
+    return job
+
+
+@router.put("/foundry-model/job")
+async def start_foundry_model_job_put_compat(request: UpdateFoundryModelRequest) -> dict[str, Any]:
+    """Compatibility alias for older frontend bundles that used PUT."""
+    return await start_foundry_model_job(request)
+
+
+@router.get("/foundry-model/job/{job_id}")
+async def get_foundry_model_job(job_id: str) -> dict[str, Any]:
+    """Return current status for a Foundry service/model readiness job."""
+    job = _FOUNDRY_MODEL_JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail=f"Foundry Local model job not found: {job_id}")
+    return job
+
+
 @router.put("/foundry-model")
 async def update_foundry_model(request: UpdateFoundryModelRequest) -> dict[str, Any]:
     """Update the Foundry Local model name and ensure the runtime is ready.
@@ -1400,6 +2015,9 @@ async def update_foundry_model(request: UpdateFoundryModelRequest) -> dict[str, 
             status_code=422,
             detail="Foundry Local model name cannot be empty.",
         )
+    if model.startswith("OpenVINO/"):
+        model = "phi-4-mini"
+        _update_env_file({"LOCAL_MODEL_NAME": model})
 
     # Validate against the curated catalog (allow custom names too, but warn).
     catalog_warning = None
@@ -1443,8 +2061,9 @@ async def update_foundry_model(request: UpdateFoundryModelRequest) -> dict[str, 
                 f"Details: {start_output}"
             )
 
-    # Step 2: Load the model. Newer Foundry Local CLI builds automatically
-    # download on first load, so loading is the most reliable readiness check.
+    # Step 2: Load the selected text model. Newer Foundry Local CLI builds
+    # automatically download on first load, so loading is the most reliable
+    # readiness check.
     model_downloaded = await _check_model_downloaded(model)
     steps.append({"step": "model_download", "status": "info", "message": f"Loading '{model}'. Foundry downloads it automatically if needed..."})
     sdk_model = _try_get_foundry_model(model)
@@ -1473,7 +2092,60 @@ async def update_foundry_model(request: UpdateFoundryModelRequest) -> dict[str, 
             "Restart the UI backend under Python 3.11 so it can import foundry-local-sdk-winml, then use the Download Model button."
         )
 
-    # Step 3: Update LOCAL_MODEL_NAME in .env
+    # Step 3: If Foundry Local is also the active embedding provider, ensure the
+    # embedding model is loaded too. This keeps the Configuration page's active
+    # provider state aligned with runtime readiness on initial load and after
+    # backend restarts.
+    embedding_model_downloaded = False
+    if settings.embedding_provider == "microsoft-foundry-local":
+        embedding_model = settings.embedding_model.strip()
+        if embedding_model and embedding_model != model:
+            steps.append({
+                "step": "embedding_model_download",
+                "status": "info",
+                "message": (
+                    f"Loading embedding model '{embedding_model}'. "
+                    "Foundry downloads it automatically if needed..."
+                ),
+            })
+            sdk_embedding_model = _try_get_foundry_model(embedding_model)
+            if sdk_embedding_model is not None:
+                import asyncio
+                try:
+                    await asyncio.to_thread(sdk_embedding_model.download)
+                    await asyncio.to_thread(sdk_embedding_model.load)
+                    embedding_success = True
+                    embedding_output = "Loaded with Foundry Local Python SDK."
+                except Exception as exc:
+                    embedding_success = False
+                    embedding_output = f"Foundry Local Python SDK embedding load failed: {exc}"
+            else:
+                embedding_success, embedding_output = await _run_foundry_cli_first([
+                    ["model", "load", embedding_model],
+                    ["model", "download", embedding_model],
+                ], timeout=600)
+
+            if embedding_success:
+                embedding_model_downloaded = True
+                steps.append({
+                    "step": "embedding_model_download_complete",
+                    "status": "ok",
+                    "message": f"Embedding model '{embedding_model}' loaded successfully.",
+                })
+            else:
+                steps.append({
+                    "step": "embedding_model_download_complete",
+                    "status": "error",
+                    "message": f"Embedding model load failed: {embedding_output}",
+                })
+                warnings.append(
+                    f"Embedding model '{embedding_model}' could not be loaded automatically. "
+                    "Use the Download Model button or run foundry model load manually."
+                )
+        elif embedding_model == model:
+            embedding_model_downloaded = model_downloaded
+
+    # Step 4: Update LOCAL_MODEL_NAME in .env
     _update_env_file({"LOCAL_MODEL_NAME": model})
     new_settings = _reload_settings()
 
@@ -1489,6 +2161,7 @@ async def update_foundry_model(request: UpdateFoundryModelRequest) -> dict[str, 
         "steps": steps,
         "service_running": is_running,
         "model_downloaded": model_downloaded,
+        "embedding_model_downloaded": embedding_model_downloaded,
     }
 
 

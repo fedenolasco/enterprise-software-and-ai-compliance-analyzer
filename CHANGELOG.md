@@ -17,6 +17,7 @@ All notable project changes should be documented here as the implementation evol
   - Removed irrelevant CLI equivalent message from the Embedding Provider Switcher.
 - Synced embedding parameters on provider switch:
   - `EMBEDDING_MODEL` and `EMBEDDING_DIMENSION` now update automatically when switching embedding providers.
+  - Updated Microsoft Foundry Local embedding defaults and documentation from `all-MiniLM-L6-v2` to the locally supported Foundry Local SDK catalog alias `qwen3-embedding-0.6b`.
 - Added Foundry Local integration:
   - Enforced Python 3.11 for the UI backend so Foundry Local SDK imports use the same project baseline interpreter.
   - Curated catalog of Foundry Local models with device information.
@@ -26,9 +27,11 @@ All notable project changes should be documented here as the implementation evol
   - `PUT /api/provider/foundry-cache` endpoint: changes model cache directory.
   - Auto-starts Foundry Local service when switching to `microsoft-foundry-local` (does NOT auto-stop when switching away).
   - Frontend shows install button, step-by-step progress, and folder picker for cache directory.
+  - Renamed user-facing labels to Microsoft Foundry Local for consistency.
   - Keeps Foundry Local service management on the Configuration page rather than duplicating it on the Dashboard health grid.
   - Uses the backend Python interpreter for SDK installation so the running UI API can import the SDK after restart.
   - Notes that SDK-managed service endpoints are process/session scoped and may need restart after backend restarts.
+  - Added provider-aware Configuration page readiness: when current model or embedding provider requires Microsoft Foundry Local, the page starts the service and loads the configured text and embedding models instead of only showing a manual start prompt.
 - Improved Dashboard service health:
   - Hid the redundant Foundry Local health card because Foundry usage is provider-dependent and managed on the Configuration page.
   - Added the mock Pricing API to required-service auto-start.
@@ -39,7 +42,18 @@ All notable project changes should be documented here as the implementation evol
   - Added OpenVINO settings for endpoint, LLM model, embedding model, target device, and optional Hugging Face token.
   - Added curated OpenVINO LLM and embedding model lists, including Qwen3 Embedding 0.6B for local semantic embeddings.
   - Added UI controls for OpenVINO provider selection, OVMS status checks, model download/caching from Hugging Face, and optional `HF_TOKEN` management.
-  - Added an optional `openvino` Docker Compose profile for OpenVINO Model Server on port 8100.
+  - Switched the OpenVINO runtime path to native Windows bare-metal OVMS via [`scripts/setup-ovms.ps1`](scripts/setup-ovms.ps1), keeping Docker Compose focused on data, UI, and observability services.
+  - Added `openvino` switching support to [`scripts/setup-provider.ps1`](scripts/setup-provider.ps1) and [`scripts/setup-provider.sh`](scripts/setup-provider.sh).
+  - Added latest Windows OVMS package links and `OPENVINO_OVMS_PATH` support so the Configuration page can find `ovms.exe` without relying on global `PATH`.
+  - Updated [`scripts/setup-ovms.ps1`](scripts/setup-ovms.ps1) to load package-local `setupvars.ps1`, launch from the OVMS install directory, and return log tails when OVMS exits before readiness.
+  - Made OpenVINO selection NPU-first with `⚡` model metadata, compile-cache defaults, and a background OVMS start job that streams progress/log lines to the Configuration page.
+  - Clarified OpenVINO UI state by separating selected models, cached local repository status, and the model currently served by OVMS; renamed actions to "Start / Load OVMS", optional "Pre-cache" buttons, and "Refresh OVMS Status".
+  - Normalized user-entered `OPENVINO_OVMS_PATH` values so forward slashes, backslashes, quoted paths, and folders containing `ovms.exe` save consistently.
+  - Added provider-aware OVMS readiness: when current model or embedding provider requires OpenVINO, the Configuration page starts OVMS and loads the selected model on page load.
+  - Added provider-switch progress jobs for lagging local-runtime switches such as Foundry Local service startup, while keeping simple `.env`-only switches synchronous.
+  - Added a non-blocking local hardware telemetry panel with CPU/RAM/GPU/NPU/process indicators and contextual local-runtime guidance instead of warning solely because Foundry Local and OVMS are both running.
+  - Refined NPU detection to avoid false positives such as USB input devices and documented that NPU memory availability is not exposed by standard Windows counters on tested hardware.
+  - Made the Configuration page progressively load base config first, then provider controls and hardware telemetry, reducing first-paint lag during backend restarts.
 - Fixed scroll position loss on provider switch:
   - `fetchAll` now accepts a `silent` parameter to skip the loading spinner on refetches.
   - All post-action refetches use `fetchAll(true)` to preserve scroll position.

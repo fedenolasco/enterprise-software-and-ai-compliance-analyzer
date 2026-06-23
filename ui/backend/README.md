@@ -20,6 +20,41 @@ This backend wraps the `agent_brain` Python package as REST and WebSocket endpoi
 
 Use Python `3.11.x` for the UI backend. This is enforced at startup so the backend and Foundry Local SDK use the same project baseline interpreter.
 
+For a clean Windows PowerShell environment, create and use a local Python 3.11 virtual environment in this directory:
+
+```powershell
+cd C:\app\enterprise-software-and-ai-compliance-analyzer\ui\backend
+
+if (-not (Test-Path .\.venv\Scripts\python.exe)) {
+  py -3.11 -m venv .venv
+}
+
+.\.venv\Scripts\python.exe --version
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -e '.[dev]'
+```
+
+Run backend tests through the virtual environment, not the global `python` command:
+
+```powershell
+cd C:\app\enterprise-software-and-ai-compliance-analyzer\ui\backend
+.\.venv\Scripts\python.exe -m pytest tests
+```
+
+The expected interpreter is Python `3.11.x`. Running tests with Python `3.14` or another non-baseline interpreter can produce large dependency warning floods that do not reflect the supported backend runtime.
+
+If you want an activated shell:
+
+```powershell
+cd C:\app\enterprise-software-and-ai-compliance-analyzer\ui\backend
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+python --version
+python -m pytest tests
+```
+
+Legacy editable install from the repository root is also supported:
+
 ```powershell
 cd C:\app\enterprise-software-and-ai-compliance-analyzer
 py -3.11 -m pip install -e .\agent-brain -e .\ui\backend
@@ -28,9 +63,9 @@ py -3.11 -m pip install -e .\agent-brain -e .\ui\backend
 ## Run
 
 ```powershell
-cd C:\app\enterprise-software-and-ai-compliance-analyzer
+cd C:\app\enterprise-software-and-ai-compliance-analyzer\ui\backend
 $env:PYTHONPATH="C:\app\enterprise-software-and-ai-compliance-analyzer\agent-brain\src;C:\app\enterprise-software-and-ai-compliance-analyzer\ui\backend\src"
-py -3.11 -m ui_api.main
+.\.venv\Scripts\python.exe -m ui_api.main
 ```
 
 Or via the console script:

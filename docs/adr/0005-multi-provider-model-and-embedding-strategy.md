@@ -22,7 +22,7 @@ Support three configurable providers for both LLM text generation and embedding 
 | Provider | `MODEL_PROVIDER` / `EMBEDDING_PROVIDER` | LLM | Embeddings | API key | Offline |
 |---|---|---|---|---|---|
 | Placeholder | `placeholder` | Deterministic | 8-dim placeholder | None | Yes |
-| Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5-mini / Qwen2.5 | all-MiniLM-L6-v2 (384-dim) | None | Yes |
+| Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5-mini / Qwen2.5 | qwen3-embedding-0.6b (1024-dim) | None | Yes |
 | OpenAI | `openai` | gpt-4o-mini | text-embedding-3-small (1536-dim) | Required | No |
 
 The placeholder provider remains the default for offline validation, CI, and deterministic demos. Foundry Local and OpenAI are opt-in via environment configuration.

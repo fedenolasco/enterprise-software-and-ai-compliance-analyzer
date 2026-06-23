@@ -82,7 +82,7 @@ _CONFIG_METADATA: dict[str, dict[str, str]] = {
     },
     "openvino_endpoint": {
         "category": "OpenVINO",
-        "description": "The OpenVINO Model Server endpoint. Defaults to http://localhost:8100 to avoid the mock Pricing API on port 8000.",
+        "description": "The native Windows OpenVINO Model Server endpoint. Defaults to http://localhost:8100 to avoid the mock Pricing API on port 8000.",
         "editable": "false",
     },
     "openvino_model": {
@@ -98,6 +98,11 @@ _CONFIG_METADATA: dict[str, dict[str, str]] = {
     "openvino_device": {
         "category": "OpenVINO",
         "description": "The OpenVINO target device: NPU, GPU, or CPU.",
+        "editable": "false",
+    },
+    "openvino_ovms_path": {
+        "category": "OpenVINO",
+        "description": "Optional absolute path to ovms.exe. If unset, the backend uses ovms.exe from PATH.",
         "editable": "false",
     },
     "hf_token": {

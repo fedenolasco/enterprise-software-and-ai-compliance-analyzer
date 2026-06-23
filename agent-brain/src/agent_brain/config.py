@@ -49,6 +49,7 @@ class AgentBrainSettings:
     openvino_model: str = "OpenVINO/Qwen3-8B-int4-cw-ov"
     openvino_embedding_model: str = "OpenVINO/Qwen3-Embedding-0.6B"
     openvino_device: str = "NPU"
+    openvino_ovms_path: str | None = None
     hf_token: str | None = None
     openai_api_key: str | None = None
     openai_model: str = "gpt-4o-mini"
@@ -86,6 +87,7 @@ def get_settings() -> AgentBrainSettings:
             "OPENVINO_EMBEDDING_MODEL", "OpenVINO/Qwen3-Embedding-0.6B"
         ),
         openvino_device=getenv("OPENVINO_DEVICE", "NPU"),
+        openvino_ovms_path=getenv("OPENVINO_OVMS_PATH"),
         hf_token=getenv("HF_TOKEN"),
         openai_api_key=getenv("OPENAI_API_KEY"),
         openai_model=getenv("OPENAI_MODEL", "gpt-4o-mini"),

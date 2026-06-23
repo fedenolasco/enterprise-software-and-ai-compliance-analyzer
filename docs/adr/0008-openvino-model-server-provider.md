@@ -6,7 +6,7 @@ Accepted — 2026-06-23
 
 ## Context
 
-Microsoft Foundry Local provides a local model runtime, but the current Foundry public model catalog does not clearly verify `all-MiniLM-L6-v2` as a supported local embedding model. The product needs a local provider that can support both text inference and semantic embeddings, preferably with Intel AI Boost NPU acceleration.
+Microsoft Foundry Local provides a local model runtime and now has a grounded embedding sample using `qwen3-embedding-0.6b`, while OpenVINO Model Server remains the project's NPU-first local serving path for OpenVINO-optimized LLM and embedding models. The product needs local providers that can support both text inference and semantic embeddings, preferably with Intel AI Boost NPU acceleration.
 
 OpenVINO Model Server (OVMS) exposes OpenAI-compatible APIs for text generation and embeddings, and OpenVINO 2026 documentation confirms NPU deployment patterns plus embedding support. Hugging Face hosts public OpenVINO-optimized models, including Qwen text-generation models and Qwen3 embedding models.
 
@@ -14,13 +14,13 @@ OpenVINO Model Server (OVMS) exposes OpenAI-compatible APIs for text generation 
 
 Add `openvino` as a fourth model and embedding provider alongside `placeholder`, `microsoft-foundry-local`, and `openai`.
 
-The OpenVINO integration uses Architecture A: **OVMS as an external local server**.
+The OpenVINO integration uses Architecture A: **OVMS as an external local server**, with native Windows bare-metal OVMS as the primary runtime path.
 
 ```text
-Application code -> OpenAI-compatible client -> OpenVINO Model Server -> Intel NPU/GPU/CPU
+Application code -> OpenAI-compatible client -> native Windows OpenVINO Model Server -> Intel NPU/GPU/CPU
 ```
 
-This keeps code changes close to the existing Foundry Local integration because both expose OpenAI-compatible API surfaces.
+This keeps code changes close to the existing Foundry Local integration because both expose OpenAI-compatible API surfaces. OVMS is intentionally run outside Docker on Windows so it can use Intel AI Boost NPU, Intel GPU, or CPU directly without container device-passthrough limitations.
 
 ## Provider configuration
 
@@ -34,6 +34,7 @@ The OpenVINO provider uses these environment variables:
 | `OPENVINO_MODEL` | Text-generation model ID | `OpenVINO/Qwen3-8B-int4-cw-ov` |
 | `OPENVINO_EMBEDDING_MODEL` | Embedding model ID | `OpenVINO/Qwen3-Embedding-0.6B` |
 | `OPENVINO_DEVICE` | Preferred target device | `NPU` |
+| `OPENVINO_OVMS_PATH` | Optional absolute path to `ovms.exe` when it is not on `PATH` | unset |
 | `HF_TOKEN` | Optional Hugging Face token | unset |
 
 `HF_TOKEN` is optional for public OpenVINO models. It is only required for gated/private models or to avoid anonymous download limits.
@@ -44,8 +45,12 @@ The OpenVINO provider uses these environment variables:
 - **Positive:** OpenVINO can target Intel AI Boost NPU, Intel GPU, or CPU.
 - **Positive:** The same OpenAI-compatible client pattern can be reused for text and embedding calls.
 - **Positive:** The UI can cache Hugging Face models locally and stores the optional token only in gitignored `.env` files.
-- **Trade-off:** OVMS must be started separately and configured with the required models.
-- **Trade-off:** Docker NPU passthrough is host-dependent; native Windows OVMS may be preferable where Docker cannot access `/dev/accel`.
+- **Positive:** Native Windows OVMS avoids Docker `/dev/accel` passthrough issues and gives OVMS direct access to host Intel acceleration devices.
+- **Positive:** The Configuration page favors NPU-friendly OpenVINO INT4 models, explains that OVMS downloads/caches missing Hugging Face models, and starts OVMS as a background job with progress logs.
+- **Trade-off:** OVMS must be installed and started separately with `scripts/setup-ovms.ps1` before OpenVINO workloads run.
+- **Trade-off:** First NPU startup can take several minutes because OVMS may need to download, prepare, compile, and cache the selected model before inference is ready.
+- **Trade-off:** The UI can start OVMS only when `ovms.exe` is on the UI backend process `PATH` or `OPENVINO_OVMS_PATH` points to the extracted executable.
+- **Trade-off:** The Compose stack now remains focused on data and observability services; OVMS lifecycle is managed as a host process from the Configuration page or PowerShell.
 - **Trade-off:** Switching to OpenVINO embeddings changes vector dimension to 1024, requiring schema alignment and data re-ingestion.
 
 ## Implementation files
@@ -56,5 +61,6 @@ The OpenVINO provider uses these environment variables:
 - `database-layer/src/embedding.ts` — OpenVINO ingestion embeddings.
 - `ui/backend/src/ui_api/routers/provider.py` — provider switcher, model catalogs, settings, status, and download endpoints.
 - `ui/frontend/src/app/config/page.tsx` — OpenVINO UI controls and helper text.
-- `docker-compose.yml` — optional OVMS profile.
+- `scripts/setup-ovms.ps1` — native Windows OVMS start/stop/status helper.
+- `docker-compose.yml` — data, graph, UI, and observability services only; OVMS is no longer a Compose service.
 

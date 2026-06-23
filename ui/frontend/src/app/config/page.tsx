@@ -19,6 +19,7 @@ interface ProviderInfo {
     openvino_model: string;
     openvino_embedding_model: string;
     openvino_device: string;
+    openvino_ovms_path: string | null;
     hf_configured: boolean;
     hf_token_masked: string | null;
     openai_configured: boolean;
@@ -49,6 +50,8 @@ interface ProviderInfo {
     label: string;
     description: string;
     device: string;
+    npu_recommended?: string;
+    serving_note?: string;
   }>;
   openvino_embedding_models: Array<{
     alias: string;
@@ -56,17 +59,48 @@ interface ProviderInfo {
     description: string;
     device: string;
     dimension: string;
+    npu_recommended?: string;
+    serving_note?: string;
   }>;
+}
+
+interface HardwareStatus {
+  platform: string;
+  cpu: { logical_cores: number; usage_percent: number | null };
+  memory: { total_gb: number | null; available_gb: number | null; used_percent: number | null };
+  gpu: { controllers: Array<{ Name?: string; AdapterRAM?: number; DriverVersion?: string }>; usage_percent: number | null };
+  npu: { controllers: Array<{ FriendlyName?: string; Status?: string; Class?: string }> };
+  local_ai_processes: Array<{ ProcessName: string; Id: number; WorkingSetMB: number }>;
+  notes: string[];
+}
+
+interface HardwareEnvelope {
+  status: "cached" | "stale";
+  message?: string;
+  result: HardwareStatus | null;
 }
 
 export default function ConfigPage() {
   const [config, setConfig] = useState<ConfigResponse | null>(null);
   const [providerInfo, setProviderInfo] = useState<ProviderInfo | null>(null);
+  const [providerLoading, setProviderLoading] = useState(true);
+  const [hardwareStatus, setHardwareStatus] = useState<HardwareStatus | null>(null);
+  const [hardwareError, setHardwareError] = useState<string | null>(null);
+  const [hardwareJobId, setHardwareJobId] = useState<string | null>(null);
+  const [hardwareJobStatus, setHardwareJobStatus] = useState<string | null>(null);
+  const [hardwareJobMessage, setHardwareJobMessage] = useState<string | null>(null);
+  const [hardwareJobPercent, setHardwareJobPercent] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [switching, setSwitching] = useState(false);
   const [switchMessage, setSwitchMessage] = useState<string | null>(null);
   const [switchWarnings, setSwitchWarnings] = useState<string[]>([]);
+  const [switchJobId, setSwitchJobId] = useState<string | null>(null);
+  const [switchJobStatus, setSwitchJobStatus] = useState<string | null>(null);
+  const [switchJobMessage, setSwitchJobMessage] = useState<string | null>(null);
+  const [switchJobPercent, setSwitchJobPercent] = useState(0);
+  const [pendingModelProvider, setPendingModelProvider] = useState<string | null>(null);
+  const [pendingEmbeddingProvider, setPendingEmbeddingProvider] = useState<string | null>(null);
   const [openaiKey, setOpenaiKey] = useState("");
   const [showKeyInput, setShowKeyInput] = useState(false);
   // OpenAI settings management
@@ -81,6 +115,10 @@ export default function ConfigPage() {
   const [foundryModelMessage, setFoundryModelMessage] = useState<string | null>(null);
   const [foundryModelError, setFoundryModelError] = useState<string | null>(null);
   const [foundrySteps, setFoundrySteps] = useState<Array<{ step: string; status: string; message: string }>>([]);
+  const [foundryModelJobId, setFoundryModelJobId] = useState<string | null>(null);
+  const [foundryModelJobStatus, setFoundryModelJobStatus] = useState<string | null>(null);
+  const [foundryModelJobMessage, setFoundryModelJobMessage] = useState<string | null>(null);
+  const [foundryModelJobPercent, setFoundryModelJobPercent] = useState(0);
   const [downloadingModel, setDownloadingModel] = useState(false);
   const [downloadJobId, setDownloadJobId] = useState<string | null>(null);
   const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
@@ -90,6 +128,9 @@ export default function ConfigPage() {
   const [foundryInstalled, setFoundryInstalled] = useState<boolean | null>(null);
   const [foundryServiceRunning, setFoundryServiceRunning] = useState<boolean>(false);
   const [installingFoundry, setInstallingFoundry] = useState(false);
+  const [installJobId, setInstallJobId] = useState<string | null>(null);
+  const [installJobStatus, setInstallJobStatus] = useState<string | null>(null);
+  const [installJobPercent, setInstallJobPercent] = useState(0);
   const [installMessage, setInstallMessage] = useState<string | null>(null);
   const [installError, setInstallError] = useState<string | null>(null);
   const [installInstructions, setInstallInstructions] = useState<string | null>(null);
@@ -105,40 +146,114 @@ export default function ConfigPage() {
   const [openvinoModel, setOpenvinoModel] = useState("");
   const [openvinoEmbeddingModel, setOpenvinoEmbeddingModel] = useState("");
   const [openvinoDevice, setOpenvinoDevice] = useState("NPU");
+  const [openvinoOvmsPath, setOpenvinoOvmsPath] = useState("");
   const [hfToken, setHfToken] = useState("");
   const [savingOpenVINO, setSavingOpenVINO] = useState(false);
   const [openvinoMessage, setOpenvinoMessage] = useState<string | null>(null);
   const [openvinoError, setOpenvinoError] = useState<string | null>(null);
   const [openvinoRunning, setOpenvinoRunning] = useState<boolean | null>(null);
   const [openvinoModelCacheDir, setOpenvinoModelCacheDir] = useState<string>("");
-  const [openvinoDockerModelsVolume, setOpenvinoDockerModelsVolume] = useState<string>("");
-  const [openvinoDockerCacheVolume, setOpenvinoDockerCacheVolume] = useState<string>("");
+  const [openvinoModelCached, setOpenvinoModelCached] = useState(false);
+  const [openvinoEmbeddingModelCached, setOpenvinoEmbeddingModelCached] = useState(false);
+  const [openvinoModelRepositoryPath, setOpenvinoModelRepositoryPath] = useState<string>("");
+  const [openvinoEmbeddingModelRepositoryPath, setOpenvinoEmbeddingModelRepositoryPath] = useState<string>("");
+  const [openvinoServedModel, setOpenvinoServedModel] = useState<string | null>(null);
+  const [openvinoServedModelMatchesSelection, setOpenvinoServedModelMatchesSelection] = useState(false);
+  const [openvinoRuntimeMode, setOpenvinoRuntimeMode] = useState<string>("native-windows");
+  const [openvinoSetupScript, setOpenvinoSetupScript] = useState<string>("scripts/setup-ovms.ps1");
+  const [openvinoLatestRelease, setOpenvinoLatestRelease] = useState<string>("2026.2.1");
+  const [openvinoWindowsDownloadUrl, setOpenvinoWindowsDownloadUrl] = useState<string>("");
+  const [openvinoWindowsChecksumUrl, setOpenvinoWindowsChecksumUrl] = useState<string>("");
+  const [openvinoBaremetalDocsUrl, setOpenvinoBaremetalDocsUrl] = useState<string>("");
   const [startingOpenVINO, setStartingOpenVINO] = useState(false);
+  const [openvinoStartJobId, setOpenvinoStartJobId] = useState<string | null>(null);
+  const [openvinoStartStatus, setOpenvinoStartStatus] = useState<string | null>(null);
+  const [openvinoStartMessage, setOpenvinoStartMessage] = useState<string | null>(null);
+  const [openvinoStartPercent, setOpenvinoStartPercent] = useState(0);
+  const [openvinoStartOutput, setOpenvinoStartOutput] = useState<string[]>([]);
   const [stoppingOpenVINO, setStoppingOpenVINO] = useState(false);
+  const [openvinoStopJobId, setOpenvinoStopJobId] = useState<string | null>(null);
+  const [openvinoStopStatus, setOpenvinoStopStatus] = useState<string | null>(null);
+  const [openvinoStopMessage, setOpenvinoStopMessage] = useState<string | null>(null);
+  const [openvinoStopPercent, setOpenvinoStopPercent] = useState(0);
   const [downloadingOpenVINO, setDownloadingOpenVINO] = useState(false);
   const [openvinoDownloadJobId, setOpenvinoDownloadJobId] = useState<string | null>(null);
   const [openvinoDownloadMessage, setOpenvinoDownloadMessage] = useState<string | null>(null);
+  const readinessStartedRef = useRef<Record<string, boolean>>({});
 
   const fetchAll = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError(null);
+    setProviderLoading(true);
     try {
-      const [configRes, providerRes] = await Promise.all([
-        apiGet<ConfigResponse>("/config"),
-        apiGet<ProviderInfo>("/provider"),
-      ]);
+      const configRes = await apiGet<ConfigResponse>("/config");
       setConfig(configRes);
+      if (!silent) setLoading(false);
+      const providerRes = await apiGet<ProviderInfo>("/provider");
       setProviderInfo(providerRes);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load config");
     } finally {
+      setProviderLoading(false);
       if (!silent) setLoading(false);
+    }
+  }, []);
+
+  const handleCheckHardwareStatus = useCallback(async () => {
+    try {
+      const cached = await apiGet<HardwareEnvelope>("/health/hardware");
+      if (cached.result) setHardwareStatus(cached.result);
+      const job = await apiPost<{ job_id: string; status: string; message: string; percent: number }>("/health/hardware/refresh", {});
+      setHardwareJobId(job.job_id);
+      setHardwareJobStatus(job.status);
+      setHardwareJobMessage(job.message);
+      setHardwareJobPercent(job.percent || 0);
+      setHardwareError(null);
+    } catch (err) {
+      setHardwareError(err instanceof Error ? err.message : "Failed to load hardware telemetry");
     }
   }, []);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  useEffect(() => {
+    if (config) handleCheckHardwareStatus();
+  }, [config, handleCheckHardwareStatus]);
+
+  useEffect(() => {
+    if (!hardwareJobId) return;
+    const interval = window.setInterval(async () => {
+      try {
+        const job = await apiGet<{ status: string; message: string; percent: number; result?: HardwareStatus }>(`/health/hardware/job/${hardwareJobId}`);
+        setHardwareJobStatus(job.status);
+        setHardwareJobMessage(job.message);
+        setHardwareJobPercent(job.percent || 0);
+        if (job.status === "complete") {
+          if (job.result) setHardwareStatus(job.result);
+          window.clearInterval(interval);
+        }
+        if (job.status === "error") {
+          setHardwareError(job.message || "Hardware telemetry failed");
+          window.clearInterval(interval);
+        }
+      } catch (err) {
+        setHardwareError(err instanceof Error ? err.message : "Failed to poll hardware telemetry");
+        window.clearInterval(interval);
+      }
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [hardwareJobId]);
+
+  useEffect(() => {
+    if (!config) return;
+    setPendingModelProvider(null);
+    setPendingEmbeddingProvider(null);
+  }, [config?.model_provider, config?.embedding_provider]);
+
+  const effectiveModelProvider = pendingModelProvider ?? config?.model_provider;
+  const effectiveEmbeddingProvider = pendingEmbeddingProvider ?? config?.embedding_provider;
 
   const handleSwitchProvider = async (
     type: "model" | "embedding",
@@ -156,16 +271,23 @@ export default function ConfigPage() {
     setSwitching(true);
     setSwitchMessage(null);
     setSwitchWarnings([]);
+    setSwitchJobId(null);
+    setSwitchJobStatus(null);
+    setSwitchJobMessage(null);
+    setSwitchJobPercent(0);
     setError(null);
+    if (type === "model") setPendingModelProvider(provider);
+    if (type === "embedding") setPendingEmbeddingProvider(provider);
 
-    // Show a specific message when switching to Foundry Local (may take a few seconds to auto-start)
+    // Show a specific message when switching to Microsoft Foundry Local (may take a few seconds to auto-start)
     if (provider === "microsoft-foundry-local") {
-      setSwitchMessage("Switching to Foundry Local — starting service if needed, this may take a few seconds...");
+      setSwitchMessage("Switching to Microsoft Foundry Local — starting service if needed, this may take a few seconds...");
     }
     if (provider === "openvino") {
       setSwitchMessage("Switching to OpenVINO Model Server. Start OVMS locally before running text generation or embeddings.");
     }
 
+    let keepSwitchingForJob = false;
     try {
       const body: Record<string, unknown> = {};
       if (type === "model") body.model_provider = provider;
@@ -173,19 +295,40 @@ export default function ConfigPage() {
       if (openaiKey.trim()) body.openai_api_key = openaiKey.trim();
 
       const result = await apiPost<{
+        job_id: string;
+        status: string;
         success: boolean;
         message: string;
+        percent?: number;
         warnings: string[];
         foundry_auto_started: boolean;
-      }>("/provider/switch", body);
+        result?: {
+          success: boolean;
+          message: string;
+          warnings: string[];
+          foundry_auto_started: boolean;
+        };
+      }>("/provider/switch-job", body);
 
-      // Build a message that includes Foundry Local auto-start info
-      let msg = result.message;
-      if (result.foundry_auto_started) {
-        msg += " Foundry Local service was auto-started.";
+      setSwitchJobId(result.job_id || null);
+      setSwitchJobStatus(result.status || null);
+      setSwitchJobMessage(result.message || null);
+      setSwitchJobPercent(result.percent || 0);
+
+      if (result.status !== "complete") {
+        keepSwitchingForJob = true;
+        return;
+      }
+
+      const switchResult = result.result || result;
+
+      // Build a message that includes Microsoft Foundry Local auto-start info
+      let msg = switchResult.message;
+      if (switchResult.foundry_auto_started) {
+        msg += " Microsoft Foundry Local service was auto-started.";
       }
       setSwitchMessage(msg);
-      setSwitchWarnings(result.warnings || []);
+      setSwitchWarnings(switchResult.warnings || []);
       setOpenaiKey("");
       setShowKeyInput(false);
       await fetchAll(true);
@@ -202,10 +345,63 @@ export default function ConfigPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to switch provider");
+      if (type === "model") setPendingModelProvider(null);
+      if (type === "embedding") setPendingEmbeddingProvider(null);
     } finally {
-      setSwitching(false);
+      if (!keepSwitchingForJob) setSwitching(false);
     }
   };
+
+  useEffect(() => {
+    if (!switchJobId || switchJobId === "synchronous" || !switching) return;
+    const interval = window.setInterval(async () => {
+      try {
+        const job = await apiGet<{
+          status: string;
+          message: string;
+          percent: number;
+          warnings?: string[];
+          foundry_auto_started?: boolean;
+          result?: {
+            message: string;
+            warnings: string[];
+            foundry_auto_started: boolean;
+          };
+        }>(`/provider/switch-job/${switchJobId}`);
+        setSwitchJobStatus(job.status);
+        setSwitchJobMessage(job.message);
+        setSwitchJobPercent(job.percent || 0);
+        if (job.status === "complete") {
+          const switchResult = job.result || job;
+          let msg = switchResult.message || job.message;
+          if (switchResult.foundry_auto_started) msg += " Microsoft Foundry Local service was auto-started.";
+          setSwitchMessage(msg);
+          setSwitchWarnings(switchResult.warnings || []);
+          setOpenaiKey("");
+          setShowKeyInput(false);
+          await fetchAll(true);
+          handleCheckFoundryStatus();
+          setTimeout(() => handleCheckFoundryStatus(), 5000);
+          setSwitching(false);
+          window.clearInterval(interval);
+        }
+        if (job.status === "error") {
+          setError(job.message || "Provider switch failed");
+          setPendingModelProvider(null);
+          setPendingEmbeddingProvider(null);
+          setSwitching(false);
+          window.clearInterval(interval);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch provider switch status");
+        setPendingModelProvider(null);
+        setPendingEmbeddingProvider(null);
+        setSwitching(false);
+        window.clearInterval(interval);
+      }
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [switchJobId, switching, fetchAll]);
 
   const handleSaveOpenAISettings = async () => {
     setSavingOpenAI(true);
@@ -221,7 +417,7 @@ export default function ConfigPage() {
         return;
       }
 
-      const result = await apiPut<{
+      const result = await apiPost<{
         success: boolean;
         message: string;
         openai_configured: boolean;
@@ -263,41 +459,40 @@ export default function ConfigPage() {
 
   const handleSaveFoundryModel = async () => {
     setSavingFoundryModel(true);
+    setFoundryModelJobId(null);
+    setFoundryModelJobStatus("queued");
+    setFoundryModelJobMessage("Queueing Microsoft Foundry Local model update...");
+    setFoundryModelJobPercent(0);
     setFoundryModelMessage(null);
     setFoundryModelError(null);
     setFoundrySteps([]);
     try {
-      const result = await apiPut<{
+      const result = await apiPost<{
+        job_id: string;
+        status: string;
+        percent: number;
         success: boolean;
         message: string;
-        local_model_name: string;
-        warning: string | null;
         warnings: string[];
         steps: Array<{ step: string; status: string; message: string }>;
-        service_running: boolean;
-        model_downloaded: boolean;
-      }>("/provider/foundry-model", { local_model_name: foundryModel.trim() });
-
-      setFoundryModelMessage(result.message);
+      }>("/provider/foundry-model/job", { local_model_name: foundryModel.trim() });
+      setFoundryModelJobId(result.job_id || null);
+      setFoundryModelJobStatus(result.status);
+      setFoundryModelJobMessage(result.message);
+      setFoundryModelJobPercent(result.percent || 0);
       setFoundrySteps(result.steps || []);
-      if (result.warnings && result.warnings.length > 0) {
-        setFoundryModelError(result.warnings.join(" "));
-      } else if (result.warning) {
-        setFoundryModelError(result.warning);
-      }
-      setFoundryModel("");
-      await fetchAll(true);
     } catch (err) {
-      setFoundryModelError(err instanceof Error ? err.message : "Failed to update Foundry Local model");
-    } finally {
+      setFoundryModelError(err instanceof Error ? err.message : "Failed to update Microsoft Foundry Local model");
       setSavingFoundryModel(false);
+    } finally {
+      // Completion is handled by polling when a queued job is returned.
     }
   };
 
   const handleDownloadFoundryModel = async () => {
     const model = foundryModel.trim();
     if (!model) {
-      setFoundryModelError("Select a verified Foundry Local model alias to download.");
+      setFoundryModelError("Select a verified Microsoft Foundry Local model alias to download.");
       return;
     }
 
@@ -403,7 +598,7 @@ export default function ConfigPage() {
     setCacheDirMessage(null);
     setCacheDirError(null);
     try {
-      const result = await apiPut<{
+      const result = await apiPost<{
         success: boolean;
         message: string;
         cache_dir: string;
@@ -420,34 +615,69 @@ export default function ConfigPage() {
 
   const handleInstallFoundry = async () => {
     setInstallingFoundry(true);
+    setInstallJobId(null);
+    setInstallJobStatus("queued");
+    setInstallJobPercent(0);
     setInstallMessage(null);
     setInstallError(null);
     try {
       const result = await apiPost<{
+        job_id: string;
+        status: string;
+        percent: number;
         success: boolean;
         message: string;
         output: string;
         installed: boolean;
       }>("/provider/foundry-install", {});
-      if (result.success) {
-        setInstallMessage(result.message);
-        setFoundryInstalled(true);
-      } else {
-        setInstallError(result.message);
-      }
+      setInstallJobId(result.job_id || null);
+      setInstallJobStatus(result.status);
+      setInstallJobPercent(result.percent || 0);
+      setInstallMessage(result.message);
+      if (result.status === "complete") setFoundryInstalled(Boolean(result.installed));
+      if (result.status === "error") setInstallError(result.message);
     } catch (err) {
-      setInstallError(err instanceof Error ? err.message : "Failed to install Foundry Local");
-    } finally {
+      setInstallError(err instanceof Error ? err.message : "Failed to install Microsoft Foundry Local");
       setInstallingFoundry(false);
+    } finally {
+      // Completion is handled by polling when a queued job is returned.
     }
   };
+
+  useEffect(() => {
+    if (!installJobId || !installingFoundry) return;
+    const interval = window.setInterval(async () => {
+      try {
+        const result = await apiGet<{ status: string; percent: number; message: string; installed: boolean; output?: string }>(`/provider/foundry-install/${installJobId}`);
+        setInstallJobStatus(result.status);
+        setInstallJobPercent(result.percent || 0);
+        setInstallMessage(result.message);
+        if (result.status === "complete") {
+          setFoundryInstalled(Boolean(result.installed));
+          setInstallingFoundry(false);
+          await handleCheckFoundryStatus();
+          window.clearInterval(interval);
+        }
+        if (result.status === "error") {
+          setInstallError(`${result.message}${result.output ? ` Details: ${result.output}` : ""}`);
+          setInstallingFoundry(false);
+          window.clearInterval(interval);
+        }
+      } catch (err) {
+        setInstallError(err instanceof Error ? err.message : "Failed to poll Microsoft Foundry Local install status");
+        setInstallingFoundry(false);
+        window.clearInterval(interval);
+      }
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [installJobId, installingFoundry, handleCheckFoundryStatus]);
 
   const handleResetCacheDir = async () => {
     setSavingCacheDir(true);
     setCacheDirMessage(null);
     setCacheDirError(null);
     try {
-      const result = await apiPut<{
+      const result = await apiPost<{
         success: boolean;
         message: string;
         cache_dir: string;
@@ -463,38 +693,149 @@ export default function ConfigPage() {
   };
 
   const [startingService, setStartingService] = useState(false);
+  const [stoppingFoundryService, setStoppingFoundryService] = useState(false);
+  const [foundryStopJobId, setFoundryStopJobId] = useState<string | null>(null);
+  const [foundryStopStatus, setFoundryStopStatus] = useState<string | null>(null);
+  const [foundryStopPercent, setFoundryStopPercent] = useState(0);
   const [startServiceMessage, setStartServiceMessage] = useState<string | null>(null);
   const [startServiceError, setStartServiceError] = useState<string | null>(null);
 
   const handleStartFoundryService = async () => {
     setStartingService(true);
+    setFoundryModelJobId(null);
+    setFoundryModelJobStatus("queued");
+    setFoundryModelJobMessage("Queueing Microsoft Foundry Local readiness...");
+    setFoundryModelJobPercent(0);
+    setFoundrySteps([]);
     setStartServiceMessage(null);
     setStartServiceError(null);
     try {
       // Use the foundry-model endpoint with the current model name to trigger service start
-      const currentModel = providerInfo?.current.local_model_name || "qwen2.5-0.5b";
-      const result = await apiPut<{
+      const configuredModel = providerInfo?.current.local_model_name || "phi-4-mini";
+      const currentModel = configuredModel.startsWith("OpenVINO/") ? "phi-4-mini" : configuredModel;
+      const result = await apiPost<{
+        job_id: string;
+        status: string;
+        percent: number;
         success: boolean;
         message: string;
         warnings: string[];
         steps: Array<{ step: string; status: string; message: string }>;
         service_running: boolean;
-      }>("/provider/foundry-model", { local_model_name: currentModel });
-      if (result.service_running) {
-        setStartServiceMessage("Foundry Local service started successfully.");
-        setFoundryServiceRunning(true);
-      } else if (result.warnings && result.warnings.length > 0) {
-        setStartServiceError(result.warnings.join(" "));
-      } else {
-        setStartServiceError("Service start may still be initializing. Please wait a moment and refresh.");
-      }
-      await fetchAll(true);
+      }>("/provider/foundry-model/job", { local_model_name: currentModel });
+      setFoundryModelJobId(result.job_id || null);
+      setFoundryModelJobStatus(result.status);
+      setFoundryModelJobMessage(result.message);
+      setFoundryModelJobPercent(result.percent || 0);
+      setFoundrySteps(result.steps || []);
     } catch (err) {
-      setStartServiceError(err instanceof Error ? err.message : "Failed to start Foundry Local service");
-    } finally {
+      setStartServiceError(err instanceof Error ? err.message : "Failed to start Microsoft Foundry Local service");
       setStartingService(false);
     }
   };
+
+  useEffect(() => {
+    if (!foundryModelJobId || (!startingService && !savingFoundryModel)) return;
+    const interval = window.setInterval(async () => {
+      try {
+        const result = await apiGet<{
+          status: string;
+          message: string;
+          percent: number;
+          steps?: Array<{ step: string; status: string; message: string }>;
+          warnings?: string[];
+          service_running?: boolean;
+          result?: {
+            message: string;
+            warnings: string[];
+            steps: Array<{ step: string; status: string; message: string }>;
+            service_running: boolean;
+          };
+        }>(`/provider/foundry-model/job/${foundryModelJobId}`);
+        const payload = result.result || result;
+        setFoundryModelJobStatus(result.status);
+        setFoundryModelJobMessage(result.message);
+        setFoundryModelJobPercent(result.percent || 0);
+        setFoundrySteps(payload.steps || []);
+        if (result.status === "complete") {
+          setStartServiceMessage(payload.message || result.message);
+          setFoundryModelMessage(payload.message || result.message);
+          setFoundryServiceRunning(Boolean(payload.service_running));
+          if (payload.warnings?.length) setStartServiceError(payload.warnings.join(" "));
+          setStartingService(false);
+          setSavingFoundryModel(false);
+          await fetchAll(true);
+          window.clearInterval(interval);
+        }
+        if (result.status === "error") {
+          setStartServiceError(result.message || "Microsoft Foundry Local readiness failed");
+          setFoundryModelError(result.message || "Microsoft Foundry Local readiness failed");
+          setStartingService(false);
+          setSavingFoundryModel(false);
+          window.clearInterval(interval);
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to poll Microsoft Foundry Local readiness";
+        setStartServiceError(message);
+        setFoundryModelError(message);
+        setStartingService(false);
+        setSavingFoundryModel(false);
+        window.clearInterval(interval);
+      }
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [foundryModelJobId, startingService, savingFoundryModel, fetchAll]);
+
+  const handleStopFoundryService = async () => {
+    setStoppingFoundryService(true);
+    setFoundryStopJobId(null);
+    setFoundryStopStatus("queued");
+    setFoundryStopPercent(0);
+    setStartServiceMessage(null);
+    setStartServiceError(null);
+    try {
+      const result = await apiPost<{ job_id: string; status: string; stopped: boolean; message: string; percent: number }>('/provider/foundry-stop', {});
+      setFoundryStopJobId(result.job_id || null);
+      setFoundryStopStatus(result.status);
+      setFoundryStopPercent(result.percent || 0);
+      setStartServiceMessage(result.message);
+      if (result.status === "complete" && result.stopped) {
+        setFoundryServiceRunning(false);
+        setStoppingFoundryService(false);
+      }
+    } finally {
+      // Completion is handled by polling when a queued job is returned.
+    }
+  };
+
+  useEffect(() => {
+    if (!foundryStopJobId || !stoppingFoundryService) return;
+    const interval = window.setInterval(async () => {
+      try {
+        const result = await apiGet<{ status: string; stopped: boolean; message: string; percent: number; output?: string }>(`/provider/foundry-stop/${foundryStopJobId}`);
+        setFoundryStopStatus(result.status);
+        setFoundryStopPercent(result.percent || 0);
+        setStartServiceMessage(result.message);
+        if (result.status === "complete") {
+          setFoundryServiceRunning(!result.stopped);
+          setStoppingFoundryService(false);
+          await handleCheckFoundryStatus();
+          window.clearInterval(interval);
+        }
+        if (result.status === "error") {
+          setStartServiceError(`${result.message}${result.output ? ` Details: ${result.output}` : ""}`);
+          setStoppingFoundryService(false);
+          await handleCheckFoundryStatus();
+          window.clearInterval(interval);
+        }
+      } catch (err) {
+        setStartServiceError(err instanceof Error ? err.message : 'Failed to poll Microsoft Foundry Local stop status');
+        setStoppingFoundryService(false);
+        window.clearInterval(interval);
+      }
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [foundryStopJobId, stoppingFoundryService, handleCheckFoundryStatus]);
 
   const handleCheckOpenVINOStatus = useCallback(async () => {
     try {
@@ -506,8 +847,19 @@ export default function ConfigPage() {
         device: string;
         hf_configured: boolean;
         model_cache_dir: string;
-        docker_models_volume: string;
-        docker_cache_volume: string;
+        model_repository_path: string;
+        embedding_model_repository_path: string;
+        model_cached: boolean;
+        embedding_model_cached: boolean;
+        served_model: string | null;
+        served_model_matches_selection: boolean;
+        runtime_mode: string;
+        setup_script: string;
+        ovms_path: string | null;
+        latest_release: string;
+        windows_download_url: string;
+        windows_checksum_url: string;
+        baremetal_docs_url: string;
       }>("/provider/openvino-status");
       setOpenvinoRunning(result.service_running);
       setOpenvinoEndpoint(result.endpoint || "http://localhost:8100");
@@ -515,8 +867,19 @@ export default function ConfigPage() {
       setOpenvinoEmbeddingModel(result.embedding_model || "OpenVINO/Qwen3-Embedding-0.6B");
       setOpenvinoDevice(result.device || "NPU");
       setOpenvinoModelCacheDir(result.model_cache_dir || "");
-      setOpenvinoDockerModelsVolume(result.docker_models_volume || "");
-      setOpenvinoDockerCacheVolume(result.docker_cache_volume || "");
+      setOpenvinoModelRepositoryPath(result.model_repository_path || "");
+      setOpenvinoEmbeddingModelRepositoryPath(result.embedding_model_repository_path || "");
+      setOpenvinoModelCached(Boolean(result.model_cached));
+      setOpenvinoEmbeddingModelCached(Boolean(result.embedding_model_cached));
+      setOpenvinoServedModel(result.served_model || null);
+      setOpenvinoServedModelMatchesSelection(Boolean(result.served_model_matches_selection));
+      setOpenvinoRuntimeMode(result.runtime_mode || "native-windows");
+      setOpenvinoSetupScript(result.setup_script || "scripts/setup-ovms.ps1");
+      setOpenvinoOvmsPath(result.ovms_path || "");
+      setOpenvinoLatestRelease(result.latest_release || "2026.2.1");
+      setOpenvinoWindowsDownloadUrl(result.windows_download_url || "");
+      setOpenvinoWindowsChecksumUrl(result.windows_checksum_url || "");
+      setOpenvinoBaremetalDocsUrl(result.baremetal_docs_url || "");
     } catch (err) {
       setOpenvinoRunning(false);
       setOpenvinoError(err instanceof Error ? err.message : "Failed to check OpenVINO status");
@@ -533,10 +896,12 @@ export default function ConfigPage() {
         model: openvinoModel.trim() || providerInfo?.current.openvino_model || "OpenVINO/Qwen3-8B-int4-cw-ov",
         embedding_model: openvinoEmbeddingModel.trim() || providerInfo?.current.openvino_embedding_model || "OpenVINO/Qwen3-Embedding-0.6B",
         device: openvinoDevice,
+        ovms_path: openvinoOvmsPath.trim(),
       };
       if (hfToken.trim()) body.hf_token = hfToken.trim();
-      const result = await apiPut<{ success: boolean; message: string }>("/provider/openvino-settings", body);
+      const result = await apiPut<{ success: boolean; message: string; ovms_path?: string | null }>("/provider/openvino-settings", body);
       setOpenvinoMessage(result.message);
+      setOpenvinoOvmsPath(result.ovms_path || "");
       setHfToken("");
       await fetchAll(true);
       await handleCheckOpenVINOStatus();
@@ -563,43 +928,130 @@ export default function ConfigPage() {
 
   const handleStartOpenVINOService = async () => {
     setStartingOpenVINO(true);
+    setOpenvinoStartJobId(null);
+    setOpenvinoStartStatus("queued");
+    setOpenvinoStartMessage("Queueing native OVMS start...");
+    setOpenvinoStartPercent(0);
+    setOpenvinoStartOutput([]);
     setOpenvinoMessage(null);
     setOpenvinoError(null);
     try {
-      const result = await apiPost<{ success: boolean; started: boolean; message: string; output: string }>("/provider/openvino-start", {});
-      if (result.started) {
+      const result = await apiPost<{
+        job_id: string;
+        status: string;
+        message: string;
+        percent: number;
+        output: string[];
+        started?: boolean;
+      }>("/provider/openvino-start", {});
+      setOpenvinoStartJobId(result.job_id);
+      setOpenvinoStartStatus(result.status);
+      setOpenvinoStartMessage(result.message);
+      setOpenvinoStartPercent(result.percent || 0);
+      setOpenvinoStartOutput(result.output || []);
+      if (result.status === "complete" || result.started) {
         setOpenvinoMessage(result.message);
         setOpenvinoRunning(true);
-      } else {
-        setOpenvinoError(`${result.message}${result.output ? ` Details: ${result.output}` : ""}`);
-        await handleCheckOpenVINOStatus();
+        setStartingOpenVINO(false);
       }
     } catch (err) {
       setOpenvinoError(err instanceof Error ? err.message : "Failed to start OpenVINO Model Server");
-    } finally {
       setStartingOpenVINO(false);
     }
   };
 
+  useEffect(() => {
+    if (!openvinoStartJobId || !startingOpenVINO) return;
+    const interval = window.setInterval(async () => {
+      try {
+        const result = await apiGet<{
+          status: string;
+          message: string;
+          percent: number;
+          output: string[];
+          error_tail?: string;
+          started?: boolean;
+        }>(`/provider/openvino-start/${openvinoStartJobId}`);
+        setOpenvinoStartStatus(result.status);
+        setOpenvinoStartMessage(result.message);
+        setOpenvinoStartPercent(result.percent || 0);
+        setOpenvinoStartOutput(result.output || []);
+        if (result.status === "complete") {
+          setOpenvinoMessage(result.message);
+          setOpenvinoRunning(Boolean(result.started));
+          setStartingOpenVINO(false);
+          await handleCheckOpenVINOStatus();
+          window.clearInterval(interval);
+        }
+        if (result.status === "error") {
+          setOpenvinoError(`${result.message}${result.error_tail ? `\n\n${result.error_tail}` : ""}`);
+          setStartingOpenVINO(false);
+          await handleCheckOpenVINOStatus();
+          window.clearInterval(interval);
+        }
+      } catch (err) {
+        setOpenvinoError(err instanceof Error ? err.message : "Failed to fetch OVMS start status");
+        setStartingOpenVINO(false);
+        window.clearInterval(interval);
+      }
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [openvinoStartJobId, startingOpenVINO, handleCheckOpenVINOStatus]);
+
   const handleStopOpenVINOService = async () => {
     setStoppingOpenVINO(true);
+    setOpenvinoStopJobId(null);
+    setOpenvinoStopStatus("queued");
+    setOpenvinoStopMessage("Queueing native OVMS stop...");
+    setOpenvinoStopPercent(0);
     setOpenvinoMessage(null);
     setOpenvinoError(null);
     try {
-      const result = await apiPost<{ success: boolean; stopped: boolean; message: string; output: string }>("/provider/openvino-stop", {});
-      if (result.stopped) {
+      const result = await apiPost<{ job_id: string; status: string; stopped: boolean; message: string; percent: number; output?: string }>("/provider/openvino-stop", {});
+      setOpenvinoStopJobId(result.job_id || null);
+      setOpenvinoStopStatus(result.status);
+      setOpenvinoStopMessage(result.message);
+      setOpenvinoStopPercent(result.percent || 0);
+      if (result.status === "complete" && result.stopped) {
         setOpenvinoMessage(result.message);
         setOpenvinoRunning(false);
-      } else {
-        setOpenvinoError(`${result.message}${result.output ? ` Details: ${result.output}` : ""}`);
-        await handleCheckOpenVINOStatus();
+        setStoppingOpenVINO(false);
       }
     } catch (err) {
       setOpenvinoError(err instanceof Error ? err.message : "Failed to stop OpenVINO Model Server");
-    } finally {
       setStoppingOpenVINO(false);
     }
   };
+
+  useEffect(() => {
+    if (!openvinoStopJobId || !stoppingOpenVINO) return;
+    const interval = window.setInterval(async () => {
+      try {
+        const result = await apiGet<{ status: string; stopped: boolean; message: string; percent: number; output?: string }>(`/provider/openvino-stop/${openvinoStopJobId}`);
+        setOpenvinoStopStatus(result.status);
+        setOpenvinoStopMessage(result.message);
+        setOpenvinoStopPercent(result.percent || 0);
+        if (result.status === "complete") {
+          setOpenvinoMessage(result.message);
+          setOpenvinoRunning(!result.stopped);
+          setStoppingOpenVINO(false);
+          await handleCheckOpenVINOStatus();
+          window.clearInterval(interval);
+        }
+        if (result.status === "error") {
+          setOpenvinoError(`${result.message}${result.output ? ` Details: ${result.output}` : ""}`);
+          setStoppingOpenVINO(false);
+          await handleCheckOpenVINOStatus();
+          window.clearInterval(interval);
+        }
+      } catch (err) {
+        setOpenvinoError(err instanceof Error ? err.message : "Failed to poll OVMS stop status");
+        setStoppingOpenVINO(false);
+        window.clearInterval(interval);
+      }
+    }, 1500);
+    return () => window.clearInterval(interval);
+  }, [openvinoStopJobId, stoppingOpenVINO, handleCheckOpenVINOStatus]);
 
   useEffect(() => {
     if (!openvinoDownloadJobId || !downloadingOpenVINO) return;
@@ -626,18 +1078,60 @@ export default function ConfigPage() {
     return () => window.clearInterval(interval);
   }, [openvinoDownloadJobId, downloadingOpenVINO]);
 
-  // Check Foundry Local installation status when microsoft-foundry-local is active
+  // Check local runtime status. These are lightweight health checks and support
+  // local-runtime contention warnings even when a runtime is not the active provider.
   useEffect(() => {
-    if (config?.model_provider === "microsoft-foundry-local") {
-      handleCheckFoundryStatus();
-    }
-  }, [config?.model_provider, handleCheckFoundryStatus]);
+    handleCheckFoundryStatus();
+  }, [handleCheckFoundryStatus]);
 
   useEffect(() => {
-    if (config?.model_provider === "openvino" || config?.embedding_provider === "openvino") {
-      handleCheckOpenVINOStatus();
+    handleCheckOpenVINOStatus();
+  }, [handleCheckOpenVINOStatus]);
+
+  useEffect(() => {
+    if (!providerInfo) return;
+
+    const modelProvider = providerInfo.current.model_provider;
+    const embeddingProvider = providerInfo.current.embedding_provider;
+    const needsFoundry =
+      modelProvider === "microsoft-foundry-local" ||
+      embeddingProvider === "microsoft-foundry-local";
+    const needsOpenVINO = modelProvider === "openvino" || embeddingProvider === "openvino";
+
+    if (
+      needsFoundry &&
+      foundryInstalled === true &&
+      !foundryServiceRunning &&
+      !startingService &&
+      !readinessStartedRef.current.foundry
+    ) {
+      readinessStartedRef.current.foundry = true;
+      void handleStartFoundryService();
+      setStartServiceMessage(
+        "Active provider settings require Microsoft Foundry Local. Starting service and loading configured model(s)..."
+      );
     }
-  }, [config?.model_provider, config?.embedding_provider, handleCheckOpenVINOStatus]);
+
+    if (
+      needsOpenVINO &&
+      openvinoRunning === false &&
+      !startingOpenVINO &&
+      !readinessStartedRef.current.openvino
+    ) {
+      readinessStartedRef.current.openvino = true;
+      void handleStartOpenVINOService();
+      setOpenvinoStartMessage(
+        "Active provider settings require OpenVINO. Starting OVMS and loading the configured model..."
+      );
+    }
+  }, [
+    providerInfo,
+    foundryInstalled,
+    foundryServiceRunning,
+    startingService,
+    openvinoRunning,
+    startingOpenVINO,
+  ]);
 
   if (loading)
     return (
@@ -653,7 +1147,7 @@ export default function ConfigPage() {
       </div>
     );
 
-  if (!config || !providerInfo) return null;
+  if (!config) return null;
 
   const categories = Object.entries(config.categories).sort(([a], [b]) =>
     a.localeCompare(b)
@@ -688,9 +1182,111 @@ export default function ConfigPage() {
         </div>
       </div>
 
-      {config.model_provider === "placeholder" && <Callout calloutId="placeholder_mode" />}
+      {(hardwareStatus || hardwareJobStatus) && (
+        <div className="rounded-md border p-4 text-sm">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="font-semibold">Local hardware telemetry</div>
+            <button
+              onClick={handleCheckHardwareStatus}
+              className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent"
+              title="Refresh CPU/RAM/GPU/NPU and local AI process telemetry."
+            >
+              Refresh telemetry
+            </button>
+          </div>
+          {hardwareJobStatus && hardwareJobStatus !== "complete" && (
+            <div className="mb-3 rounded border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span>{hardwareJobMessage || "Refreshing hardware telemetry..."}</span>
+                <span className="font-mono">{hardwareJobPercent}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded bg-blue-100">
+                <div className="h-full rounded bg-blue-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, hardwareJobPercent))}%` }} />
+              </div>
+            </div>
+          )}
+          {hardwareStatus && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+              <div className="rounded border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">CPU</p>
+                <p className="font-medium">{hardwareStatus.cpu.usage_percent ?? "?"}%</p>
+                <p className="text-xs text-muted-foreground">{hardwareStatus.cpu.logical_cores} logical cores</p>
+              </div>
+              <div className="rounded border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Memory</p>
+                <p className="font-medium">{hardwareStatus.memory.used_percent ?? "?"}% used</p>
+                <p className="text-xs text-muted-foreground">{hardwareStatus.memory.available_gb ?? "?"} GB free / {hardwareStatus.memory.total_gb ?? "?"} GB total</p>
+              </div>
+              <div className="rounded border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">GPU</p>
+                <p className="font-medium">{hardwareStatus.gpu.usage_percent ?? "?"}%</p>
+                <p className="text-xs text-muted-foreground break-all">{hardwareStatus.gpu.controllers?.[0]?.Name || "No GPU controller detected"}</p>
+              </div>
+              <div className="rounded border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">NPU</p>
+                <p className="font-medium">{hardwareStatus.npu.controllers.length > 0 ? "Detected" : "Not detected"}</p>
+                <p className="text-xs text-muted-foreground break-all">{hardwareStatus.npu.controllers?.[0]?.FriendlyName || "No NPU device found"}</p>
+                {hardwareStatus.npu.controllers.length > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">Memory telemetry unavailable via standard Windows counters</p>
+                )}
+              </div>
+            </div>
+          )}
+          {hardwareStatus && hardwareStatus.local_ai_processes.length > 0 && (
+            <div className="mt-3 rounded border bg-muted/20 p-3 text-xs">
+              <p className="mb-1 font-medium">Local AI processes</p>
+              <div className="flex flex-wrap gap-2">
+                {hardwareStatus.local_ai_processes.map((p) => (
+                  <span key={`${p.ProcessName}-${p.Id}`} className="rounded bg-background px-2 py-1 font-mono">
+                    {p.ProcessName}#{p.Id}: {p.WorkingSetMB} MB
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {hardwareStatus && (hardwareStatus.notes.length > 0 || (foundryServiceRunning && openvinoRunning)) && (
+            <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+              {foundryServiceRunning && openvinoRunning && (
+                <p className="mb-2">
+                  Microsoft Foundry Local and OVMS are both running. This is allowed, but if CPU/RAM/GPU/NPU usage is high, stop the unused runtime or switch to OpenAI/Placeholder.
+                </p>
+              )}
+              {hardwareStatus.notes.map((note) => <p key={note}>{note}</p>)}
+              <div className="mt-2 flex flex-wrap gap-2">
+                {openvinoRunning && (
+                  <button onClick={handleStopOpenVINOService} disabled={stoppingOpenVINO} className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50">
+                    {stoppingOpenVINO ? "Stopping OVMS..." : "Stop OVMS"}
+                  </button>
+                )}
+                {foundryServiceRunning && (
+                  <button onClick={handleStopFoundryService} disabled={stoppingFoundryService} className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50">
+                    {stoppingFoundryService ? "Stopping Microsoft Foundry..." : "Stop Microsoft Foundry Local"}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      {hardwareError && (
+        <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-xs text-yellow-900">
+          Hardware telemetry unavailable: {hardwareError}
+        </div>
+      )}
+
+      {effectiveModelProvider === "placeholder" && <Callout calloutId="placeholder_mode" />}
 
       {/* Provider Switcher */}
+      {!providerInfo ? (
+        <div className="rounded-md border p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading provider details...
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Base configuration is available. Provider controls will appear as soon as the backend provider endpoint responds.
+          </p>
+        </div>
+      ) : (
       <div className="rounded-md border p-4">
         <h3 className="mb-3 text-lg font-semibold">
           <Tooltip term="model_provider">Model Provider Switcher</Tooltip>
@@ -701,7 +1297,7 @@ export default function ConfigPage() {
         </p>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
           {providerInfo.available_model_providers.map((p) => {
-            const isActive = providerInfo.current.model_provider === p.value;
+            const isActive = effectiveModelProvider === p.value;
             const isDisabled = switching || (p.requires_api_key && !providerInfo.current.openai_configured && !openaiKey.trim() && p.value === "openai");
             return (
               <button
@@ -728,6 +1324,21 @@ export default function ConfigPage() {
             );
           })}
         </div>
+
+        {switching && switchJobStatus && switchJobStatus !== "complete" && (
+          <div className="mt-3 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <span className="font-medium">{switchJobMessage || "Switching provider..."}</span>
+              <span className="font-mono text-xs">{switchJobPercent}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded bg-blue-100">
+              <div className="h-full rounded bg-blue-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, switchJobPercent))}%` }} />
+            </div>
+            <p className="mt-2 text-xs">
+              Status: <span className="font-mono">{switchJobStatus}</span>. Microsoft Foundry Local may need to start a local runtime process before the switch completes.
+            </p>
+          </div>
+        )}
 
         {/* OpenAI key input */}
         {showKeyInput && (
@@ -761,7 +1372,7 @@ export default function ConfigPage() {
         )}
 
         {/* OpenAI Settings Management — only shown when openai is the active model provider */}
-        {config.model_provider === "openai" && (
+        {effectiveModelProvider === "openai" && (
           <div className="mt-4 rounded-md border p-4">
             <div className="mb-3 flex items-center gap-2">
               <Key className="h-4 w-4" />
@@ -898,30 +1509,65 @@ export default function ConfigPage() {
           </div>
         )}
 
-        {/* OpenVINO Model Server settings — shown when model or embedding provider uses openvino */}
-        {(config.model_provider === "openvino" || config.embedding_provider === "openvino") && (
+        {/* OpenVINO Model Server settings — shown only when the model provider uses openvino */}
+        {effectiveModelProvider === "openvino" && (
           <div className="mt-4 space-y-3 rounded-md border p-4">
             <h4 className="text-base font-semibold">OpenVINO Model Server (shared local runtime)</h4>
             <p className="text-xs text-muted-foreground">
               You can mix and match providers. The text model below is used only when the Model Provider
               is OpenVINO; the embedding model below is used only when the Embedding Provider is OpenVINO.
-              Both settings point at the same local OVMS endpoint. Hugging Face tokens are optional for
+              Both settings point at the same native Windows OVMS endpoint. Hugging Face tokens are optional for
               public OpenVINO models and only needed for gated, private, or rate-limit-free downloads.
             </p>
 
             <div className={`rounded-md border p-3 text-xs ${openvinoRunning ? "border-green-200 bg-green-50 text-green-900" : "border-yellow-200 bg-yellow-50 text-yellow-900"}`}>
               {openvinoRunning === true
                 ? `✓ OVMS is responding at ${providerInfo.current.openvino_endpoint}`
-                : `⚠ OVMS is not responding at ${providerInfo.current.openvino_endpoint || "http://localhost:8100"}. Start OpenVINO Model Server before using OpenVINO providers.`}
+                : `⚠ OVMS is not responding at ${providerInfo.current.openvino_endpoint || "http://localhost:8100"}. Start native OpenVINO Model Server before using OpenVINO providers.`}
             </div>
 
             <div className="rounded-md border bg-muted/30 p-3">
-              <p className="text-xs font-medium text-muted-foreground">Model/cache locations</p>
+              <p className="text-xs font-medium text-muted-foreground">Native runtime and model/cache locations</p>
               <p className="mt-1 text-xs">
                 Hugging Face downloads from the UI are cached under: <code className="rounded bg-muted px-1 font-mono break-all">{openvinoModelCacheDir || "(default Hugging Face cache)"}</code>
               </p>
+              <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
+                <div className="rounded border bg-background p-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Selected text model</p>
+                  <p className="break-all font-mono text-xs">{openvinoModel || providerInfo.current.openvino_model}</p>
+                  <p className={openvinoModelCached ? "text-xs text-green-700" : "text-xs text-amber-700"}>
+                    {openvinoModelCached ? "Cached in OVMS repository" : "Not detected in local OVMS repository"}
+                  </p>
+                </div>
+                <div className="rounded border bg-background p-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Selected embedding model</p>
+                  <p className="break-all font-mono text-xs">{openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model}</p>
+                  <p className={openvinoEmbeddingModelCached ? "text-xs text-green-700" : "text-xs text-amber-700"}>
+                    {openvinoEmbeddingModelCached ? "Cached in OVMS repository" : "Not detected in local OVMS repository"}
+                  </p>
+                </div>
+                <div className="rounded border bg-background p-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Currently served by OVMS</p>
+                  <p className="break-all font-mono text-xs">{openvinoServedModel || "Unknown / not detected from logs"}</p>
+                  <p className={openvinoServedModelMatchesSelection ? "text-xs text-green-700" : "text-xs text-amber-700"}>
+                    {openvinoServedModelMatchesSelection ? "Matches selected text model" : "May not match the selected text model"}
+                  </p>
+                </div>
+              </div>
               <p className="mt-1 text-xs text-muted-foreground">
-                Docker OVMS uses volumes <code className="rounded bg-muted px-1">{openvinoDockerModelsVolume || "openvino_models"}</code> for models and <code className="rounded bg-muted px-1">{openvinoDockerCacheVolume || "openvino_cache"}</code> for compiled cache.
+                Runtime mode: <code className="rounded bg-muted px-1 font-mono">{openvinoRuntimeMode}</code>. Start/stop uses <code className="rounded bg-muted px-1 font-mono">{openvinoSetupScript}</code> so OVMS runs bare-metal on Windows with direct Intel NPU/GPU/CPU access.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Latest package: OpenVINO Model Server {openvinoLatestRelease}.{" "}
+                {openvinoWindowsDownloadUrl && <a className="text-primary underline" href={openvinoWindowsDownloadUrl} target="_blank" rel="noreferrer">Download Windows python_on zip</a>}
+                {openvinoWindowsChecksumUrl && <> · <a className="text-primary underline" href={openvinoWindowsChecksumUrl} target="_blank" rel="noreferrer">SHA256</a></>}
+                {openvinoBaremetalDocsUrl && <> · <a className="text-primary underline" href={openvinoBaremetalDocsUrl} target="_blank" rel="noreferrer">2026 bare-metal docs</a></>}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                If Start Native OVMS reports that <code className="rounded bg-muted px-1 font-mono">ovms.exe</code> is missing, either save the absolute path below or add its folder to <code className="rounded bg-muted px-1 font-mono">PATH</code> and restart the UI backend.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Repository paths: text <code className="rounded bg-muted px-1 font-mono break-all">{openvinoModelRepositoryPath || "unknown"}</code>; embedding <code className="rounded bg-muted px-1 font-mono break-all">{openvinoEmbeddingModelRepositoryPath || "unknown"}</code>.
               </p>
             </div>
 
@@ -934,7 +1580,7 @@ export default function ConfigPage() {
                   onChange={(e) => setOpenvinoEndpoint(e.target.value)}
                   className="w-full rounded-md border p-2 text-sm font-mono"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">Default uses port 8100 to avoid the mock Pricing API on port 8000.</p>
+                <p className="mt-1 text-xs text-muted-foreground">Default uses native Windows OVMS on port 8100 to avoid the mock Pricing API on port 8000.</p>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium">Target Device</label>
@@ -948,11 +1594,24 @@ export default function ConfigPage() {
                   <option value="CPU">CPU</option>
                 </select>
               </div>
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs font-medium">OVMS Executable Path</label>
+                <input
+                  type="text"
+                  value={openvinoOvmsPath}
+                  onChange={(e) => setOpenvinoOvmsPath(e.target.value)}
+                  placeholder="Leave blank to use ovms.exe from PATH, or enter C:\\tools\\ovms\\2026.2.1\\ovms.exe"
+                  className="w-full rounded-md border p-2 text-sm font-mono"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Saved as <code className="rounded bg-muted px-1 font-mono">OPENVINO_OVMS_PATH</code>. Use this when the UI backend cannot find <code className="rounded bg-muted px-1 font-mono">ovms.exe</code> on PATH.
+                </p>
+              </div>
               <div>
                 <label className="mb-1 block text-xs font-medium">
                   Text Generation Model{" "}
                   <span className="text-muted-foreground">
-                    {config.model_provider === "openvino" ? "(active)" : "(saved for when Model Provider = OpenVINO)"}
+                    {effectiveModelProvider === "openvino" ? "(active)" : "(saved for when Model Provider = OpenVINO)"}
                   </span>
                 </label>
                 <select
@@ -961,15 +1620,20 @@ export default function ConfigPage() {
                   className="w-full rounded-md border p-2 text-sm"
                 >
                   {providerInfo.openvino_models.map((m) => (
-                    <option key={m.alias} value={m.alias}>{m.label} ({m.alias})</option>
+                    <option key={m.alias} value={m.alias}>{m.npu_recommended === "true" ? "⚡ " : ""}{m.label} ({m.alias})</option>
                   ))}
                 </select>
+                {providerInfo.openvino_models.find((m) => m.alias === (openvinoModel || providerInfo.current.openvino_model)) && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {providerInfo.openvino_models.find((m) => m.alias === (openvinoModel || providerInfo.current.openvino_model))?.serving_note}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium">
                   Embedding Model{" "}
                   <span className="text-muted-foreground">
-                    {config.embedding_provider === "openvino" ? "(active)" : "(saved for when Embedding Provider = OpenVINO)"}
+                    {effectiveEmbeddingProvider === "openvino" ? "(active)" : "(saved for when Embedding Provider = OpenVINO)"}
                   </span>
                 </label>
                 <select
@@ -978,10 +1642,22 @@ export default function ConfigPage() {
                   className="w-full rounded-md border p-2 text-sm"
                 >
                   {providerInfo.openvino_embedding_models.map((m) => (
-                    <option key={m.alias} value={m.alias}>{m.label} ({m.dimension}-dim)</option>
+                    <option key={m.alias} value={m.alias}>{m.npu_recommended === "true" ? "⚡ " : ""}{m.label} ({m.dimension}-dim)</option>
                   ))}
                 </select>
+                {providerInfo.openvino_embedding_models.find((m) => m.alias === (openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model)) && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {providerInfo.openvino_embedding_models.find((m) => m.alias === (openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model))?.serving_note}
+                  </p>
+                )}
               </div>
+            </div>
+
+            <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
+              <p className="font-medium">NPU-first serving behavior</p>
+              <p className="mt-1">
+                Models marked ⚡ are curated for NPU-first local inference. OVMS stores model files under the model repository/cache, then compiles and loads weights plus KV cache on the selected Target Device. Pre-cache is optional: it reduces first-start latency, but OVMS can also download/prepare the selected Hugging Face model during start.
+              </p>
             </div>
 
             <div>
@@ -1005,6 +1681,7 @@ export default function ConfigPage() {
                 onClick={handleSaveOpenVINOSettings}
                 disabled={savingOpenVINO}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                title="Save endpoint, target device, selected models, optional ovms.exe path, and optional Hugging Face token to the local .env file. This does not start or stop OVMS."
               >
                 {savingOpenVINO ? "Saving..." : "Save OpenVINO Settings"}
               </button>
@@ -1012,37 +1689,77 @@ export default function ConfigPage() {
                 onClick={handleStartOpenVINOService}
                 disabled={startingOpenVINO || stoppingOpenVINO}
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                title="Start native OVMS if needed and load/serve the selected text model on the selected target device. If the model is not cached, OVMS may download and compile it during startup."
               >
-                {startingOpenVINO ? "Starting OVMS..." : "Start OVMS"}
+                {startingOpenVINO ? "Starting / loading OVMS..." : "Start / Load OVMS"}
               </button>
               <button
                 onClick={handleStopOpenVINOService}
                 disabled={startingOpenVINO || stoppingOpenVINO}
                 className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                title="Stop the native OVMS process to free CPU/GPU/NPU memory, compiled model state, and LLM KV-cache resources."
               >
-                {stoppingOpenVINO ? "Stopping OVMS..." : "Stop OVMS"}
+                {stoppingOpenVINO ? "Stopping native OVMS..." : "Stop Native OVMS"}
               </button>
               <button
                 onClick={() => handleDownloadOpenVINOModel(openvinoModel || providerInfo.current.openvino_model)}
                 disabled={downloadingOpenVINO}
                 className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                title="Optional: downloads/caches the selected text model before starting OVMS. OVMS can also download it during start."
               >
-                Download Selected Text Model
+                Pre-cache Text Model (optional)
               </button>
               <button
                 onClick={() => handleDownloadOpenVINOModel(openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model)}
                 disabled={downloadingOpenVINO}
                 className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                title="Optional: downloads/caches the selected embedding model before ingestion or embedding use."
               >
-                Download Selected Embedding Model
+                Pre-cache Embedding Model (optional)
               </button>
               <button
                 onClick={handleCheckOpenVINOStatus}
                 className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
+                title="Refresh OVMS health, local cache detection, and served-model status. Useful after starting/stopping OVMS outside this page."
               >
-                Check OVMS Status
+                Refresh OVMS Status
               </button>
             </div>
+
+            {startingOpenVINO && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="font-medium">{openvinoStartMessage || "Starting native OVMS..."}</span>
+                  <span className="font-mono text-xs">{openvinoStartPercent}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded bg-blue-100">
+                  <div className="h-full rounded bg-blue-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, openvinoStartPercent))}%` }} />
+                </div>
+                <p className="mt-2 text-xs">
+                  Status: <span className="font-mono">{openvinoStartStatus}</span>. Large NPU models may download, compile, and warm up for several minutes on first start.
+                </p>
+                {openvinoStartOutput.length > 0 && (
+                  <pre className="mt-2 max-h-40 overflow-y-auto rounded bg-blue-100 p-2 text-xs text-blue-950 whitespace-pre-wrap">
+                    {openvinoStartOutput.slice(-12).join("\n")}
+                  </pre>
+                )}
+              </div>
+            )}
+
+            {stoppingOpenVINO && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="font-medium">{openvinoStopMessage || "Stopping native OVMS..."}</span>
+                  <span className="font-mono text-xs">{openvinoStopPercent}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded bg-blue-100">
+                  <div className="h-full rounded bg-blue-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, openvinoStopPercent))}%` }} />
+                </div>
+                <p className="mt-2 text-xs">
+                  Status: <span className="font-mono">{openvinoStopStatus}</span>. Stopping releases local runtime memory and device resources.
+                </p>
+              </div>
+            )}
 
             {openvinoDownloadMessage && (
               <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
@@ -1062,20 +1779,20 @@ export default function ConfigPage() {
           </div>
         )}
 
-        {/* Foundry Local model selector + params — only relevant when microsoft-foundry-local is active */}
-        {config.categories["Model"] && config.model_provider === "microsoft-foundry-local" && (
+        {/* Microsoft Foundry Local model selector + params — only relevant when microsoft-foundry-local is active */}
+        {config.categories["Model"] && effectiveModelProvider === "microsoft-foundry-local" && (
           <div className="mt-4 space-y-3">
-            <h4 className="text-base font-semibold">Foundry Local Model</h4>
+            <h4 className="text-base font-semibold">Microsoft Foundry Local Model</h4>
             <p className="text-xs text-muted-foreground">
-              Select a model from the Foundry Local catalog. Use{" "}
+              Select a model from the Microsoft Foundry Local catalog. Use{" "}
               <code className="rounded bg-muted px-1">{"foundry model download <alias>"}</code> to download
               a model before selecting it here.
             </p>
 
-            {/* Foundry Local installation status */}
+            {/* Microsoft Foundry Local installation status */}
             {foundryInstalled === false && (
               <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3">
-                <p className="text-sm font-medium text-yellow-900">⚠️ Foundry Local SDK is not available</p>
+                <p className="text-sm font-medium text-yellow-900">⚠️ Microsoft Foundry Local SDK is not available</p>
                 <p className="mt-1 text-xs text-yellow-800">
                   The UI backend cannot import the Foundry Local Python SDK in its current Python environment. Install it automatically or copy the command below, then restart the backend.
                 </p>
@@ -1090,7 +1807,7 @@ export default function ConfigPage() {
                     disabled={installingFoundry}
                     className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {installingFoundry ? "Installing... (this may take a few minutes)" : "Install Foundry Local SDK"}
+                    {installingFoundry ? "Installing... (this may take a few minutes)" : "Install Microsoft Foundry Local SDK"}
                   </button>
                   {installCommand && (
                     <button
@@ -1106,6 +1823,18 @@ export default function ConfigPage() {
                     {installMessage}
                   </div>
                 )}
+                {installingFoundry && (
+                  <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900">
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <span>{installMessage || "Installing Microsoft Foundry Local SDK..."}</span>
+                      <span className="font-mono">{installJobPercent}%</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded bg-blue-100">
+                      <div className="h-full rounded bg-blue-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, installJobPercent))}%` }} />
+                    </div>
+                    <p className="mt-1">Status: <span className="font-mono">{installJobStatus}</span></p>
+                  </div>
+                )}
                 {installError && (
                   <div className="mt-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-900">
                     {installError}
@@ -1116,7 +1845,7 @@ export default function ConfigPage() {
             {foundryInstalled === true && !foundryServiceRunning && (
               <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-xs text-yellow-900">
                 <p>
-                  ⚠️ Foundry Local is installed but the service is not running.
+                  ⚠️ Microsoft Foundry Local is installed but the service is not running.
                 </p>
                 <div className="mt-2 flex gap-2">
                   <button
@@ -1132,6 +1861,18 @@ export default function ConfigPage() {
                     {startServiceMessage}
                   </div>
                 )}
+                {(startingService || stoppingFoundryService) && (
+                  <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 p-2 text-xs text-blue-900">
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <span>{startingService ? foundryModelJobMessage : startServiceMessage}</span>
+                      <span className="font-mono">{startingService ? foundryModelJobPercent : foundryStopPercent}%</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded bg-blue-100">
+                      <div className="h-full rounded bg-blue-600 transition-all" style={{ width: `${Math.min(100, Math.max(0, startingService ? foundryModelJobPercent : foundryStopPercent))}%` }} />
+                    </div>
+                    <p className="mt-1">Status: <span className="font-mono">{startingService ? foundryModelJobStatus : foundryStopStatus}</span></p>
+                  </div>
+                )}
                 {startServiceError && (
                   <div className="mt-2 rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-900">
                     {startServiceError}
@@ -1141,7 +1882,7 @@ export default function ConfigPage() {
             )}
             {foundryInstalled === true && foundryServiceRunning && (
               <div className="rounded-md border border-green-200 bg-green-50 p-3 text-xs text-green-900">
-                ✓ Foundry Local is installed and running.
+                ✓ Microsoft Foundry Local is installed and running.
               </div>
             )}
 
@@ -1232,7 +1973,7 @@ export default function ConfigPage() {
             <div>
               <label className="mb-1 block text-xs font-medium">
                 Select Model{" "}
-                <span className="text-muted-foreground">(from Foundry Local catalog)</span>
+                <span className="text-muted-foreground">(from Microsoft Foundry Local catalog)</span>
               </label>
               <select
                 value={foundryModel}
@@ -1305,6 +2046,21 @@ export default function ConfigPage() {
               </div>
             )}
 
+            {savingFoundryModel && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="font-medium">{foundryModelJobMessage || "Loading Microsoft Foundry Local model..."}</span>
+                  <span className="font-mono text-xs">{foundryModelJobPercent}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-blue-100">
+                  <div className="h-full rounded-full bg-blue-600 transition-all" style={{ width: `${Math.max(0, Math.min(100, foundryModelJobPercent))}%` }} />
+                </div>
+                <p className="mt-2 text-xs text-blue-800">
+                  Status: <span className="font-mono">{foundryModelJobStatus}</span>. The service and configured model(s) are prepared in a background job.
+                </p>
+              </div>
+            )}
+
             {/* Model descriptions */}
             {providerInfo.foundry_local_models && providerInfo.foundry_local_models.length > 0 && (
               <div className="overflow-hidden rounded-md border">
@@ -1331,7 +2087,7 @@ export default function ConfigPage() {
               </div>
             )}
 
-            {/* Foundry Local config params */}
+            {/* Microsoft Foundry Local config params */}
             <div className="overflow-hidden rounded-md border">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
@@ -1407,8 +2163,19 @@ export default function ConfigPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Embedding Provider Switcher */}
+      {!providerInfo ? (
+        <div className="rounded-md border p-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading embedding provider details...
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Base embedding configuration is available. Provider controls will appear as soon as the backend provider endpoint responds.
+          </p>
+        </div>
+      ) : (
       <div className="rounded-md border p-4">
         <h3 className="mb-3 text-lg font-semibold">
           <Tooltip term="embedding_provider">Embedding Provider Switcher</Tooltip>
@@ -1502,6 +2269,7 @@ export default function ConfigPage() {
           </div>
         )}
       </div>
+      )}
 
       {/* Config parameters by category (excluding Embeddings and Model, shown above) */}
       {categories.filter(([category]) => category !== "Embeddings" && category !== "Model").map(([category, params]) => (

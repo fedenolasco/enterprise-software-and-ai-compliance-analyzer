@@ -23,7 +23,7 @@ Replace deterministic placeholder embeddings and placeholder LLM responses with 
 | Provider | `MODEL_PROVIDER` | LLM | Embeddings | API key | Offline |
 |---|---|---|---|---|---|
 | Placeholder | `placeholder` | Deterministic | 8-dim placeholder | None | Yes |
-| Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5-mini / Qwen2.5 | all-MiniLM-L6-v2 (384-dim) | None | Yes |
+| Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5-mini / Qwen2.5 | qwen3-embedding-0.6b (1024-dim) | None | Yes |
 | OpenAI | `openai` | gpt-4o-mini | text-embedding-3-small (1536-dim) | Required | No |
 
 ### Implementation tasks

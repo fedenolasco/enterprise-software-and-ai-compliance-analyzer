@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 #
 # Securely configures OpenAI API key in local .env files and optionally
-# switches provider settings between placeholder, foundry, and openai.
+# switches provider settings between placeholder, foundry, openvino, and openai.
 #
 # Usage:
-#   bash scripts/setup-openai-key.sh                              # Set key only
-#   bash scripts/setup-openai-key.sh --switch-to openai           # Set key + switch to OpenAI
-#   bash scripts/setup-openai-key.sh --switch-to foundry          # Switch to Foundry Local
-#   bash scripts/setup-openai-key.sh --switch-to placeholder      # Switch back to placeholder
-#   bash scripts/setup-openai-key.sh --switch-to openai --skip-key # Switch to OpenAI without key prompt
+#   bash scripts/setup-provider.sh                              # Set key only
+#   bash scripts/setup-provider.sh --switch-to openai           # Set key + switch to OpenAI
+#   bash scripts/setup-provider.sh --switch-to foundry          # Switch to Foundry Local
+#   bash scripts/setup-provider.sh --switch-to openvino         # Switch to OpenVINO Model Server
+#   bash scripts/setup-provider.sh --switch-to placeholder      # Switch back to placeholder
+#   bash scripts/setup-provider.sh --switch-to openai --skip-key # Switch to OpenAI without key prompt
 #
 
 set -euo pipefail
@@ -31,17 +32,17 @@ for arg in "$@"; do
       ;;
     *)
       echo "Unknown argument: $arg" >&2
-      echo "Usage: scripts/setup-openai-key.sh [--switch-to openai|foundry|placeholder] [--skip-key]" >&2
+      echo "Usage: scripts/setup-provider.sh [--switch-to openai|foundry|openvino|placeholder] [--skip-key]" >&2
       exit 2
       ;;
   esac
 done
 
 case "$SWITCH_TO" in
-  openai|foundry|placeholder|none) ;;
+  openai|foundry|openvino|placeholder|none) ;;
   *)
     echo "Invalid --switch-to value: $SWITCH_TO" >&2
-    echo "Valid values: openai, foundry, placeholder, none" >&2
+    echo "Valid values: openai, foundry, openvino, placeholder, none" >&2
     exit 2
     ;;
 esac
@@ -88,10 +89,21 @@ get_provider_config() {
       ;;
     foundry)
       echo "EMBEDDING_PROVIDER=microsoft-foundry-local"
-      echo "EMBEDDING_MODEL=all-MiniLM-L6-v2"
-      echo "EMBEDDING_DIMENSION=384"
+      echo "EMBEDDING_MODEL=qwen3-embedding-0.6b"
+      echo "EMBEDDING_DIMENSION=1024"
       echo "MODEL_PROVIDER=microsoft-foundry-local"
-      echo "LOCAL_MODEL_NAME=Phi-3.5-mini-instruct"
+      echo "LOCAL_MODEL_NAME=phi-4-mini"
+      ;;
+    openvino)
+      echo "EMBEDDING_PROVIDER=openvino"
+      echo "EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B"
+      echo "EMBEDDING_DIMENSION=1024"
+      echo "MODEL_PROVIDER=openvino"
+      echo "OPENVINO_ENDPOINT=http://localhost:8100"
+      echo "OPENVINO_MODEL=OpenVINO/Qwen3-8B-int4-cw-ov"
+      echo "OPENVINO_EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B"
+      echo "OPENVINO_DEVICE=NPU"
+      echo "OPENVINO_OVMS_PATH="
       ;;
     placeholder)
       echo "EMBEDDING_PROVIDER=placeholder"
@@ -143,7 +155,7 @@ fi
 
 # Prompt for API key unless skipped or switching to non-OpenAI provider
 API_KEY=""
-if [[ "$SKIP_KEY" == "false" && "$SWITCH_TO" != "foundry" && "$SWITCH_TO" != "placeholder" ]]; then
+if [[ "$SKIP_KEY" == "false" && "$SWITCH_TO" != "foundry" && "$SWITCH_TO" != "openvino" && "$SWITCH_TO" != "placeholder" ]]; then
   echo "This script will prompt for your OpenAI API key (input will be masked)."
   echo "The key is NEVER printed, logged, or transmitted."
   echo "All .env files are gitignored and will never be committed."
@@ -227,4 +239,9 @@ if [[ "$SWITCH_TO" != "none" && "$SWITCH_TO" != "placeholder" ]]; then
   echo "NOTE: Switching embedding model changes the vector dimension."
   echo "You must reset and re-ingest demo data after switching:"
   echo "  bash scripts/reset-demo-environment.sh"
+  if [[ "$SWITCH_TO" == "openvino" ]]; then
+    echo ""
+    echo "Start native Windows OVMS before running OpenVINO workloads:"
+    echo "  powershell -ExecutionPolicy Bypass -File scripts/setup-ovms.ps1 -Start"
+  fi
 fi

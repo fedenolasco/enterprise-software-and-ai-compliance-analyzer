@@ -427,7 +427,7 @@ The project supports four model and embedding providers. Use the setup scripts t
 | Provider | `MODEL_PROVIDER` | LLM | Embeddings | API key | Offline |
 |---|---|---|---|---|---|
 | Placeholder | `placeholder` | Deterministic | 8-dim placeholder | None | Yes |
-| Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5-mini / Qwen2.5 | all-MiniLM-L6-v2 (384-dim) | None | Yes |
+| Microsoft Foundry Local | `microsoft-foundry-local` | Phi-3.5-mini / Qwen2.5 | qwen3-embedding-0.6b (1024-dim) | None | Yes |
 | OpenVINO Model Server | `openvino` | Qwen3 via OVMS | Qwen3-Embedding-0.6B (1024-dim) | Optional HF token | Yes |
 | OpenAI | `openai` | gpt-4o-mini | text-embedding-3-small (1536-dim) | Required | No |
 
@@ -436,6 +436,7 @@ On Windows PowerShell:
 ```powershell
 .\scripts\setup-provider.ps1 -SwitchTo openai
 .\scripts\setup-provider.ps1 -SwitchTo foundry
+.\scripts\setup-provider.ps1 -SwitchTo openvino
 .\scripts\setup-provider.ps1 -SwitchTo placeholder
 ```
 
@@ -444,6 +445,7 @@ On WSL/Linux:
 ```bash
 bash scripts/setup-provider.sh --switch-to openai
 bash scripts/setup-provider.sh --switch-to foundry
+bash scripts/setup-provider.sh --switch-to openvino
 bash scripts/setup-provider.sh --switch-to placeholder
 ```
 
@@ -457,7 +459,7 @@ Switching embedding providers changes the vector dimension. After switching, res
 
 ### OpenVINO Model Server setup
 
-OpenVINO Model Server (OVMS) is an optional local provider for Intel hardware. It can serve both text generation and embeddings through OpenAI-compatible APIs. The project defaults OVMS to port `8100` so it does not conflict with the mock Pricing API on port `8000`.
+OpenVINO Model Server (OVMS) is an optional local provider for Intel hardware. It can serve both text generation and embeddings through OpenAI-compatible APIs. The project now runs OVMS bare-metal on Windows, not through Docker Compose, so OVMS can directly access Intel AI Boost NPU, Intel GPU, or CPU devices. The project defaults OVMS to port `8100` so it does not conflict with the mock Pricing API on port `8000`.
 
 Core environment values:
 
@@ -468,17 +470,113 @@ OPENVINO_ENDPOINT=http://localhost:8100
 OPENVINO_MODEL=OpenVINO/Qwen3-8B-int4-cw-ov
 OPENVINO_EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B
 OPENVINO_DEVICE=NPU
+# Optional; use this when ovms.exe is not on the UI backend process PATH.
+# OPENVINO_OVMS_PATH=C:\tools\ovms\2026.2.1\ovms.exe
 # Optional; only needed for gated/private models or higher download limits.
 # HF_TOKEN=hf-your-token-here
 ```
 
-Start the optional Docker profile:
+#### Install native Windows OVMS
+
+Use the latest upstream OpenVINO Model Server release for Windows:
+
+- Release: `2026.2.1`
+- Recommended package with Python support: `https://github.com/openvinotoolkit/model_server/releases/download/v2026.2.1/ovms_windows_2026.2.1_python_on.zip`
+- SHA256 checksum: `https://github.com/openvinotoolkit/model_server/releases/download/v2026.2.1/ovms_windows_2026.2.1_python_on.sha256`
+- Official 2026 bare-metal deployment guide: `https://docs.openvino.ai/2026/model-server/ovms_docs_deploying_server_baremetal.html`
+
+The release notes state that only packages with the `_python_on` suffix include Python support. Prefer the `python_on` package for this project because the OpenVINO provider uses Hugging Face source-model flows for curated LLM and embedding models.
+
+Extract the zip to a stable folder, for example:
 
 ```powershell
-docker compose --profile openvino up -d openvino-model-server
+C:\tools\ovms\2026.2.1
 ```
 
-The Compose service is a starter configuration for text generation. To serve both the LLM and embedding models from one OVMS endpoint, configure OVMS with a model repository/config that includes both models. The UI can cache the curated Hugging Face models locally and stores `HF_TOKEN` only in gitignored `.env` files. Public OpenVINO models do not require a token.
+After extraction, locate the folder containing `ovms.exe`. The UI can find `ovms.exe` in either of two ways:
+
+1. Add the folder containing `ovms.exe` to Windows `PATH`, then restart the UI backend so the backend process inherits the updated `PATH`.
+2. Save the full executable path in the Configuration page's "OVMS Executable Path" field, or set it manually in `.env`:
+
+```text
+OPENVINO_OVMS_PATH=C:\tools\ovms\2026.2.1\ovms.exe
+```
+
+Use option 2 if you do not want to modify global Windows `PATH`, or if VS Code/the UI backend was already running before `PATH` was updated.
+
+The Configuration page accepts either `C:\tools\ovms\2026.2.1\ovms.exe`, `C:/tools/ovms/2026.2.1/ovms.exe`, or the folder path `C:/tools/ovms/2026.2.1`. The backend normalizes the saved value to a Windows-style path ending in `ovms.exe`.
+
+The helper script automatically dot-sources `setupvars.ps1` from the same folder as `ovms.exe` before starting OVMS. This is required for the Windows `python_on` package so OVMS uses its bundled Python/runtime environment instead of accidentally inheriting an unrelated system Python installation. If you start OVMS manually, use the same pattern:
+
+```powershell
+. "C:\tools\ovms\2026.2.1\setupvars.ps1"
+& "C:\tools\ovms\2026.2.1\ovms.exe" --rest_port 8100 --source_model OpenVINO/Qwen3-0.6B-int4-ov --model_repository_path .openvino\models --model_name OpenVINO_Qwen3_0_6B_int4_ov --task text_generation --target_device CPU --cache_size 2
+```
+
+#### NPU-first serving behavior
+
+The Configuration page marks NPU-friendly OpenVINO models with `⚡`. These are INT4 OpenVINO models that can be served on `NPU`, `GPU`, or `CPU`, with `OpenVINO/Qwen3-8B-int4-cw-ov` treated as the NPU-first quality default and `OpenVINO/Qwen3-0.6B-int4-ov` kept as the fastest smoke-test model.
+
+When `OPENVINO_DEVICE=NPU`, OVMS compiles and loads the selected model onto the Intel NPU and runs inference there. The model files remain on disk under `.openvino\models`, while compiled artifacts are cached under `.openvino\cache` so subsequent NPU starts are faster. For LLMs, runtime KV cache also consumes target-device memory, so long prompts and concurrency can increase memory pressure.
+
+If a selected model is not available locally, the UI's Download buttons can cache it from Hugging Face. OVMS can also download/prepare models during start from `--source_model`; the first start can therefore take several minutes while download, conversion/preparation, compile, and cache steps complete.
+
+Starting OVMS from the Configuration page now runs as a background job. The UI polls the backend for progress and shows recent log lines, so long model downloads or NPU compilation do not block the page with a single long-running HTTP request.
+
+The Configuration page distinguishes three states:
+
+- **Selected model:** the model chosen in the dropdown and saved in `.env`.
+- **Cached model:** a model directory detected under `.openvino\models`; the "Pre-cache" buttons explicitly download/cache models ahead of time.
+- **Served model:** the model the currently running OVMS process appears to be serving based on OVMS logs.
+
+The "Start / Load OVMS" button starts or reuses OVMS for the selected text-generation model. The "Pre-cache" buttons are optional; they reduce first-start latency but are not mandatory because OVMS can also download/prepare a selected Hugging Face model during startup. "Refresh OVMS Status" manually refreshes health, cache detection, and served-model status when OVMS was started, stopped, or changed outside the Configuration page.
+
+Provider switches that can start lagging local child processes use the same progress pattern. Switching to Foundry Local runs as a provider-switch job because the backend may need to start the Foundry Local service before the switch is fully ready. The Configuration page shows queued/running status, a progress bar, and a clear message until the switch completes. Provider switches that only update `.env` values remain synchronous.
+
+The Configuration page uses progressive loading: it requests the base `/api/config` payload first so the main configuration summary can paint quickly, then loads provider controls and hardware telemetry in the background. During backend restarts this avoids holding the whole page on a single long spinner; provider-specific controls show lightweight placeholders until `/api/provider` responds.
+
+#### Local runtime contention
+
+Avoid running Foundry Local and OVMS at the same time unless you explicitly need both. Each runtime can hold model weights, compiled graphs, device memory, and LLM KV-cache/runtime state. On NPU/GPU systems this can increase memory pressure and make switching between providers feel slow.
+
+The Configuration page includes a local hardware telemetry panel with best-effort CPU, RAM, GPU, NPU, and local AI process information. Telemetry refresh runs as a queued background job so the page can render configuration immediately and then poll for hardware status. It uses Windows-native counters and device inventory where available, with lightweight cross-platform fallbacks. Exact GPU/NPU utilization depends on which counters are available in the current OS/session. Standard Windows counters commonly expose NPU presence but not NPU memory availability; therefore the panel reports detected NPU devices and clearly labels NPU memory as unavailable when Windows does not expose it. If both Foundry Local and OVMS are running, the panel explains that this is allowed but recommends stopping unused runtimes only when resource usage is high. Use the panel's quick actions to stop one runtime, or switch to `openai`/`placeholder` if you do not need a local runtime for the next workflow.
+
+Switch the project to OpenVINO provider settings:
+
+```powershell
+.\scripts\setup-provider.ps1 -SwitchTo openvino
+```
+
+Start native Windows OVMS from the repository root:
+
+```powershell
+.\scripts\setup-ovms.ps1 -Start
+```
+
+This requires the native Windows OpenVINO Model Server package. Install the Windows 11 bare-metal package from the OpenVINO Model Server deployment guide and make sure either the folder containing `ovms.exe` is on the UI backend process `PATH`, or `OPENVINO_OVMS_PATH` points to the extracted executable. The script then loads the package-local `setupvars.ps1` automatically.
+
+Check or stop the native OVMS process:
+
+```powershell
+.\scripts\setup-ovms.ps1 -Status
+.\scripts\setup-ovms.ps1 -Stop
+```
+
+If `ovms.exe` is not on `PATH`, pass the installed executable path:
+
+```powershell
+.\scripts\setup-ovms.ps1 -Start -OvmsPath "C:\Path\To\ovms.exe"
+```
+
+The helper starts OVMS with the configured text-generation model, target device, and model repository under `.openvino\models`. The Configuration page uses the same helper for Start/Stop/Status so OVMS remains a host process with direct hardware access. The UI can cache curated Hugging Face models locally and stores `HF_TOKEN` only in gitignored `.env` files. Public OpenVINO models do not require a token.
+
+To run a one-off embeddings OVMS process instead of text generation, use:
+
+```powershell
+.\scripts\setup-ovms.ps1 -Start -Task embeddings -EmbeddingModel OpenVINO/Qwen3-Embedding-0.6B
+```
+
+Serving both text generation and embeddings from one OVMS endpoint may require an OVMS model repository/config that includes both models. Keep `OPENVINO_ENDPOINT` pointed at the endpoint that exposes the OpenAI-compatible routes needed by the active provider settings.
 
 Switching to OpenVINO embeddings changes vector dimension to 1024. Reset and re-ingest data after switching.
 
@@ -547,7 +645,7 @@ If you have the optional legacy CLI installed, you can also inspect or download 
 
 ```cmd
 foundry model load qwen2.5-0.5b
-foundry model load all-MiniLM-L6-v2
+foundry model load qwen3-embedding-0.6b
 ```
 
 List available models in the catalog:
@@ -568,7 +666,7 @@ Recommended models for this project:
 |---|---|---|---|---|
 | LLM (recommendation drafting) | `phi-3.5-mini-instruct` | ~2.5 GB | ~3.5 GB | Strong reasoning, small footprint, good for compliance text |
 | LLM (alternative, larger) | `qwen2.5-7b-instruct` | ~4.5 GB | ~8 GB | Better quality, needs more RAM |
-| Embeddings | `all-MiniLM-L6-v2` | ~90 MB | ~200 MB | 384-dim, fast, good semantic quality, very small |
+| Embeddings | `qwen3-embedding-0.6b` | varies by hardware variant | varies by hardware variant | 1024-dim, official Microsoft Foundry Local embedding sample model |
 
 For the minimum setup (Phi-3.5-mini + MiniLM), you need approximately 3 GB disk space and 8 GB RAM.
 
@@ -600,14 +698,14 @@ This updates the `.env` files with:
 
 ```text
 EMBEDDING_PROVIDER=microsoft-foundry-local
-EMBEDDING_MODEL=all-MiniLM-L6-v2
-EMBEDDING_DIMENSION=384
+EMBEDDING_MODEL=qwen3-embedding-0.6b
+EMBEDDING_DIMENSION=1024
 MODEL_PROVIDER=microsoft-foundry-local
 LOCAL_MODEL_NAME=qwen2.5-0.5b
 FOUNDRY_LOCAL_ENDPOINT=<active-local-foundry-endpoint>
 ```
 
-Then reset and re-ingest demo data because the embedding dimension changes from 8 to 384:
+Then reset and re-ingest demo data because the embedding dimension changes from 8 to 1024:
 
 ```powershell
 .\scripts\reset-demo-environment.ps1

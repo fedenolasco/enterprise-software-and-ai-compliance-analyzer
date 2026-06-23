@@ -9,18 +9,19 @@ The key is never printed, logged, or transmitted anywhere except the local .env
 files which are gitignored.
 
 The script can also switch provider configuration between placeholder,
-microsoft-foundry-local, and openai modes.
+microsoft-foundry-local, openvino, and openai modes.
 
 Usage:
-  .\scripts\setup-openai-key.ps1                              # Set key only
-  .\scripts\setup-openai-key.ps1 -SwitchTo openai             # Set key + switch to OpenAI
-  .\scripts\setup-openai-key.ps1 -SwitchTo foundry            # Switch to Foundry Local (no key needed)
-  .\scripts\setup-openai-key.ps1 -SwitchTo placeholder        # Switch back to placeholder
-  .\scripts\setup-openai-key.ps1 -SwitchTo openai -SkipKey    # Switch to OpenAI without prompting for key
+  .\scripts\setup-provider.ps1                              # Set key only
+  .\scripts\setup-provider.ps1 -SwitchTo openai             # Set key + switch to OpenAI
+  .\scripts\setup-provider.ps1 -SwitchTo foundry            # Switch to Foundry Local (no key needed)
+  .\scripts\setup-provider.ps1 -SwitchTo openvino           # Switch to OpenVINO Model Server
+  .\scripts\setup-provider.ps1 -SwitchTo placeholder        # Switch back to placeholder
+  .\scripts\setup-provider.ps1 -SwitchTo openai -SkipKey    # Switch to OpenAI without prompting for key
 #>
 
 param(
-  [ValidateSet("openai", "foundry", "placeholder", "none")]
+  [ValidateSet("openai", "foundry", "openvino", "placeholder", "none")]
   [string]$SwitchTo = "none",
   [switch]$SkipKey
 )
@@ -97,10 +98,23 @@ function Get-ProviderConfig {
     "foundry" {
       return @{
         EMBEDDING_PROVIDER = "microsoft-foundry-local"
-        EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-        EMBEDDING_DIMENSION = "384"
+        EMBEDDING_MODEL = "qwen3-embedding-0.6b"
+        EMBEDDING_DIMENSION = "1024"
         MODEL_PROVIDER = "microsoft-foundry-local"
-        LOCAL_MODEL_NAME = "Phi-3.5-mini-instruct"
+        LOCAL_MODEL_NAME = "phi-4-mini"
+      }
+    }
+    "openvino" {
+      return @{
+        EMBEDDING_PROVIDER = "openvino"
+        EMBEDDING_MODEL = "OpenVINO/Qwen3-Embedding-0.6B"
+        EMBEDDING_DIMENSION = "1024"
+        MODEL_PROVIDER = "openvino"
+        OPENVINO_ENDPOINT = "http://localhost:8100"
+        OPENVINO_MODEL = "OpenVINO/Qwen3-8B-int4-cw-ov"
+        OPENVINO_EMBEDDING_MODEL = "OpenVINO/Qwen3-Embedding-0.6B"
+        OPENVINO_DEVICE = "NPU"
+        OPENVINO_OVMS_PATH = ""
       }
     }
     "placeholder" {
@@ -140,7 +154,7 @@ if ($SwitchTo -ne "none") {
 
 # Prompt for API key unless skipped or switching to non-OpenAI provider
 $apiKey = $null
-if (-not $SkipKey -and $SwitchTo -ne "foundry" -and $SwitchTo -ne "placeholder") {
+if (-not $SkipKey -and $SwitchTo -ne "foundry" -and $SwitchTo -ne "openvino" -and $SwitchTo -ne "placeholder") {
   Write-Host "This script will prompt for your OpenAI API key (input will be masked)." -ForegroundColor White
   Write-Host "The key is NEVER printed, logged, or transmitted." -ForegroundColor White
   Write-Host "All .env files are gitignored and will never be committed." -ForegroundColor White
@@ -218,4 +232,9 @@ if ($SwitchTo -ne "none" -and $SwitchTo -ne "placeholder") {
   Write-Host "NOTE: Switching embedding model changes the vector dimension." -ForegroundColor Yellow
   Write-Host "You must reset and re-ingest demo data after switching:" -ForegroundColor Yellow
   Write-Host "  .\scripts\reset-demo-environment.ps1" -ForegroundColor DarkGray
+  if ($SwitchTo -eq "openvino") {
+    Write-Host ""
+    Write-Host "Start native Windows OVMS before running OpenVINO workloads:" -ForegroundColor Yellow
+    Write-Host "  .\scripts\setup-ovms.ps1 -Start" -ForegroundColor DarkGray
+  }
 }
