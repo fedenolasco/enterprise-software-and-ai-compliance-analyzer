@@ -556,21 +556,49 @@ async def _run_compose_command(args: list[str], timeout: int = 120) -> tuple[boo
 async def start_openvino_service() -> dict[str, Any]:
     """Start the OpenVINO Model Server Docker Compose profile."""
     success, output = await _run_compose_command(["--profile", "openvino", "up", "-d", "openvino-model-server"], timeout=180)
+    fallback_used = False
+    if not success and "/dev/accel" in output and "no such file or directory" in output.lower():
+        fallback_used = True
+        fallback_success, fallback_output = await _run_compose_command(
+            ["--profile", "openvino-cpu", "up", "-d", "openvino-model-server-cpu"],
+            timeout=180,
+        )
+        success = fallback_success
+        output = (
+            "NPU device /dev/accel is not available to Docker Desktop/WSL, so the backend "
+            "attempted to start the CPU fallback service instead.\n\n"
+            f"NPU start output:\n{output}\n\nCPU fallback output:\n{fallback_output}"
+        )
     settings = get_agent_brain_settings()
     running = await _check_openvino_running(settings.openvino_endpoint)
+    if running and fallback_used:
+        message = "OpenVINO Model Server started with CPU fallback because Docker could not access /dev/accel."
+    elif running:
+        message = "OpenVINO Model Server started."
+    elif fallback_used:
+        message = (
+            "OpenVINO CPU fallback start command completed, but OVMS is not responding yet. "
+            "It may still be downloading/compiling the model."
+        )
+    else:
+        message = (
+            "OpenVINO start command completed, but OVMS is not responding yet. "
+            "It may still be downloading/compiling the model."
+        )
     return {
         "success": success,
         "started": running,
-        "message": "OpenVINO Model Server started." if running else "OpenVINO start command completed, but OVMS is not responding yet. It may still be downloading/compiling the model.",
+        "message": message,
         "output": output,
         "endpoint": settings.openvino_endpoint,
+        "fallback_used": fallback_used,
     }
 
 
 @router.post("/openvino-stop")
 async def stop_openvino_service() -> dict[str, Any]:
     """Stop the OpenVINO Model Server Docker Compose service."""
-    success, output = await _run_compose_command(["stop", "openvino-model-server"], timeout=60)
+    success, output = await _run_compose_command(["stop", "openvino-model-server", "openvino-model-server-cpu"], timeout=60)
     settings = get_agent_brain_settings()
     running = await _check_openvino_running(settings.openvino_endpoint)
     return {
