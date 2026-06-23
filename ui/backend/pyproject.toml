@@ -7,7 +7,7 @@ name = "ui-api"
 version = "0.1.0"
 description = "FastAPI backend for the Enterprise Software & AI Compliance Analyzer UI."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.12"
 license = "MIT"
 authors = [
   { name = "Enterprise Software & AI Compliance Analyzer" }

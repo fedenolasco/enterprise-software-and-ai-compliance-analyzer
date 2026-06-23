@@ -17,7 +17,7 @@ For a presentation-ready walkthrough sequence, use [`docs/07-demo-runbook.md`](0
 
 Use Python `3.11.x` for local virtual environments in the Python workstreams.
 
-The project manifests require Python `>=3.11`, but the recommended local baseline is Python `3.11.x` because LangGraph local workflows and the current dependency set are documented against Python 3.11+.
+The Python workstreams require Python `3.11.x` as the local baseline because LangGraph local workflows and the current dependency set are documented against Python 3.11. The UI backend enforces this baseline at startup; starting it with another interpreter, such as Python 3.14, exits early with a remediation message.
 
 Create separate virtual environments for each Python workstream:
 
@@ -45,6 +45,15 @@ python -m pip install -e .[dev]
 ```
 
 Python versions newer than the documented `3.11.x` baseline may execute the current tests, but they are not the supported local baseline. If dependency warnings appear when using a non-`3.11.x` interpreter, such as Neo4j driver deprecation warnings, treat them as runtime compatibility warnings unless they become test failures or affect runtime behavior. Re-run validation in a Python `3.11.x` virtual environment before treating those warnings as project defects.
+
+For the UI backend, always start from the repository root with Python 3.11 so the backend, `agent-brain`, and Foundry Local SDK are loaded by the same interpreter:
+
+```powershell
+$env:PYTHONPATH="C:\app\enterprise-software-and-ai-compliance-analyzer\agent-brain\src;C:\app\enterprise-software-and-ai-compliance-analyzer\ui\backend\src"
+py -3.11 -m ui_api.main
+```
+
+This avoids the common Windows issue where the SDK is installed in Python 3.11 but the backend is accidentally launched by a newer default `python` command.
 
 Local virtual environments, caches, tool outputs, and uncommitted `.env` files are intentionally ignored by the root [`.gitignore`](../.gitignore). Before committing, run `git status --short` and confirm that generated folders such as `.venv`, `.venv-py311`, `.mypy_cache`, `.pytest_cache`, `.ruff_cache`, `node_modules`, and `.ipynb_checkpoints` are not staged.
 

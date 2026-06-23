@@ -18,6 +18,7 @@ All notable project changes should be documented here as the implementation evol
 - Synced embedding parameters on provider switch:
   - `EMBEDDING_MODEL` and `EMBEDDING_DIMENSION` now update automatically when switching embedding providers.
 - Added Foundry Local integration:
+  - Enforced Python 3.11 for the UI backend so Foundry Local SDK imports use the same project baseline interpreter.
   - Curated catalog of Foundry Local models with device information.
   - `PUT /api/provider/foundry-model` endpoint: checks service, starts if needed, downloads model if needed, updates `.env`.
   - `GET /api/provider/foundry-status` endpoint: checks SDK availability, service status, cache directory.

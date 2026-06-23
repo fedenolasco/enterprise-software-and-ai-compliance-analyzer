@@ -18,15 +18,19 @@ This backend wraps the `agent_brain` Python package as REST and WebSocket endpoi
 
 ## Setup
 
-```bash
-cd ui/backend
-pip install -e ".[dev]"
+Use Python `3.11.x` for the UI backend. This is enforced at startup so the backend and Foundry Local SDK use the same project baseline interpreter.
+
+```powershell
+cd C:\app\enterprise-software-and-ai-compliance-analyzer
+py -3.11 -m pip install -e .\agent-brain -e .\ui\backend
 ```
 
 ## Run
 
-```bash
-python -m ui_api.main
+```powershell
+cd C:\app\enterprise-software-and-ai-compliance-analyzer
+$env:PYTHONPATH="C:\app\enterprise-software-and-ai-compliance-analyzer\agent-brain\src;C:\app\enterprise-software-and-ai-compliance-analyzer\ui\backend\src"
+py -3.11 -m ui_api.main
 ```
 
 Or via the console script:
@@ -36,6 +40,8 @@ ui-api
 ```
 
 The API will be available at `http://localhost:3001`.
+
+If the backend is accidentally started with another Python version, such as Python 3.14, it exits with a clear message. This prevents the Foundry Local SDK from being installed into Python 3.11 while the backend is running from a different interpreter.
 
 ## Environment variables
 

@@ -80,6 +80,8 @@ The `fetchAll` function accepts a `silent` parameter. When `silent=true`, it ski
 - The frontend shows an "Install Foundry Local SDK" button when the backend cannot import the SDK, with a "Copy install command" option for manual installation.
 - The Configuration page copy explains that the backend must be restarted after SDK installation so the running process can import it.
 
+The UI backend also enforces Python 3.11 at startup. This makes the Foundry Local SDK interpreter choice deterministic: install the SDK into the Python 3.11 backend environment, and run the backend with Python 3.11.
+
 ### 8. Model cache directory configuration
 
 - `GET /api/provider/foundry-status` returns the current model cache directory
@@ -136,6 +138,7 @@ Added patterns to `.gitignore` to exclude Foundry Local model caches and large m
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Backend Python differs from project baseline Python | SDK installs but backend cannot import it | Installation command uses `sys.executable` from the running backend process |
+| Backend accidentally starts with Python 3.14 or another non-baseline interpreter | Foundry SDK appears missing even though it is installed for Python 3.11 | UI backend exits early unless `sys.version_info` is Python 3.11 |
 | SDK-managed Foundry endpoint stops after backend restart | Config page shows "Start Service Now" again | Treat the Configuration page as the source of truth and restart the service/model there |
 | Model download times out | User sees error but model may still be downloading | 10-minute timeout with clear error message and manual instructions |
 | Foundry Local service fails to start | Auto-start warning shown | Warning includes manual start instructions; user can retry |
