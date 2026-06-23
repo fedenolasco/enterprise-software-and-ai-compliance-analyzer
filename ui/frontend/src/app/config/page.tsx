@@ -110,6 +110,8 @@ export default function ConfigPage() {
   const [openvinoMessage, setOpenvinoMessage] = useState<string | null>(null);
   const [openvinoError, setOpenvinoError] = useState<string | null>(null);
   const [openvinoRunning, setOpenvinoRunning] = useState<boolean | null>(null);
+  const [startingOpenVINO, setStartingOpenVINO] = useState(false);
+  const [stoppingOpenVINO, setStoppingOpenVINO] = useState(false);
   const [downloadingOpenVINO, setDownloadingOpenVINO] = useState(false);
   const [openvinoDownloadJobId, setOpenvinoDownloadJobId] = useState<string | null>(null);
   const [openvinoDownloadMessage, setOpenvinoDownloadMessage] = useState<string | null>(null);
@@ -550,6 +552,46 @@ export default function ConfigPage() {
     }
   };
 
+  const handleStartOpenVINOService = async () => {
+    setStartingOpenVINO(true);
+    setOpenvinoMessage(null);
+    setOpenvinoError(null);
+    try {
+      const result = await apiPost<{ success: boolean; started: boolean; message: string; output: string }>("/provider/openvino-start", {});
+      if (result.started) {
+        setOpenvinoMessage(result.message);
+        setOpenvinoRunning(true);
+      } else {
+        setOpenvinoError(`${result.message}${result.output ? ` Details: ${result.output}` : ""}`);
+        await handleCheckOpenVINOStatus();
+      }
+    } catch (err) {
+      setOpenvinoError(err instanceof Error ? err.message : "Failed to start OpenVINO Model Server");
+    } finally {
+      setStartingOpenVINO(false);
+    }
+  };
+
+  const handleStopOpenVINOService = async () => {
+    setStoppingOpenVINO(true);
+    setOpenvinoMessage(null);
+    setOpenvinoError(null);
+    try {
+      const result = await apiPost<{ success: boolean; stopped: boolean; message: string; output: string }>("/provider/openvino-stop", {});
+      if (result.stopped) {
+        setOpenvinoMessage(result.message);
+        setOpenvinoRunning(false);
+      } else {
+        setOpenvinoError(`${result.message}${result.output ? ` Details: ${result.output}` : ""}`);
+        await handleCheckOpenVINOStatus();
+      }
+    } catch (err) {
+      setOpenvinoError(err instanceof Error ? err.message : "Failed to stop OpenVINO Model Server");
+    } finally {
+      setStoppingOpenVINO(false);
+    }
+  };
+
   useEffect(() => {
     if (!openvinoDownloadJobId || !downloadingOpenVINO) return;
     const interval = window.setInterval(async () => {
@@ -946,6 +988,20 @@ export default function ConfigPage() {
                 className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {savingOpenVINO ? "Saving..." : "Save OpenVINO Settings"}
+              </button>
+              <button
+                onClick={handleStartOpenVINOService}
+                disabled={startingOpenVINO || stoppingOpenVINO}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {startingOpenVINO ? "Starting OVMS..." : "Start OVMS"}
+              </button>
+              <button
+                onClick={handleStopOpenVINOService}
+                disabled={startingOpenVINO || stoppingOpenVINO}
+                className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {stoppingOpenVINO ? "Stopping OVMS..." : "Stop OVMS"}
               </button>
               <button
                 onClick={() => handleDownloadOpenVINOModel(openvinoModel || providerInfo.current.openvino_model)}

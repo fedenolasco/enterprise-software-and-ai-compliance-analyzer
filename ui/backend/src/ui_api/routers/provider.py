@@ -513,6 +513,61 @@ async def get_openvino_status() -> dict[str, Any]:
     }
 
 
+async def _run_compose_command(args: list[str], timeout: int = 120) -> tuple[bool, str]:
+    """Run a docker compose command from the repository root."""
+    import asyncio
+
+    settings = get_ui_settings()
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "docker",
+            "compose",
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(settings.repo_root),
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        output = (stdout.decode("utf-8", errors="replace") + stderr.decode("utf-8", errors="replace")).strip()
+        return proc.returncode == 0, output
+    except FileNotFoundError:
+        return False, "Docker CLI not found. Install Docker Desktop or start OpenVINO Model Server manually."
+    except asyncio.TimeoutError:
+        return False, f"Docker compose command timed out after {timeout}s."
+    except Exception as exc:
+        return False, f"Error running docker compose: {exc}"
+
+
+@router.post("/openvino-start")
+async def start_openvino_service() -> dict[str, Any]:
+    """Start the OpenVINO Model Server Docker Compose profile."""
+    success, output = await _run_compose_command(["--profile", "openvino", "up", "-d", "openvino-model-server"], timeout=180)
+    settings = get_agent_brain_settings()
+    running = await _check_openvino_running(settings.openvino_endpoint)
+    return {
+        "success": success,
+        "started": running,
+        "message": "OpenVINO Model Server started." if running else "OpenVINO start command completed, but OVMS is not responding yet. It may still be downloading/compiling the model.",
+        "output": output,
+        "endpoint": settings.openvino_endpoint,
+    }
+
+
+@router.post("/openvino-stop")
+async def stop_openvino_service() -> dict[str, Any]:
+    """Stop the OpenVINO Model Server Docker Compose service."""
+    success, output = await _run_compose_command(["stop", "openvino-model-server"], timeout=60)
+    settings = get_agent_brain_settings()
+    running = await _check_openvino_running(settings.openvino_endpoint)
+    return {
+        "success": success and not running,
+        "stopped": not running,
+        "message": "OpenVINO Model Server stopped." if not running else "Stop command completed, but OVMS still appears to be responding.",
+        "output": output,
+        "endpoint": settings.openvino_endpoint,
+    }
+
+
 @router.put("/openvino-settings")
 async def update_openvino_settings(request: UpdateOpenVINOSettingsRequest) -> dict[str, Any]:
     """Update OpenVINO Model Server endpoint, model IDs, device, and optional HF token."""
