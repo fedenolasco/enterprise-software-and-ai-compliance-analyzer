@@ -641,7 +641,7 @@ export default function ConfigPage() {
 
       {/* Provider Switcher */}
       <div className="rounded-md border p-4">
-        <h3 className="mb-3 text-sm font-medium">
+        <h3 className="mb-3 text-lg font-semibold">
           <Tooltip term="model_provider">Model Provider Switcher</Tooltip>
         </h3>
         <p className="mb-3 text-xs text-muted-foreground">
@@ -714,7 +714,7 @@ export default function ConfigPage() {
           <div className="mt-4 rounded-md border p-4">
             <div className="mb-3 flex items-center gap-2">
               <Key className="h-4 w-4" />
-              <h3 className="text-sm font-medium">OpenAI API Key & Model</h3>
+              <h3 className="text-base font-semibold">OpenAI API Key & Model</h3>
             </div>
             <p className="mb-3 text-xs text-muted-foreground">
               Manage your OpenAI API key and model name here. The key is stored in the local{" "}
@@ -806,7 +806,7 @@ export default function ConfigPage() {
             {/* OpenAI config table — all openai_* params grouped here */}
             {config.categories["Model"] && (
               <div className="mt-4">
-                <h4 className="mb-2 text-sm font-semibold">OpenAI Parameters</h4>
+                <h4 className="mb-2 text-base font-semibold">OpenAI Parameters</h4>
                 <div className="overflow-hidden rounded-md border">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50">
@@ -850,7 +850,7 @@ export default function ConfigPage() {
         {/* OpenVINO Model Server settings — shown when model or embedding provider uses openvino */}
         {(config.model_provider === "openvino" || config.embedding_provider === "openvino") && (
           <div className="mt-4 space-y-3 rounded-md border p-4">
-            <h4 className="text-sm font-semibold">OpenVINO Model Server (shared local runtime)</h4>
+            <h4 className="text-base font-semibold">OpenVINO Model Server (shared local runtime)</h4>
             <p className="text-xs text-muted-foreground">
               You can mix and match providers. The text model below is used only when the Model Provider
               is OpenVINO; the embedding model below is used only when the Embedding Provider is OpenVINO.
@@ -990,7 +990,7 @@ export default function ConfigPage() {
         {/* Foundry Local model selector + params — only relevant when microsoft-foundry-local is active */}
         {config.categories["Model"] && config.model_provider === "microsoft-foundry-local" && (
           <div className="mt-4 space-y-3">
-            <h4 className="text-sm font-semibold">Foundry Local Model</h4>
+            <h4 className="text-base font-semibold">Foundry Local Model</h4>
             <p className="text-xs text-muted-foreground">
               Select a model from the Foundry Local catalog. Use{" "}
               <code className="rounded bg-muted px-1">{"foundry model download <alias>"}</code> to download
@@ -1335,7 +1335,7 @@ export default function ConfigPage() {
 
       {/* Embedding Provider Switcher */}
       <div className="rounded-md border p-4">
-        <h3 className="mb-3 text-sm font-medium">
+        <h3 className="mb-3 text-lg font-semibold">
           <Tooltip term="embedding_provider">Embedding Provider Switcher</Tooltip>
         </h3>
         <p className="mb-3 text-xs text-muted-foreground">
@@ -1371,7 +1371,7 @@ export default function ConfigPage() {
         {/* Embeddings config table — rendered here for proximity to the switcher */}
         {config.categories["Embeddings"] && (
           <div className="mt-4">
-            <h4 className="mb-2 text-sm font-semibold">Embeddings</h4>
+            <h4 className="mb-2 text-base font-semibold">Embeddings</h4>
             <div className="overflow-hidden rounded-md border">
               <table className="w-full text-sm">
                 <thead className="bg-muted/50">
