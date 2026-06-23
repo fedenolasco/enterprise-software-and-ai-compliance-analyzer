@@ -110,6 +110,9 @@ export default function ConfigPage() {
   const [openvinoMessage, setOpenvinoMessage] = useState<string | null>(null);
   const [openvinoError, setOpenvinoError] = useState<string | null>(null);
   const [openvinoRunning, setOpenvinoRunning] = useState<boolean | null>(null);
+  const [openvinoModelCacheDir, setOpenvinoModelCacheDir] = useState<string>("");
+  const [openvinoDockerModelsVolume, setOpenvinoDockerModelsVolume] = useState<string>("");
+  const [openvinoDockerCacheVolume, setOpenvinoDockerCacheVolume] = useState<string>("");
   const [startingOpenVINO, setStartingOpenVINO] = useState(false);
   const [stoppingOpenVINO, setStoppingOpenVINO] = useState(false);
   const [downloadingOpenVINO, setDownloadingOpenVINO] = useState(false);
@@ -502,12 +505,18 @@ export default function ConfigPage() {
         embedding_model: string;
         device: string;
         hf_configured: boolean;
+        model_cache_dir: string;
+        docker_models_volume: string;
+        docker_cache_volume: string;
       }>("/provider/openvino-status");
       setOpenvinoRunning(result.service_running);
       setOpenvinoEndpoint(result.endpoint || "http://localhost:8100");
       setOpenvinoModel(result.model || "OpenVINO/Qwen3-8B-int4-cw-ov");
       setOpenvinoEmbeddingModel(result.embedding_model || "OpenVINO/Qwen3-Embedding-0.6B");
       setOpenvinoDevice(result.device || "NPU");
+      setOpenvinoModelCacheDir(result.model_cache_dir || "");
+      setOpenvinoDockerModelsVolume(result.docker_models_volume || "");
+      setOpenvinoDockerCacheVolume(result.docker_cache_volume || "");
     } catch (err) {
       setOpenvinoRunning(false);
       setOpenvinoError(err instanceof Error ? err.message : "Failed to check OpenVINO status");
@@ -904,6 +913,16 @@ export default function ConfigPage() {
               {openvinoRunning === true
                 ? `✓ OVMS is responding at ${providerInfo.current.openvino_endpoint}`
                 : `⚠ OVMS is not responding at ${providerInfo.current.openvino_endpoint || "http://localhost:8100"}. Start OpenVINO Model Server before using OpenVINO providers.`}
+            </div>
+
+            <div className="rounded-md border bg-muted/30 p-3">
+              <p className="text-xs font-medium text-muted-foreground">Model/cache locations</p>
+              <p className="mt-1 text-xs">
+                Hugging Face downloads from the UI are cached under: <code className="rounded bg-muted px-1 font-mono break-all">{openvinoModelCacheDir || "(default Hugging Face cache)"}</code>
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Docker OVMS uses volumes <code className="rounded bg-muted px-1">{openvinoDockerModelsVolume || "openvino_models"}</code> for models and <code className="rounded bg-muted px-1">{openvinoDockerCacheVolume || "openvino_cache"}</code> for compiled cache.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

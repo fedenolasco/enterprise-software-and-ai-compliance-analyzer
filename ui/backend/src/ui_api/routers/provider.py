@@ -491,6 +491,17 @@ def _openvino_model_is_curated(model_id: str) -> bool:
     return model_id in {m["alias"] for m in [*OPENVINO_LLM_MODELS, *OPENVINO_EMBEDDING_MODELS]}
 
 
+def _get_huggingface_cache_dir() -> str:
+    """Return the expected Hugging Face Hub cache directory for model downloads."""
+    hf_hub_cache = os.environ.get("HUGGINGFACE_HUB_CACHE")
+    if hf_hub_cache:
+        return hf_hub_cache
+    hf_home = os.environ.get("HF_HOME")
+    if hf_home:
+        return str(Path(hf_home) / "hub")
+    return str(Path.home() / ".cache" / "huggingface" / "hub")
+
+
 @router.get("/openvino-status")
 async def get_openvino_status() -> dict[str, Any]:
     """Return OpenVINO Model Server and Hugging Face configuration status."""
@@ -506,6 +517,9 @@ async def get_openvino_status() -> dict[str, Any]:
         "hf_token_masked": _mask_key(settings.hf_token) if settings.hf_token else None,
         "models": OPENVINO_LLM_MODELS,
         "embedding_models": OPENVINO_EMBEDDING_MODELS,
+        "model_cache_dir": _get_huggingface_cache_dir(),
+        "docker_models_volume": "openvino_models",
+        "docker_cache_volume": "openvino_cache",
         "helper_text": (
             "HF_TOKEN is optional for public OpenVINO models. Configure it only for gated/private "
             "models or to avoid anonymous Hugging Face download limits."
