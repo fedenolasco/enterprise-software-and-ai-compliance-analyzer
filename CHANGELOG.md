@@ -50,6 +50,7 @@ All notable project changes should be documented here as the implementation evol
   - Clarified OpenVINO UI state by separating selected models, cached local repository status, and the model currently served by OVMS; renamed actions to "Start / Load OVMS", optional "Pre-cache" buttons, and "Refresh OVMS Status".
   - Normalized user-entered `OPENVINO_OVMS_PATH` values so forward slashes, backslashes, quoted paths, and folders containing `ovms.exe` save consistently.
   - Added provider-aware OVMS readiness: when current model or embedding provider requires OpenVINO, the Configuration page starts OVMS and loads the selected model on page load.
+  - Added OpenVINO single/multi-mode startup logic: text-only uses single-model `text_generation`, embedding-only uses single-model `embeddings`, and text+embedding uses one OVMS process with generated `config.json`.
   - Added provider-switch progress jobs for lagging local-runtime switches such as Foundry Local service startup, while keeping simple `.env`-only switches synchronous.
   - Added a non-blocking local hardware telemetry panel with CPU/RAM/GPU/NPU/process indicators and contextual local-runtime guidance instead of warning solely because Foundry Local and OVMS are both running.
   - Refined NPU detection to avoid false positives such as USB input devices and documented that NPU memory availability is not exposed by standard Windows counters on tested hardware.

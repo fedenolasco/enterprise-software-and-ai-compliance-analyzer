@@ -44,6 +44,7 @@ The OpenVINO provider uses these environment variables:
 - **Positive:** The project gains a local embedding provider with a verified OpenVINO embedding model path.
 - **Positive:** OpenVINO can target Intel AI Boost NPU, Intel GPU, or CPU.
 - **Positive:** The same OpenAI-compatible client pattern can be reused for text and embedding calls.
+- **Positive:** When both model and embedding providers are `openvino`, the backend starts one OVMS process with a generated `config.json` that serves both the text-generation and embedding models from the same endpoint.
 - **Positive:** The UI can cache Hugging Face models locally and stores the optional token only in gitignored `.env` files.
 - **Positive:** Native Windows OVMS avoids Docker `/dev/accel` passthrough issues and gives OVMS direct access to host Intel acceleration devices.
 - **Positive:** The Configuration page favors NPU-friendly OpenVINO INT4 models, explains that OVMS downloads/caches missing Hugging Face models, and starts OVMS as a background job with progress logs.
@@ -52,6 +53,7 @@ The OpenVINO provider uses these environment variables:
 - **Trade-off:** The UI can start OVMS only when `ovms.exe` is on the UI backend process `PATH` or `OPENVINO_OVMS_PATH` points to the extracted executable.
 - **Trade-off:** The Compose stack now remains focused on data and observability services; OVMS lifecycle is managed as a host process from the Configuration page or PowerShell.
 - **Trade-off:** Switching to OpenVINO embeddings changes vector dimension to 1024, requiring schema alignment and data re-ingestion.
+- **Trade-off:** If only one provider is `openvino`, OVMS remains in single-model mode for that task. If both providers are `openvino`, an already-running single-model OVMS process is restarted so it can load the multi-model config.
 
 ## Implementation files
 

@@ -1248,7 +1248,7 @@ export default function ConfigPage() {
             <div className="mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
               {foundryServiceRunning && openvinoRunning && (
                 <p className="mb-2">
-                  Microsoft Foundry Local and OVMS are both running. This is allowed, but if CPU/RAM/GPU/NPU usage is high, stop the unused runtime or switch to OpenAI/Placeholder.
+                  Microsoft Foundry Local and OVMS are independent local runtimes. They can run at the same time, but they do not start or stop each other. If CPU/RAM/GPU/NPU usage is high, stop the unused runtime or switch to OpenAI/Placeholder.
                 </p>
               )}
               {hardwareStatus.notes.map((note) => <p key={note}>{note}</p>)}

@@ -529,7 +529,13 @@ The Configuration page distinguishes three states:
 - **Cached model:** a model directory detected under `.openvino\models`; the "Pre-cache" buttons explicitly download/cache models ahead of time.
 - **Served model:** the model the currently running OVMS process appears to be serving based on OVMS logs.
 
-The "Start / Load OVMS" button starts or reuses OVMS for the selected text-generation model. The "Pre-cache" buttons are optional; they reduce first-start latency but are not mandatory because OVMS can also download/prepare a selected Hugging Face model during startup. "Refresh OVMS Status" manually refreshes health, cache detection, and served-model status when OVMS was started, stopped, or changed outside the Configuration page.
+The "Start / Load OVMS" button starts or reuses OVMS based on the active provider combination:
+
+- If only `MODEL_PROVIDER=openvino`, the backend starts OVMS in single-model `text_generation` mode using `OPENVINO_MODEL`.
+- If only `EMBEDDING_PROVIDER=openvino`, the backend starts OVMS in single-model `embeddings` mode using `OPENVINO_EMBEDDING_MODEL`.
+- If both providers are `openvino`, the backend starts OVMS in multi-model mode. The helper pulls/prepares both models, rebuilds `.openvino\models\config.json`, adds both models to that config, and starts one OVMS process with `--config_path` so text generation and embeddings are served from the same endpoint.
+
+The "Pre-cache" buttons are optional; they reduce first-start latency but are not mandatory because OVMS can also download/prepare selected Hugging Face models during startup. "Refresh OVMS Status" manually refreshes health, cache detection, and served-model status when OVMS was started, stopped, or changed outside the Configuration page.
 
 Provider switches that can start lagging local child processes use the same progress pattern. Switching to Foundry Local runs as a provider-switch job because the backend may need to start the Foundry Local service before the switch is fully ready. The Configuration page shows queued/running status, a progress bar, and a clear message until the switch completes. Provider switches that only update `.env` values remain synchronous.
 
@@ -576,7 +582,13 @@ To run a one-off embeddings OVMS process instead of text generation, use:
 .\scripts\setup-ovms.ps1 -Start -Task embeddings -EmbeddingModel OpenVINO/Qwen3-Embedding-0.6B
 ```
 
-Serving both text generation and embeddings from one OVMS endpoint may require an OVMS model repository/config that includes both models. Keep `OPENVINO_ENDPOINT` pointed at the endpoint that exposes the OpenAI-compatible routes needed by the active provider settings.
+To run both text generation and embeddings from one OVMS endpoint, use multi-model mode:
+
+```powershell
+.\scripts\setup-ovms.ps1 -Start -MultiModel -ForceRestart
+```
+
+This follows the OVMS `config.json` model repository pattern documented by OpenVINO Model Server. The helper keeps public model IDs as served model names so clients can use `OPENVINO_MODEL` and `OPENVINO_EMBEDDING_MODEL` unchanged.
 
 Switching to OpenVINO embeddings changes vector dimension to 1024. Reset and re-ingest data after switching.
 

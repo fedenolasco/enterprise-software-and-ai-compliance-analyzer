@@ -888,7 +888,11 @@ async def start_openvino_service() -> dict[str, Any]:
 
     settings = get_agent_brain_settings()
     running = await _check_openvino_running(settings.openvino_endpoint)
-    if running:
+    multi_model = settings.model_provider == "openvino" and settings.embedding_provider == "openvino"
+    embeddings_only = settings.model_provider != "openvino" and settings.embedding_provider == "openvino"
+    primary_model = settings.openvino_embedding_model if embeddings_only else settings.openvino_model
+    task = "embeddings" if embeddings_only else "text_generation"
+    if running and not multi_model:
         return {
             "job_id": "already-running",
             "status": "complete",
@@ -904,28 +908,37 @@ async def start_openvino_service() -> dict[str, Any]:
     args = [
         "-Start",
         "-Model",
-        settings.openvino_model,
+        primary_model,
         "-EmbeddingModel",
         settings.openvino_embedding_model,
+        "-Task",
+        task,
         "-Device",
         settings.openvino_device,
         "-Port",
         str(_extract_endpoint_port(settings.openvino_endpoint, default=8100)),
-    ] + (["-OvmsPath", settings.openvino_ovms_path] if settings.openvino_ovms_path else [])
+    ]
+    if multi_model:
+        args.extend(["-MultiModel", "-ForceRestart"])
+    if settings.openvino_ovms_path:
+        args.extend(["-OvmsPath", settings.openvino_ovms_path])
     job_id = str(uuid.uuid4())
+    start_mode = "text+embedding multi-model config" if multi_model else "single-model source_model"
     job: dict[str, Any] = {
         "job_id": job_id,
         "status": "queued",
-        "message": f"Queued native OVMS start on {settings.openvino_device} for {settings.openvino_model}.",
+        "message": f"Queued native OVMS start on {settings.openvino_device} using {start_mode} ({task}).",
         "percent": 0,
         "output": [],
         "success": False,
         "started": False,
         "endpoint": settings.openvino_endpoint,
         "runtime_mode": "native-windows",
-        "model": settings.openvino_model,
+        "model": primary_model,
         "embedding_model": settings.openvino_embedding_model,
         "device": settings.openvino_device,
+        "multi_model": multi_model,
+        "task": task,
     }
     _OPENVINO_START_JOBS[job_id] = job
     asyncio.create_task(_run_openvino_start_job(job_id, args))
@@ -1034,7 +1047,7 @@ async def _run_foundry_stop_job(job_id: str) -> None:
     # when a manager is available, then fall back to the CLI service commands.
     global _FOUNDRY_MANAGER
     if _FOUNDRY_MANAGER is not None:
-        for method_name in ("stop_service", "stop", "shutdown", "close"):
+        for method_name in ("stop_web_service", "stop_service", "stop", "shutdown", "close"):
             method = getattr(_FOUNDRY_MANAGER, method_name, None)
             if callable(method):
                 try:

@@ -23,6 +23,8 @@ param(
   [switch]$Start,
   [switch]$Stop,
   [switch]$Status,
+  [switch]$MultiModel,
+  [switch]$ForceRestart,
   [string]$OvmsPath = $(if ($env:OPENVINO_OVMS_PATH) { $env:OPENVINO_OVMS_PATH } else { "ovms.exe" }),
   [string]$Model = $env:OPENVINO_MODEL,
   [string]$EmbeddingModel = $env:OPENVINO_EMBEDDING_MODEL,
@@ -32,6 +34,7 @@ param(
   [string]$Device = $(if ($env:OPENVINO_DEVICE) { $env:OPENVINO_DEVICE } else { "NPU" }),
   [int]$Port = $(if ($env:OPENVINO_PORT) { [int]$env:OPENVINO_PORT } else { 8100 }),
   [string]$ModelRepositoryPath,
+  [string]$ConfigPath,
   [string]$CacheDir,
   [int]$MaxPromptLen = 2000,
   [int]$CacheSize = 2
@@ -43,6 +46,7 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 if (-not $Model) { $Model = "OpenVINO/Qwen3-8B-int4-cw-ov" }
 if (-not $EmbeddingModel) { $EmbeddingModel = "OpenVINO/Qwen3-Embedding-0.6B" }
 if (-not $ModelRepositoryPath) { $ModelRepositoryPath = Join-Path $RepoRoot ".openvino\models" }
+if (-not $ConfigPath) { $ConfigPath = Join-Path $ModelRepositoryPath "config.json" }
 if (-not $CacheDir) { $CacheDir = Join-Path $RepoRoot ".openvino\cache" }
 
 function Resolve-OvmsPath {
@@ -139,6 +143,60 @@ function Stop-Ovms {
   }
 }
 
+function Convert-ModelIdToName {
+  param([string]$ModelId)
+  # Keep the public model ID as the served model name so OpenAI-compatible
+  # clients can keep using OPENVINO_MODEL / OPENVINO_EMBEDDING_MODEL unchanged.
+  return $ModelId
+}
+
+function Convert-ModelIdToRepoPath {
+  param([string]$ModelId)
+  return $ModelId.Replace("/", "\")
+}
+
+function Invoke-OvmsPull {
+  param(
+    [string]$ResolvedOvmsPath,
+    [string]$SourceModel,
+    [string]$TaskName,
+    [string]$TargetDevice,
+    [string]$RepositoryPath
+  )
+
+  $pullArgs = @(
+    "--pull",
+    "--model_repository_path", $RepositoryPath,
+    "--source_model", $SourceModel,
+    "--task", $TaskName,
+    "--target_device", $TargetDevice
+  )
+  if ($TaskName -eq "embeddings") {
+    $pullArgs += @("--pooling", "LAST")
+  }
+  Write-Host "Pulling/preparing $TaskName model: $SourceModel" -ForegroundColor Cyan
+  & $ResolvedOvmsPath @pullArgs
+  if ($LASTEXITCODE -ne 0) {
+    throw "OVMS pull failed for $SourceModel with exit code $LASTEXITCODE."
+  }
+}
+
+function Add-OvmsModelToConfig {
+  param(
+    [string]$ResolvedOvmsPath,
+    [string]$ConfigFile,
+    [string]$ModelId
+  )
+
+  $modelName = Convert-ModelIdToName -ModelId $ModelId
+  $modelPath = Convert-ModelIdToRepoPath -ModelId $ModelId
+  Write-Host "Adding model to OVMS config: $modelName -> $modelPath" -ForegroundColor Cyan
+  & $ResolvedOvmsPath --add_to_config --config_path $ConfigFile --model_name $modelName --model_path $modelPath
+  if ($LASTEXITCODE -ne 0) {
+    throw "OVMS add_to_config failed for $ModelId with exit code $LASTEXITCODE."
+  }
+}
+
 if (-not $Start -and -not $Stop -and -not $Status) {
   $Status = $true
 }
@@ -166,8 +224,14 @@ if ($Stop) {
 
 if ($Start) {
   if (Test-OvmsEndpoint -RestPort $Port) {
-    Write-Host "OVMS is already responding at http://localhost:$Port" -ForegroundColor Green
-    exit 0
+    if ($ForceRestart) {
+      Write-Host "OVMS is already responding at http://localhost:$Port. Restarting because -ForceRestart was requested..." -ForegroundColor Yellow
+      Stop-Ovms -RestPort $Port
+      Start-Sleep -Seconds 2
+    } else {
+      Write-Host "OVMS is already responding at http://localhost:$Port" -ForegroundColor Green
+      exit 0
+    }
   }
 
   $resolvedOvms = Resolve-OvmsPath -Candidate $OvmsPath
@@ -177,35 +241,59 @@ if ($Start) {
 
   $selectedModel = if ($Task -eq "embeddings") { $EmbeddingModel } else { $Model }
   $modelName = $selectedModel.Replace("/", "_").Replace("\\", "_")
+  # OVMS writes --cache_dir into a JSON plugin_config inside graph.pbtxt.
+  # Raw Windows backslashes can become invalid JSON escapes after protobuf
+  # string handling, causing "Plugin config is in wrong format" at startup.
+  # Keep filesystem paths as normal Windows paths, but pass a JSON-safe
+  # forward-slash cache path to OVMS.
+  # PowerShell does not use backslash as an escape character in strings; "\"
+  # is the single backslash path separator we need to replace.
+  $ovmsCacheDir = $CacheDir.Replace("\", "/")
   $logPath = Join-Path $RepoRoot ".openvino\ovms-$Task-$Port.log"
   $errorLogPath = Join-Path $RepoRoot ".openvino\ovms-$Task-$Port.err.log"
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $logPath) | Out-Null
 
-  $arguments = @(
-    "--rest_port", "$Port",
-    "--source_model", $selectedModel,
-    "--model_repository_path", $ModelRepositoryPath,
-    "--model_name", $modelName,
-    "--task", $Task,
-    "--target_device", $Device,
-    "--cache_size", "$CacheSize",
-    "--cache_dir", $CacheDir
-  )
-
-  if ($Task -eq "embeddings") {
-    $arguments += @("--pooling", "LAST")
+  if ($MultiModel) {
+    Invoke-OvmsPull -ResolvedOvmsPath $resolvedOvms -SourceModel $Model -TaskName "text_generation" -TargetDevice $Device -RepositoryPath $ModelRepositoryPath
+    Invoke-OvmsPull -ResolvedOvmsPath $resolvedOvms -SourceModel $EmbeddingModel -TaskName "embeddings" -TargetDevice $Device -RepositoryPath $ModelRepositoryPath
+    if (Test-Path $ConfigPath) { Remove-Item -Force $ConfigPath }
+    Add-OvmsModelToConfig -ResolvedOvmsPath $resolvedOvms -ConfigFile $ConfigPath -ModelId $Model
+    Add-OvmsModelToConfig -ResolvedOvmsPath $resolvedOvms -ConfigFile $ConfigPath -ModelId $EmbeddingModel
+    $arguments = @(
+      "--rest_port", "$Port",
+      "--config_path", $ConfigPath
+    )
   } else {
-    $arguments += @("--enable_prefix_caching", "true", "--max_prompt_len", "$MaxPromptLen")
+    $arguments = @(
+      "--rest_port", "$Port",
+      "--source_model", $selectedModel,
+      "--model_repository_path", $ModelRepositoryPath,
+      "--model_name", $modelName,
+      "--task", $Task,
+      "--target_device", $Device,
+      "--cache_size", "$CacheSize",
+      "--cache_dir", $ovmsCacheDir
+    )
+
+    if ($Task -eq "embeddings") {
+      $arguments += @("--pooling", "LAST")
+    } else {
+      $arguments += @("--enable_prefix_caching", "true", "--max_prompt_len", "$MaxPromptLen")
+    }
   }
 
   Write-Host "Starting native OVMS..." -ForegroundColor Cyan
   Write-Host "  Executable: $resolvedOvms" -ForegroundColor DarkGray
   Write-Host "  Endpoint:   http://localhost:$Port" -ForegroundColor DarkGray
   Write-Host "  Task:       $Task" -ForegroundColor DarkGray
+  Write-Host "  MultiModel: $MultiModel" -ForegroundColor DarkGray
   Write-Host "  Model:      $selectedModel" -ForegroundColor DarkGray
+  if ($MultiModel) { Write-Host "  Embeddings: $EmbeddingModel" -ForegroundColor DarkGray }
   Write-Host "  Device:     $Device" -ForegroundColor DarkGray
   Write-Host "  Repository: $ModelRepositoryPath" -ForegroundColor DarkGray
+  if ($MultiModel) { Write-Host "  Config:     $ConfigPath" -ForegroundColor DarkGray }
   Write-Host "  Compile cache: $CacheDir" -ForegroundColor DarkGray
+  Write-Host "  OVMS cache arg: $ovmsCacheDir" -ForegroundColor DarkGray
   Write-Host "  Log:        $logPath" -ForegroundColor DarkGray
   Write-Host "  Error log:  $errorLogPath" -ForegroundColor DarkGray
 
