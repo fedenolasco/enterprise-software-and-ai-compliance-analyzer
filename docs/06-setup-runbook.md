@@ -1,4 +1,4 @@
-# Setup Runbook
+﻿# Setup Runbook
 
 ## Phase 0 and Phase 1 bootstrap
 
@@ -468,7 +468,7 @@ MODEL_PROVIDER=openvino
 EMBEDDING_PROVIDER=openvino
 OPENVINO_ENDPOINT=http://localhost:8100
 OPENVINO_MODEL=OpenVINO/Qwen3-8B-int4-cw-ov
-OPENVINO_EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B
+OPENVINO_EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B-int8-ov
 OPENVINO_DEVICE=NPU
 # Optional; use this when ovms.exe is not on the UI backend process PATH.
 # OPENVINO_OVMS_PATH=C:\tools\ovms\2026.2.1\ovms.exe
@@ -515,7 +515,7 @@ The helper script automatically dot-sources `setupvars.ps1` from the same folder
 
 #### NPU-first serving behavior
 
-The Configuration page marks NPU-friendly OpenVINO models with `⚡`. These are INT4 OpenVINO models that can be served on `NPU`, `GPU`, or `CPU`, with `OpenVINO/Qwen3-8B-int4-cw-ov` treated as the NPU-first quality default and `OpenVINO/Qwen3-0.6B-int4-ov` kept as the fastest smoke-test model.
+The Configuration page marks NPU-friendly OpenVINO models with `âš¡`. These are INT4 OpenVINO models that can be served on `NPU`, `GPU`, or `CPU`, with `OpenVINO/Qwen3-8B-int4-cw-ov` treated as the NPU-first quality default and `OpenVINO/Qwen3-0.6B-int4-ov` kept as the fastest smoke-test model.
 
 When `OPENVINO_DEVICE=NPU`, OVMS compiles and loads the selected model onto the Intel NPU and runs inference there. The model files remain on disk under `.openvino\models`, while compiled artifacts are cached under `.openvino\cache` so subsequent NPU starts are faster. For LLMs, runtime KV cache also consumes target-device memory, so long prompts and concurrency can increase memory pressure.
 
@@ -579,7 +579,7 @@ The helper starts OVMS with the configured text-generation model, target device,
 To run a one-off embeddings OVMS process instead of text generation, use:
 
 ```powershell
-.\scripts\setup-ovms.ps1 -Start -Task embeddings -EmbeddingModel OpenVINO/Qwen3-Embedding-0.6B
+.\scripts\setup-ovms.ps1 -Start -Task embeddings -EmbeddingModel OpenVINO/Qwen3-Embedding-0.6B-int8-ov
 ```
 
 To run both text generation and embeddings from one OVMS endpoint, use multi-model mode:
@@ -594,7 +594,7 @@ Switching to OpenVINO embeddings changes vector dimension to 1024. Reset and re-
 
 ### Microsoft Foundry Local setup
 
-Microsoft Foundry Local is a native install that runs AI models directly on your device using local hardware (CPU, GPU, or NPU). It is **not** a Docker service — it needs direct hardware access for inference. The project's [`docker-compose.yml`](../docker-compose.yml) runs PostgreSQL, pgvector, and Neo4j as data services; Foundry Local runs natively alongside them.
+Microsoft Foundry Local is a native install that runs AI models directly on your device using local hardware (CPU, GPU, or NPU). It is **not** a Docker service â€” it needs direct hardware access for inference. The project's [`docker-compose.yml`](../docker-compose.yml) runs PostgreSQL, pgvector, and Neo4j as data services; Foundry Local runs natively alongside them.
 
 #### Hardware requirements
 
@@ -828,7 +828,7 @@ When Phoenix and Langfuse are running and enabled, the live exporter clients in 
 | `export_langfuse_usage()` | Langfuse API (`/api/public/ingestion`) | `LangfuseUsageEvent` payloads with token usage and cost | `LANGFUSE_ENABLED=true` |
 | `export_safety_events()` | Phoenix HTTP collector (`/v1/spans`) | `SafetyFlagEvent` payloads | `PHOENIX_ENABLED=true` |
 
-All exporters fail gracefully — if the service is unreachable, disabled, or returns an error, the exporter logs a warning and returns a failed `ExportResult` without raising. The agent workflow continues and local audit persistence remains the durable governance record.
+All exporters fail gracefully â€” if the service is unreachable, disabled, or returns an error, the exporter logs a warning and returns a failed `ExportResult` without raising. The agent workflow continues and local audit persistence remains the durable governance record.
 
 To enable live exporters, set these environment variables in `agent-brain/.env`:
 
@@ -933,3 +933,4 @@ After a reset and re-ingestion, validate that:
 - Recommendation drafting creates deterministic drafts and flags HITL-required high-risk decisions.
 - HITL finalization gate blocks final output unless a human decision approves the draft.
 - HITL and observability records from previous demo runs do not alter the current recommendation flow.
+

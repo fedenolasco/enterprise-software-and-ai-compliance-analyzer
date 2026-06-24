@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, Settings, Power, AlertTriangle, Key, Trash2 } from "lucide-react";
@@ -7,7 +7,42 @@ import { PageIntro } from "@/components/common/PageIntro";
 import { Tooltip } from "@/components/common/Tooltip";
 import { Callout } from "@/components/common/Callout";
 
-const DEFAULT_FOUNDRY_CACHE_DIR = "C:\\Users\\feden\\.foundry\\cache\\models";
+function normalizePathForComparison(path: string): string {
+  return path.trim().replace(/^['"]|['"]$/g, "").replace(/\\/g, "/").replace(/\/+$/g, "").toLowerCase();
+}
+
+function isPathInsideWorkspace(path: string, workspaceRoot: string): boolean {
+  const normalizedPath = normalizePathForComparison(path);
+  const normalizedWorkspace = normalizePathForComparison(workspaceRoot);
+  return Boolean(normalizedPath && normalizedWorkspace && (normalizedPath === normalizedWorkspace || normalizedPath.startsWith(`${normalizedWorkspace}/`)));
+}
+
+interface ModelCatalogEntry {
+  provider: string;
+  role: string;
+  alias: string;
+  label: string;
+  description: string;
+  device: string;
+  dimension?: string | null;
+  npu_recommended?: string;
+  serving_note?: string;
+  default?: boolean;
+  validated?: boolean;
+  last_checked?: string;
+  validation_source?: string;
+  validation_message?: string;
+}
+
+function defaultCatalogAlias(models: ModelCatalogEntry[], fallback = ""): string {
+  return models.find((m) => m.default)?.alias || models[0]?.alias || fallback;
+}
+
+function validationBadge(model: ModelCatalogEntry | undefined): string {
+  if (!model) return "âšª unchecked";
+  if (model.validated) return `âœ… checked ${model.last_checked || "date unknown"}`;
+  return `âš  unchecked${model.last_checked ? ` ${model.last_checked}` : ""}`;
+}
 
 interface ProviderInfo {
   current: {
@@ -39,29 +74,9 @@ interface ProviderInfo {
     description: string;
     requires_api_key: boolean;
   }>;
-  foundry_local_models: Array<{
-    alias: string;
-    label: string;
-    description: string;
-    device: string;
-  }>;
-  openvino_models: Array<{
-    alias: string;
-    label: string;
-    description: string;
-    device: string;
-    npu_recommended?: string;
-    serving_note?: string;
-  }>;
-  openvino_embedding_models: Array<{
-    alias: string;
-    label: string;
-    description: string;
-    device: string;
-    dimension: string;
-    npu_recommended?: string;
-    serving_note?: string;
-  }>;
+  foundry_local_models: ModelCatalogEntry[];
+  openvino_models: ModelCatalogEntry[];
+  openvino_embedding_models: ModelCatalogEntry[];
 }
 
 interface HardwareStatus {
@@ -127,6 +142,8 @@ export default function ConfigPage() {
   const [downloadOutput, setDownloadOutput] = useState<string[]>([]);
   const [foundryInstalled, setFoundryInstalled] = useState<boolean | null>(null);
   const [foundryServiceRunning, setFoundryServiceRunning] = useState<boolean>(false);
+  const [foundryTextModelLoaded, setFoundryTextModelLoaded] = useState<boolean | null>(null);
+  const [foundryEmbeddingModelLoaded, setFoundryEmbeddingModelLoaded] = useState<boolean | null>(null);
   const [installingFoundry, setInstallingFoundry] = useState(false);
   const [installJobId, setInstallJobId] = useState<string | null>(null);
   const [installJobStatus, setInstallJobStatus] = useState<string | null>(null);
@@ -136,6 +153,8 @@ export default function ConfigPage() {
   const [installInstructions, setInstallInstructions] = useState<string | null>(null);
   const [installCommand, setInstallCommand] = useState<string | null>(null);
   const [foundryCacheDir, setFoundryCacheDir] = useState<string>("");
+  const [foundryDefaultCacheDir, setFoundryDefaultCacheDir] = useState<string>("");
+  const [foundryWorkspaceRoot, setFoundryWorkspaceRoot] = useState<string>("");
   const [newCacheDir, setNewCacheDir] = useState("");
   const [savingCacheDir, setSavingCacheDir] = useState(false);
   const [cacheDirMessage, setCacheDirMessage] = useState<string | null>(null);
@@ -153,6 +172,10 @@ export default function ConfigPage() {
   const [openvinoError, setOpenvinoError] = useState<string | null>(null);
   const [openvinoRunning, setOpenvinoRunning] = useState<boolean | null>(null);
   const [openvinoModelCacheDir, setOpenvinoModelCacheDir] = useState<string>("");
+  const [openvinoModelRepositoryRoot, setOpenvinoModelRepositoryRoot] = useState<string>("");
+  const [openvinoCacheDir, setOpenvinoCacheDir] = useState<string>("");
+  const [openvinoLogDir, setOpenvinoLogDir] = useState<string>("");
+  const [openvinoWorkspaceRoot, setOpenvinoWorkspaceRoot] = useState<string>("");
   const [openvinoModelCached, setOpenvinoModelCached] = useState(false);
   const [openvinoEmbeddingModelCached, setOpenvinoEmbeddingModelCached] = useState(false);
   const [openvinoModelRepositoryPath, setOpenvinoModelRepositoryPath] = useState<string>("");
@@ -179,6 +202,8 @@ export default function ConfigPage() {
   const [downloadingOpenVINO, setDownloadingOpenVINO] = useState(false);
   const [openvinoDownloadJobId, setOpenvinoDownloadJobId] = useState<string | null>(null);
   const [openvinoDownloadMessage, setOpenvinoDownloadMessage] = useState<string | null>(null);
+  const [checkingModelCatalog, setCheckingModelCatalog] = useState(false);
+  const [modelCatalogMessage, setModelCatalogMessage] = useState<string | null>(null);
   const readinessStartedRef = useRef<Record<string, boolean>>({});
 
   const fetchAll = useCallback(async (silent = false) => {
@@ -281,7 +306,7 @@ export default function ConfigPage() {
 
     // Show a specific message when switching to Microsoft Foundry Local (may take a few seconds to auto-start)
     if (provider === "microsoft-foundry-local") {
-      setSwitchMessage("Switching to Microsoft Foundry Local — starting service if needed, this may take a few seconds...");
+      setSwitchMessage("Switching to Microsoft Foundry Local â€” starting service if needed, this may take a few seconds...");
     }
     if (provider === "openvino") {
       setSwitchMessage("Switching to OpenVINO Model Server. Start OVMS locally before running text generation or embeddings.");
@@ -465,6 +490,8 @@ export default function ConfigPage() {
     setFoundryModelJobPercent(0);
     setFoundryModelMessage(null);
     setFoundryModelError(null);
+    setFoundryTextModelLoaded(null);
+    setFoundryEmbeddingModelLoaded(null);
     setFoundrySteps([]);
     try {
       const result = await apiPost<{
@@ -582,12 +609,16 @@ export default function ConfigPage() {
         install_command: string;
         install_instructions: string;
         cache_dir: string;
+        default_cache_dir: string;
+        workspace_root: string;
       }>("/provider/foundry-status");
       setFoundryInstalled(result.installed);
       setFoundryServiceRunning(result.service_running);
       setInstallCommand(result.install_command);
       setInstallInstructions(result.install_instructions);
       setFoundryCacheDir(result.cache_dir || "");
+      setFoundryDefaultCacheDir(result.default_cache_dir || "");
+      setFoundryWorkspaceRoot(result.workspace_root || "");
     } catch {
       setFoundryInstalled(false);
     }
@@ -677,11 +708,11 @@ export default function ConfigPage() {
     setCacheDirMessage(null);
     setCacheDirError(null);
     try {
-      const result = await apiPost<{
+      const result = await apiDelete<{
         success: boolean;
         message: string;
         cache_dir: string;
-      }>("/provider/foundry-cache", { cache_dir: DEFAULT_FOUNDRY_CACHE_DIR });
+      }>("/provider/foundry-cache");
       setCacheDirMessage(`Model cache directory reset to default: ${result.cache_dir}`);
       setFoundryCacheDir(result.cache_dir);
       setNewCacheDir("");
@@ -745,11 +776,15 @@ export default function ConfigPage() {
           steps?: Array<{ step: string; status: string; message: string }>;
           warnings?: string[];
           service_running?: boolean;
+          model_downloaded?: boolean;
+          embedding_model_downloaded?: boolean;
           result?: {
             message: string;
             warnings: string[];
             steps: Array<{ step: string; status: string; message: string }>;
             service_running: boolean;
+            model_downloaded?: boolean;
+            embedding_model_downloaded?: boolean;
           };
         }>(`/provider/foundry-model/job/${foundryModelJobId}`);
         const payload = result.result || result;
@@ -761,6 +796,8 @@ export default function ConfigPage() {
           setStartServiceMessage(payload.message || result.message);
           setFoundryModelMessage(payload.message || result.message);
           setFoundryServiceRunning(Boolean(payload.service_running));
+          setFoundryTextModelLoaded(payload.model_downloaded ?? null);
+          setFoundryEmbeddingModelLoaded(payload.embedding_model_downloaded ?? null);
           if (payload.warnings?.length) setStartServiceError(payload.warnings.join(" "));
           setStartingService(false);
           setSavingFoundryModel(false);
@@ -837,6 +874,20 @@ export default function ConfigPage() {
     return () => window.clearInterval(interval);
   }, [foundryStopJobId, stoppingFoundryService, handleCheckFoundryStatus]);
 
+  const handleCheckModelCatalog = async () => {
+    setCheckingModelCatalog(true);
+    setModelCatalogMessage(null);
+    try {
+      const result = await apiPost<{ success: boolean; checked: number }>("/provider/model-catalog/check-all", {});
+      setModelCatalogMessage(`Checked ${result.checked} catalog model aliases. Refreshing provider catalog...`);
+      await fetchAll(true);
+    } catch (err) {
+      setModelCatalogMessage(err instanceof Error ? err.message : "Failed to check model catalog");
+    } finally {
+      setCheckingModelCatalog(false);
+    }
+  };
+
   const handleCheckOpenVINOStatus = useCallback(async () => {
     try {
       const result = await apiGet<{
@@ -847,6 +898,10 @@ export default function ConfigPage() {
         device: string;
         hf_configured: boolean;
         model_cache_dir: string;
+        openvino_model_repository_root: string;
+        openvino_cache_dir: string;
+        openvino_log_dir: string;
+        workspace_root: string;
         model_repository_path: string;
         embedding_model_repository_path: string;
         model_cached: boolean;
@@ -863,10 +918,14 @@ export default function ConfigPage() {
       }>("/provider/openvino-status");
       setOpenvinoRunning(result.service_running);
       setOpenvinoEndpoint(result.endpoint || "http://localhost:8100");
-      setOpenvinoModel(result.model || "OpenVINO/Qwen3-8B-int4-cw-ov");
-      setOpenvinoEmbeddingModel(result.embedding_model || "OpenVINO/Qwen3-Embedding-0.6B");
+      setOpenvinoModel(result.model || defaultCatalogAlias(providerInfo?.openvino_models || []));
+      setOpenvinoEmbeddingModel(result.embedding_model || defaultCatalogAlias(providerInfo?.openvino_embedding_models || []));
       setOpenvinoDevice(result.device || "NPU");
       setOpenvinoModelCacheDir(result.model_cache_dir || "");
+      setOpenvinoModelRepositoryRoot(result.openvino_model_repository_root || "");
+      setOpenvinoCacheDir(result.openvino_cache_dir || "");
+      setOpenvinoLogDir(result.openvino_log_dir || "");
+      setOpenvinoWorkspaceRoot(result.workspace_root || "");
       setOpenvinoModelRepositoryPath(result.model_repository_path || "");
       setOpenvinoEmbeddingModelRepositoryPath(result.embedding_model_repository_path || "");
       setOpenvinoModelCached(Boolean(result.model_cached));
@@ -893,15 +952,28 @@ export default function ConfigPage() {
     try {
       const body: Record<string, string> = {
         endpoint: openvinoEndpoint.trim() || providerInfo?.current.openvino_endpoint || "http://localhost:8100",
-        model: openvinoModel.trim() || providerInfo?.current.openvino_model || "OpenVINO/Qwen3-8B-int4-cw-ov",
-        embedding_model: openvinoEmbeddingModel.trim() || providerInfo?.current.openvino_embedding_model || "OpenVINO/Qwen3-Embedding-0.6B",
+        model: openvinoModel.trim() || providerInfo?.current.openvino_model || defaultCatalogAlias(providerInfo?.openvino_models || []),
+        embedding_model: openvinoEmbeddingModel.trim() || providerInfo?.current.openvino_embedding_model || defaultCatalogAlias(providerInfo?.openvino_embedding_models || []),
         device: openvinoDevice,
         ovms_path: openvinoOvmsPath.trim(),
+        model_repository_path: openvinoModelRepositoryRoot.trim(),
+        cache_dir: openvinoCacheDir.trim(),
+        log_dir: openvinoLogDir.trim(),
       };
       if (hfToken.trim()) body.hf_token = hfToken.trim();
-      const result = await apiPut<{ success: boolean; message: string; ovms_path?: string | null }>("/provider/openvino-settings", body);
+      const result = await apiPut<{
+        success: boolean;
+        message: string;
+        ovms_path?: string | null;
+        model_repository_path?: string;
+        cache_dir?: string;
+        log_dir?: string;
+      }>("/provider/openvino-settings", body);
       setOpenvinoMessage(result.message);
       setOpenvinoOvmsPath(result.ovms_path || "");
+      setOpenvinoModelRepositoryRoot(result.model_repository_path || "");
+      setOpenvinoCacheDir(result.cache_dir || "");
+      setOpenvinoLogDir(result.log_dir || "");
       setHfToken("");
       await fetchAll(true);
       await handleCheckOpenVINOStatus();
@@ -1151,7 +1223,24 @@ export default function ConfigPage() {
 
   const categories = Object.entries(config.categories).sort(([a], [b]) =>
     a.localeCompare(b)
-  );
+    );
+
+  const openvinoWorkspacePathWarnings = [
+    ["Model repository root", openvinoModelRepositoryRoot],
+    ["Compile/cache directory", openvinoCacheDir],
+    ["Log directory", openvinoLogDir],
+  ]
+    .filter(([, path]) => isPathInsideWorkspace(path, openvinoWorkspaceRoot))
+    .map(([label]) => `${label} is inside the current workspace.`);
+
+  const foundryWorkspacePathWarnings = [
+    ["Model cache directory", newCacheDir.trim() || foundryCacheDir],
+  ]
+    .filter(([, path]) => isPathInsideWorkspace(path, foundryWorkspaceRoot))
+    .map(([label]) => `${label} is inside the current workspace.`);
+
+  const foundryConfigActive = effectiveModelProvider === "microsoft-foundry-local" || effectiveEmbeddingProvider === "microsoft-foundry-local";
+  const openvinoConfigActive = effectiveModelProvider === "openvino" || effectiveEmbeddingProvider === "openvino";
 
   return (
     <div className="space-y-6">
@@ -1318,7 +1407,7 @@ export default function ConfigPage() {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{p.description}</p>
                 {p.requires_api_key && !providerInfo.current.openai_configured && (
-                  <p className="mt-1 text-xs text-yellow-700">⚠️ Requires API key</p>
+                  <p className="mt-1 text-xs text-yellow-700">âš ï¸ Requires API key</p>
                 )}
               </button>
             );
@@ -1371,7 +1460,7 @@ export default function ConfigPage() {
           </div>
         )}
 
-        {/* OpenAI Settings Management — only shown when openai is the active model provider */}
+        {/* OpenAI Settings Management â€” only shown when openai is the active model provider */}
         {effectiveModelProvider === "openai" && (
           <div className="mt-4 rounded-md border p-4">
             <div className="mb-3 flex items-center gap-2">
@@ -1391,7 +1480,7 @@ export default function ConfigPage() {
                 <p className="font-medium break-all">
                   {providerInfo.current.openai_configured ? (
                     <span className="text-green-700">
-                      ✓ Configured ({providerInfo.current.openai_key_masked})
+                      âœ“ Configured ({providerInfo.current.openai_key_masked})
                     </span>
                   ) : (
                     <span className="text-muted-foreground">Not set</span>
@@ -1465,7 +1554,7 @@ export default function ConfigPage() {
               </div>
             )}
 
-            {/* OpenAI config table — all openai_* params grouped here */}
+            {/* OpenAI config table â€” all openai_* params grouped here */}
             {config.categories["Model"] && (
               <div className="mt-4">
                 <h4 className="mb-2 text-base font-semibold">OpenAI Parameters</h4>
@@ -1509,8 +1598,8 @@ export default function ConfigPage() {
           </div>
         )}
 
-        {/* OpenVINO Model Server settings — shown only when the model provider uses openvino */}
-        {effectiveModelProvider === "openvino" && (
+        {/* OpenVINO Model Server settings â€” relevant when text or embeddings use openvino */}
+        {openvinoConfigActive && (
           <div className="mt-4 space-y-3 rounded-md border p-4">
             <h4 className="text-base font-semibold">OpenVINO Model Server (shared local runtime)</h4>
             <p className="text-xs text-muted-foreground">
@@ -1522,8 +1611,8 @@ export default function ConfigPage() {
 
             <div className={`rounded-md border p-3 text-xs ${openvinoRunning ? "border-green-200 bg-green-50 text-green-900" : "border-yellow-200 bg-yellow-50 text-yellow-900"}`}>
               {openvinoRunning === true
-                ? `✓ OVMS is responding at ${providerInfo.current.openvino_endpoint}`
-                : `⚠ OVMS is not responding at ${providerInfo.current.openvino_endpoint || "http://localhost:8100"}. Start native OpenVINO Model Server before using OpenVINO providers.`}
+                ? `âœ“ OVMS is responding at ${providerInfo.current.openvino_endpoint}`
+                : `âš  OVMS is not responding at ${providerInfo.current.openvino_endpoint || "http://localhost:8100"}. Start native OpenVINO Model Server before using OpenVINO providers.`}
             </div>
 
             <div className="rounded-md border bg-muted/30 p-3">
@@ -1535,22 +1624,31 @@ export default function ConfigPage() {
                 <div className="rounded border bg-background p-2">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Selected text model</p>
                   <p className="break-all font-mono text-xs">{openvinoModel || providerInfo.current.openvino_model}</p>
+                  <p className={effectiveModelProvider === "openvino" ? "text-xs text-green-700" : "text-xs text-muted-foreground"}>
+                    {effectiveModelProvider === "openvino" ? "Selected for text generation" : "Configured for later use"}
+                  </p>
                   <p className={openvinoModelCached ? "text-xs text-green-700" : "text-xs text-amber-700"}>
-                    {openvinoModelCached ? "Cached in OVMS repository" : "Not detected in local OVMS repository"}
+                    {openvinoModelCached ? "Cached: model files detected" : "Cached: not detected locally"}
                   </p>
                 </div>
                 <div className="rounded border bg-background p-2">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Selected embedding model</p>
                   <p className="break-all font-mono text-xs">{openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model}</p>
+                  <p className={effectiveEmbeddingProvider === "openvino" ? "text-xs text-green-700" : "text-xs text-muted-foreground"}>
+                    {effectiveEmbeddingProvider === "openvino" ? "Selected for embeddings" : "Configured for later use"}
+                  </p>
                   <p className={openvinoEmbeddingModelCached ? "text-xs text-green-700" : "text-xs text-amber-700"}>
-                    {openvinoEmbeddingModelCached ? "Cached in OVMS repository" : "Not detected in local OVMS repository"}
+                    {openvinoEmbeddingModelCached ? "Cached: model files detected" : "Cached: not detected locally"}
                   </p>
                 </div>
                 <div className="rounded border bg-background p-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Currently served by OVMS</p>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Serving / loaded in OVMS</p>
                   <p className="break-all font-mono text-xs">{openvinoServedModel || "Unknown / not detected from logs"}</p>
+                  <p className={openvinoRunning ? "text-xs text-green-700" : "text-xs text-amber-700"}>
+                    {openvinoRunning ? "Serving: endpoint is reachable" : "Serving: endpoint is not reachable"}
+                  </p>
                   <p className={openvinoServedModelMatchesSelection ? "text-xs text-green-700" : "text-xs text-amber-700"}>
-                    {openvinoServedModelMatchesSelection ? "Matches selected text model" : "May not match the selected text model"}
+                    {openvinoServedModelMatchesSelection ? "Loaded: served text model matches selection" : "Loaded: served text model unknown or may not match"}
                   </p>
                 </div>
               </div>
@@ -1560,14 +1658,17 @@ export default function ConfigPage() {
               <p className="mt-1 text-xs text-muted-foreground">
                 Latest package: OpenVINO Model Server {openvinoLatestRelease}.{" "}
                 {openvinoWindowsDownloadUrl && <a className="text-primary underline" href={openvinoWindowsDownloadUrl} target="_blank" rel="noreferrer">Download Windows python_on zip</a>}
-                {openvinoWindowsChecksumUrl && <> · <a className="text-primary underline" href={openvinoWindowsChecksumUrl} target="_blank" rel="noreferrer">SHA256</a></>}
-                {openvinoBaremetalDocsUrl && <> · <a className="text-primary underline" href={openvinoBaremetalDocsUrl} target="_blank" rel="noreferrer">2026 bare-metal docs</a></>}
+                {openvinoWindowsChecksumUrl && <> Â· <a className="text-primary underline" href={openvinoWindowsChecksumUrl} target="_blank" rel="noreferrer">SHA256</a></>}
+                {openvinoBaremetalDocsUrl && <> Â· <a className="text-primary underline" href={openvinoBaremetalDocsUrl} target="_blank" rel="noreferrer">2026 bare-metal docs</a></>}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 If Start Native OVMS reports that <code className="rounded bg-muted px-1 font-mono">ovms.exe</code> is missing, either save the absolute path below or add its folder to <code className="rounded bg-muted px-1 font-mono">PATH</code> and restart the UI backend.
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Repository paths: text <code className="rounded bg-muted px-1 font-mono break-all">{openvinoModelRepositoryPath || "unknown"}</code>; embedding <code className="rounded bg-muted px-1 font-mono break-all">{openvinoEmbeddingModelRepositoryPath || "unknown"}</code>.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Workspace root: <code className="rounded bg-muted px-1 font-mono break-all">{openvinoWorkspaceRoot || "unknown"}</code>.
               </p>
             </div>
 
@@ -1607,6 +1708,58 @@ export default function ConfigPage() {
                   Saved as <code className="rounded bg-muted px-1 font-mono">OPENVINO_OVMS_PATH</code>. Use this when the UI backend cannot find <code className="rounded bg-muted px-1 font-mono">ovms.exe</code> on PATH.
                 </p>
               </div>
+              <div className="md:col-span-2">
+                <label className="mb-1 block text-xs font-medium">OVMS Model Repository Root</label>
+                <input
+                  type="text"
+                  value={openvinoModelRepositoryRoot}
+                  onChange={(e) => setOpenvinoModelRepositoryRoot(e.target.value)}
+                  placeholder="Absolute path outside the workspace"
+                  className="w-full rounded-md border p-2 text-sm font-mono"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Saved as <code className="rounded bg-muted px-1 font-mono">OPENVINO_MODEL_REPOSITORY_PATH</code>. Use an absolute directory outside the workspace for downloaded model repositories.
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium">OVMS Compile/Cache Directory</label>
+                <input
+                  type="text"
+                  value={openvinoCacheDir}
+                  onChange={(e) => setOpenvinoCacheDir(e.target.value)}
+                  placeholder="Absolute path outside the workspace"
+                  className="w-full rounded-md border p-2 text-sm font-mono"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Saved as <code className="rounded bg-muted px-1 font-mono">OPENVINO_CACHE_DIR</code>. Stores compiled runtime artifacts outside the workspace.
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium">OVMS Log Directory</label>
+                <input
+                  type="text"
+                  value={openvinoLogDir}
+                  onChange={(e) => setOpenvinoLogDir(e.target.value)}
+                  placeholder="Absolute path outside the workspace"
+                  className="w-full rounded-md border p-2 text-sm font-mono"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Saved as <code className="rounded bg-muted px-1 font-mono">OPENVINO_LOG_DIR</code>. Keeps OVMS logs separate from source files.
+                </p>
+              </div>
+              {openvinoWorkspacePathWarnings.length > 0 && (
+                <div className="md:col-span-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <p className="font-medium">Workspace path warning</p>
+                  <ul className="mt-1 list-disc pl-4">
+                    {openvinoWorkspacePathWarnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-1">
+                    Runtime data and downloaded model repositories can create nested repository or file-watcher conflicts when stored inside the workspace. Use an external cache directory instead.
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="mb-1 block text-xs font-medium">
                   Text Generation Model{" "}
@@ -1615,17 +1768,17 @@ export default function ConfigPage() {
                   </span>
                 </label>
                 <select
-                  value={openvinoModel || providerInfo.current.openvino_model || "OpenVINO/Qwen3-8B-int4-cw-ov"}
+                  value={openvinoModel || providerInfo.current.openvino_model || defaultCatalogAlias(providerInfo.openvino_models)}
                   onChange={(e) => setOpenvinoModel(e.target.value)}
                   className="w-full rounded-md border p-2 text-sm"
                 >
                   {providerInfo.openvino_models.map((m) => (
-                    <option key={m.alias} value={m.alias}>{m.npu_recommended === "true" ? "⚡ " : ""}{m.label} ({m.alias})</option>
+                    <option key={m.alias} value={m.alias}>{m.npu_recommended === "true" ? "âš¡ " : ""}{m.validated ? "âœ… " : "âš  "}{m.label} ({m.alias})</option>
                   ))}
                 </select>
                 {providerInfo.openvino_models.find((m) => m.alias === (openvinoModel || providerInfo.current.openvino_model)) && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {providerInfo.openvino_models.find((m) => m.alias === (openvinoModel || providerInfo.current.openvino_model))?.serving_note}
+                    {providerInfo.openvino_models.find((m) => m.alias === (openvinoModel || providerInfo.current.openvino_model))?.serving_note} {validationBadge(providerInfo.openvino_models.find((m) => m.alias === (openvinoModel || providerInfo.current.openvino_model)))}
                   </p>
                 )}
               </div>
@@ -1637,17 +1790,17 @@ export default function ConfigPage() {
                   </span>
                 </label>
                 <select
-                  value={openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model || "OpenVINO/Qwen3-Embedding-0.6B"}
+                  value={openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model || defaultCatalogAlias(providerInfo.openvino_embedding_models)}
                   onChange={(e) => setOpenvinoEmbeddingModel(e.target.value)}
                   className="w-full rounded-md border p-2 text-sm"
                 >
                   {providerInfo.openvino_embedding_models.map((m) => (
-                    <option key={m.alias} value={m.alias}>{m.npu_recommended === "true" ? "⚡ " : ""}{m.label} ({m.dimension}-dim)</option>
+                    <option key={m.alias} value={m.alias}>{m.npu_recommended === "true" ? "âš¡ " : ""}{m.validated ? "âœ… " : "âš  "}{m.label} ({m.dimension}-dim)</option>
                   ))}
                 </select>
                 {providerInfo.openvino_embedding_models.find((m) => m.alias === (openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model)) && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {providerInfo.openvino_embedding_models.find((m) => m.alias === (openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model))?.serving_note}
+                    {providerInfo.openvino_embedding_models.find((m) => m.alias === (openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model))?.serving_note} {validationBadge(providerInfo.openvino_embedding_models.find((m) => m.alias === (openvinoEmbeddingModel || providerInfo.current.openvino_embedding_model)))}
                   </p>
                 )}
               </div>
@@ -1656,7 +1809,7 @@ export default function ConfigPage() {
             <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">
               <p className="font-medium">NPU-first serving behavior</p>
               <p className="mt-1">
-                Models marked ⚡ are curated for NPU-first local inference. OVMS stores model files under the model repository/cache, then compiles and loads weights plus KV cache on the selected Target Device. Pre-cache is optional: it reduces first-start latency, but OVMS can also download/prepare the selected Hugging Face model during start.
+                Models marked âš¡ are curated for NPU-first local inference. OVMS stores model files under the model repository/cache, then compiles and loads weights plus KV cache on the selected Target Device. Pre-cache is optional: it reduces first-start latency, but OVMS can also download/prepare the selected Hugging Face model during start.
               </p>
             </div>
 
@@ -1718,6 +1871,14 @@ export default function ConfigPage() {
                 Pre-cache Embedding Model (optional)
               </button>
               <button
+                onClick={handleCheckModelCatalog}
+                disabled={checkingModelCatalog}
+                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+                title="Validate provider model catalog aliases and refresh validation checkmarks/dates."
+              >
+                {checkingModelCatalog ? "Checking catalog..." : "Check Model Catalog"}
+              </button>
+              <button
                 onClick={handleCheckOpenVINOStatus}
                 className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent"
                 title="Refresh OVMS health, local cache detection, and served-model status. Useful after starting/stopping OVMS outside this page."
@@ -1725,6 +1886,12 @@ export default function ConfigPage() {
                 Refresh OVMS Status
               </button>
             </div>
+
+            {modelCatalogMessage && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                {modelCatalogMessage}
+              </div>
+            )}
 
             {startingOpenVINO && (
               <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
@@ -1779,20 +1946,63 @@ export default function ConfigPage() {
           </div>
         )}
 
-        {/* Microsoft Foundry Local model selector + params — only relevant when microsoft-foundry-local is active */}
-        {config.categories["Model"] && effectiveModelProvider === "microsoft-foundry-local" && (
+        {/* Microsoft Foundry Local model selector + params â€” relevant when text or embeddings use microsoft-foundry-local */}
+        {config.categories["Model"] && foundryConfigActive && (
           <div className="mt-4 space-y-3">
-            <h4 className="text-base font-semibold">Microsoft Foundry Local Model</h4>
+            <h4 className="text-base font-semibold">Microsoft Foundry Local Runtime</h4>
             <p className="text-xs text-muted-foreground">
-              Select a model from the Microsoft Foundry Local catalog. Use{" "}
-              <code className="rounded bg-muted px-1">{"foundry model download <alias>"}</code> to download
-              a model before selecting it here.
+              Configure Microsoft Foundry Local for text generation, embeddings, or both. The readiness action loads only the active provider model(s):
+              text model when the Model Provider is Microsoft Foundry Local, and embedding model when the Embedding Provider is Microsoft Foundry Local.
             </p>
+
+            <div className="rounded-md border bg-muted/30 p-3 text-xs">
+              <p className="font-medium text-muted-foreground">Active Foundry usage</p>
+              <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                <div className="rounded border bg-background p-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Text model provider</p>
+                  <p className="font-mono text-xs">{effectiveModelProvider}</p>
+                  <p className={effectiveModelProvider === "microsoft-foundry-local" ? "text-green-700" : "text-muted-foreground"}>
+                    {effectiveModelProvider === "microsoft-foundry-local" ? `Selected text model: ${providerInfo.current.local_model_name || "not set"}` : "Text model not selected for Foundry."}
+                  </p>
+                  <p className={foundryServiceRunning ? "text-green-700" : "text-amber-700"}>
+                    {foundryServiceRunning ? "Serving: Foundry endpoint is reachable" : "Serving: Foundry endpoint is not reachable"}
+                  </p>
+                  <p className={foundryTextModelLoaded === true ? "text-green-700" : foundryTextModelLoaded === false ? "text-amber-700" : "text-muted-foreground"}>
+                    {effectiveModelProvider !== "microsoft-foundry-local"
+                      ? "Loaded: skipped because Foundry is not the text provider"
+                      : foundryTextModelLoaded === true
+                      ? "Loaded: last readiness job loaded the text model"
+                      : foundryTextModelLoaded === false
+                      ? "Loaded: last readiness job did not load the text model"
+                      : "Loaded: unknown until readiness runs"}
+                  </p>
+                </div>
+                <div className="rounded border bg-background p-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Embedding provider</p>
+                  <p className="font-mono text-xs">{effectiveEmbeddingProvider}</p>
+                  <p className={effectiveEmbeddingProvider === "microsoft-foundry-local" ? "text-green-700" : "text-muted-foreground"}>
+                    {effectiveEmbeddingProvider === "microsoft-foundry-local" ? "Selected embedding model: ${defaultCatalogAlias(providerInfo.foundry_local_models.filter((m) => m.role === embedding))}" : "Embedding model not selected for Foundry."}
+                  </p>
+                  <p className={foundryServiceRunning ? "text-green-700" : "text-amber-700"}>
+                    {foundryServiceRunning ? "Serving: Foundry endpoint is reachable" : "Serving: Foundry endpoint is not reachable"}
+                  </p>
+                  <p className={foundryEmbeddingModelLoaded === true ? "text-green-700" : foundryEmbeddingModelLoaded === false ? "text-amber-700" : "text-muted-foreground"}>
+                    {effectiveEmbeddingProvider !== "microsoft-foundry-local"
+                      ? "Loaded: skipped because Foundry is not the embedding provider"
+                      : foundryEmbeddingModelLoaded === true
+                      ? "Loaded: last readiness job loaded the embedding model"
+                      : foundryEmbeddingModelLoaded === false
+                      ? "Loaded: last readiness job did not load the embedding model"
+                      : "Loaded: unknown until readiness runs"}
+                  </p>
+                </div>
+              </div>
+            </div>
 
             {/* Microsoft Foundry Local installation status */}
             {foundryInstalled === false && (
               <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3">
-                <p className="text-sm font-medium text-yellow-900">⚠️ Microsoft Foundry Local SDK is not available</p>
+                <p className="text-sm font-medium text-yellow-900">âš ï¸ Microsoft Foundry Local SDK is not available</p>
                 <p className="mt-1 text-xs text-yellow-800">
                   The UI backend cannot import the Foundry Local Python SDK in its current Python environment. Install it automatically or copy the command below, then restart the backend.
                 </p>
@@ -1845,7 +2055,7 @@ export default function ConfigPage() {
             {foundryInstalled === true && !foundryServiceRunning && (
               <div className="rounded-md border border-yellow-200 bg-yellow-50 p-3 text-xs text-yellow-900">
                 <p>
-                  ⚠️ Microsoft Foundry Local is installed but the service is not running.
+                  âš ï¸ Microsoft Foundry Local is installed but the service is not running.
                 </p>
                 <div className="mt-2 flex gap-2">
                   <button
@@ -1882,19 +2092,22 @@ export default function ConfigPage() {
             )}
             {foundryInstalled === true && foundryServiceRunning && (
               <div className="rounded-md border border-green-200 bg-green-50 p-3 text-xs text-green-900">
-                ✓ Microsoft Foundry Local is installed and running.
+                âœ“ Microsoft Foundry Local is installed and running.
               </div>
             )}
 
-            {/* Model cache directory configuration — only when installed */}
+            {/* Model cache directory configuration â€” only when installed */}
             {foundryInstalled === true && (
               <div className="rounded-md border bg-muted/30 p-3">
                 <p className="text-xs font-medium text-muted-foreground">Model Cache Directory</p>
                 <p className="mt-1 font-mono text-xs break-all">
-                  {foundryCacheDir || "(default — not yet configured)"}
+                  {foundryCacheDir || "(default â€” not yet configured)"}
                 </p>
                 <p className="mt-2 text-xs text-muted-foreground">
                   Downloaded models (2-10 GB each) are stored here. Change this if your default drive has limited space.
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Workspace root: <code className="rounded bg-muted px-1 font-mono break-all">{foundryWorkspaceRoot || "unknown"}</code>.
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button
@@ -1907,9 +2120,9 @@ export default function ConfigPage() {
                           // Note: showDirectoryPicker only returns the folder name, not the full path.
                           // We set it in the text input so the user can verify/edit the full path.
                           setNewCacheDir(dirHandle.name);
-                          setCacheDirError("Folder selected. Please verify the full path is correct (e.g. C:\\foundry_models) and click 'Set Cache Dir'.");
+                          setCacheDirError("Folder selected. Please verify the full absolute path is outside the workspace and click 'Set Cache Dir'.");
                         } catch {
-                          // User cancelled — no action needed
+                          // User cancelled - no action needed
                         }
                       } else {
                         // Fallback: focus the text input so the user can type a path
@@ -1924,7 +2137,7 @@ export default function ConfigPage() {
                     type="text"
                     value={newCacheDir}
                     onChange={(e) => setNewCacheDir(e.target.value)}
-                    placeholder={foundryCacheDir || "D:\\foundry-models"}
+                    placeholder={foundryCacheDir || "Absolute path outside the workspace"}
                     className="flex-1 rounded-md border p-1.5 text-xs font-mono"
                     ref={_cacheDirInputRef}
                   />
@@ -1939,15 +2152,28 @@ export default function ConfigPage() {
                     onClick={handleResetCacheDir}
                     disabled={savingCacheDir}
                     className="rounded-md border px-3 py-1.5 text-xs font-medium hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-                    title={`Reset to the default cache directory (${DEFAULT_FOUNDRY_CACHE_DIR})`}
+                    title={`Reset to the default cache directory (${foundryDefaultCacheDir})`}
                   >
                     Reset to Default
                   </button>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Click "Browse..." to select a folder, or type a path manually. Then click "Set Cache Dir" to apply.
-                  Click "Reset to Default" to revert to <code className="rounded bg-muted px-1">{DEFAULT_FOUNDRY_CACHE_DIR}</code>.
+                  Click "Reset to Default" to revert to <code className="rounded bg-muted px-1">{foundryDefaultCacheDir}</code>.
                 </p>
+                {foundryWorkspacePathWarnings.length > 0 && (
+                  <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                    <p className="font-medium">Workspace path warning</p>
+                    <ul className="mt-1 list-disc pl-4">
+                      {foundryWorkspacePathWarnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                    <p className="mt-1">
+                      Runtime data and downloaded model files can create nested repository or file-watcher conflicts when stored inside the workspace. Use an external cache directory instead.
+                    </p>
+                  </div>
+                )}
                 {cacheDirMessage && (
                   <div className="mt-2 rounded-md border border-green-200 bg-green-50 p-2 text-xs text-green-900">
                     {cacheDirMessage}
@@ -1980,10 +2206,10 @@ export default function ConfigPage() {
                 onChange={(e) => setFoundryModel(e.target.value)}
                 className="w-full rounded-md border p-2 text-sm"
               >
-                <option value="">— Select a model —</option>
+                <option value="">â€” Select a model â€”</option>
                 {providerInfo.foundry_local_models?.map((m) => (
                   <option key={m.alias} value={m.alias}>
-                    {m.label} ({m.alias})
+                    {m.validated ? "âœ… " : "âš  "}{m.label} ({m.alias})
                   </option>
                 ))}
               </select>
@@ -2153,7 +2379,7 @@ export default function ConfigPage() {
                     }`}
                   >
                     <span className="font-mono">
-                      {s.status === "ok" ? "✓" : s.status === "error" ? "✗" : s.status === "warning" ? "⚠" : "ℹ"}
+                      {s.status === "ok" ? "âœ“" : s.status === "error" ? "âœ—" : s.status === "warning" ? "âš " : "â„¹"}
                     </span>
                     <span>{s.message}</span>
                   </div>
@@ -2210,7 +2436,7 @@ export default function ConfigPage() {
           })}
         </div>
 
-        {/* Embeddings config table — rendered here for proximity to the switcher */}
+        {/* Embeddings config table â€” rendered here for proximity to the switcher */}
         {config.categories["Embeddings"] && (
           <div className="mt-4">
             <h4 className="mb-2 text-base font-semibold">Embeddings</h4>
@@ -2314,3 +2540,7 @@ export default function ConfigPage() {
     </div>
   );
 }
+
+
+
+

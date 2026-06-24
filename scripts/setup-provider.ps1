@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Securely configures OpenAI API key in local .env files and optionally switches provider settings.
 
@@ -107,12 +107,12 @@ function Get-ProviderConfig {
     "openvino" {
       return @{
         EMBEDDING_PROVIDER = "openvino"
-        EMBEDDING_MODEL = "OpenVINO/Qwen3-Embedding-0.6B"
+        EMBEDDING_MODEL = "OpenVINO/Qwen3-Embedding-0.6B-int8-ov"
         EMBEDDING_DIMENSION = "1024"
         MODEL_PROVIDER = "openvino"
         OPENVINO_ENDPOINT = "http://localhost:8100"
         OPENVINO_MODEL = "OpenVINO/Qwen3-8B-int4-cw-ov"
-        OPENVINO_EMBEDDING_MODEL = "OpenVINO/Qwen3-Embedding-0.6B"
+        OPENVINO_EMBEDDING_MODEL = "OpenVINO/Qwen3-Embedding-0.6B-int8-ov"
         OPENVINO_DEVICE = "NPU"
         OPENVINO_OVMS_PATH = ""
       }
@@ -238,3 +238,4 @@ if ($SwitchTo -ne "none" -and $SwitchTo -ne "placeholder") {
     Write-Host "  .\scripts\setup-ovms.ps1 -Start" -ForegroundColor DarkGray
   }
 }
+

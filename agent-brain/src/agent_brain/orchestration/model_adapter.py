@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Protocol
 
+from agent_brain.model_catalog import catalog_default_alias
+
 
 class ModelProvider(StrEnum):
     """Supported model provider modes."""
@@ -63,7 +65,9 @@ class ModelAdapter(Protocol):
 class PlaceholderLocalModelAdapter:
     """Deterministic local adapter used when no real model provider is configured."""
 
-    model_name: str = "deterministic-placeholder-local-model"
+    model_name: str = catalog_default_alias(
+        "placeholder", "text", "deterministic-placeholder-local-model"
+    )
     cost_per_1k_tokens_usd: float = 0.0
     provider: ModelProvider = ModelProvider.PLACEHOLDER
 
@@ -162,7 +166,7 @@ class OpenAIModelAdapter:
     """
 
     api_key: str
-    model_name: str = "gpt-4o-mini"
+    model_name: str = catalog_default_alias("openai", "text", "gpt-4o-mini")
     base_url: str = "https://api.openai.com/v1"
     cost_per_1k_input_tokens_usd: float = 0.00015
     cost_per_1k_output_tokens_usd: float = 0.0006
@@ -269,7 +273,7 @@ class OpenVINOModelAdapter:
     """Concrete adapter for OpenVINO Model Server using the OpenAI-compatible API."""
 
     endpoint: str = "http://localhost:8000"
-    model_name: str = "OpenVINO/Qwen3-8B-int4-cw-ov"
+    model_name: str = catalog_default_alias("openvino", "text", "OpenVINO/Qwen3-8B-int4-cw-ov")
     cost_per_1k_tokens_usd: float = 0.0
     provider: ModelProvider = ModelProvider.OPENVINO
 
@@ -316,7 +320,8 @@ def build_model_adapter(
     normalized = provider.strip().lower()
     if normalized == ModelProvider.PLACEHOLDER.value:
         return PlaceholderLocalModelAdapter(
-            model_name=model_name or "deterministic-placeholder-local-model"
+            model_name=model_name
+            or catalog_default_alias("placeholder", "text", "deterministic-placeholder-local-model")
         )
     if normalized == ModelProvider.MICROSOFT_FOUNDRY_LOCAL.value:
         if foundry_endpoint is None or foundry_endpoint.strip() == "":
@@ -330,14 +335,14 @@ def build_model_adapter(
             raise ValueError("openvino_endpoint is required for OpenVINO Model Server.")
         return OpenVINOModelAdapter(
             endpoint=openvino_endpoint,
-            model_name=model_name or "OpenVINO/Qwen3-8B-int4-cw-ov",
+            model_name=model_name or catalog_default_alias("openvino", "text", "OpenVINO/Qwen3-8B-int4-cw-ov"),
         )
     if normalized == ModelProvider.OPENAI.value:
         if openai_api_key is None or openai_api_key.strip() == "":
             raise ValueError("openai_api_key is required for the OpenAI provider.")
         return OpenAIModelAdapter(
             api_key=openai_api_key,
-            model_name=model_name or "gpt-4o-mini",
+            model_name=model_name or catalog_default_alias("openai", "text", "gpt-4o-mini"),
             base_url=openai_base_url,
             use_responses_api=use_responses_api,
         )

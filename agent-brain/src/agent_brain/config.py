@@ -5,6 +5,8 @@ from os import getenv
 
 from dotenv import load_dotenv
 
+from agent_brain.model_catalog import catalog_default_alias
+
 DEFAULT_DATABASE_URL = (
     "postgresql://compliance_user:compliance_password@localhost:5432/"
     "compliance_analyzer?schema=public"
@@ -44,10 +46,16 @@ class AgentBrainSettings:
     graph_result_limit: int = 25
     model_provider: str = "placeholder"
     foundry_local_endpoint: str | None = None
-    local_model_name: str = "deterministic-placeholder-local-model"
+    local_model_name: str = catalog_default_alias(
+        "placeholder", "text", "deterministic-placeholder-local-model"
+    )
     openvino_endpoint: str = "http://localhost:8100"
-    openvino_model: str = "OpenVINO/Qwen3-8B-int4-cw-ov"
-    openvino_embedding_model: str = "OpenVINO/Qwen3-Embedding-0.6B"
+    openvino_model: str = catalog_default_alias(
+        "openvino", "text", "OpenVINO/Qwen3-8B-int4-cw-ov"
+    )
+    openvino_embedding_model: str = catalog_default_alias(
+        "openvino", "embedding", "OpenVINO/Qwen3-Embedding-0.6B-int8-ov"
+    )
     openvino_device: str = "NPU"
     openvino_ovms_path: str | None = None
     hf_token: str | None = None
@@ -80,11 +88,18 @@ def get_settings() -> AgentBrainSettings:
         graph_result_limit=_positive_int_from_env("GRAPH_RESULT_LIMIT", 25),
         model_provider=getenv("MODEL_PROVIDER", "placeholder"),
         foundry_local_endpoint=getenv("FOUNDRY_LOCAL_ENDPOINT"),
-        local_model_name=getenv("LOCAL_MODEL_NAME", "deterministic-placeholder-local-model"),
+        local_model_name=getenv(
+            "LOCAL_MODEL_NAME",
+            catalog_default_alias("placeholder", "text", "deterministic-placeholder-local-model"),
+        ),
         openvino_endpoint=getenv("OPENVINO_ENDPOINT", "http://localhost:8100"),
-        openvino_model=getenv("OPENVINO_MODEL", "OpenVINO/Qwen3-8B-int4-cw-ov"),
+        openvino_model=getenv(
+            "OPENVINO_MODEL",
+            catalog_default_alias("openvino", "text", "OpenVINO/Qwen3-8B-int4-cw-ov"),
+        ),
         openvino_embedding_model=getenv(
-            "OPENVINO_EMBEDDING_MODEL", "OpenVINO/Qwen3-Embedding-0.6B"
+            "OPENVINO_EMBEDDING_MODEL",
+            catalog_default_alias("openvino", "embedding", "OpenVINO/Qwen3-Embedding-0.6B-int8-ov"),
         ),
         openvino_device=getenv("OPENVINO_DEVICE", "NPU"),
         openvino_ovms_path=getenv("OPENVINO_OVMS_PATH"),

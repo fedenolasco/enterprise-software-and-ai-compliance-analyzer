@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+from datetime import date
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -52,6 +54,9 @@ class UpdateOpenVINOSettingsRequest(BaseModel):
     embedding_model: str | None = Field(default=None, description="OpenVINO embedding model ID.")
     device: str | None = Field(default=None, description="OpenVINO target device: NPU, GPU, or CPU.")
     ovms_path: str | None = Field(default=None, description="Optional absolute path to ovms.exe.")
+    model_repository_path: str | None = Field(default=None, description="Optional absolute OVMS model repository root outside the workspace.")
+    cache_dir: str | None = Field(default=None, description="Optional absolute OVMS compile/cache directory outside the workspace.")
+    log_dir: str | None = Field(default=None, description="Optional absolute OVMS log directory outside the workspace.")
     hf_token: str | None = Field(default=None, description="Optional Hugging Face token.")
 
 
@@ -65,6 +70,27 @@ class OpenVINODownloadJobRequest(BaseModel):
     """Request to start an OpenVINO Hugging Face model download job."""
 
     model_id: str = Field(..., description="Hugging Face model ID to cache locally.")
+
+
+class ModelCatalogCheckRequest(BaseModel):
+    """Request to validate a model catalog alias."""
+
+    provider: str
+    role: str
+    alias: str
+
+
+class ModelCatalogUpdateRequest(BaseModel):
+    """Request to update selected editable model catalog metadata."""
+
+    provider: str
+    role: str
+    alias: str
+    label: str | None = None
+    description: str | None = None
+    device: str | None = None
+    dimension: str | None = None
+    default: bool | None = None
 
 
 def _update_env_file(updates: dict[str, str]) -> None:
@@ -106,162 +132,57 @@ def _update_env_file(updates: dict[str, str]) -> None:
         os.environ[key] = value
 
 
-# Curated list of Foundry Local chat-completion model aliases available through
-# the Foundry Local SDK/CLI.  Newer CLI preview builds load models with
-# ``foundry model load <alias>`` or ``foundry run <alias>``.  See
-# https://www.foundrylocal.ai/models for the full catalog.
-#
-# Foundry Local auto-selects the best variant for the user's hardware (CPU,
-# GPU, or NPU) when the base alias is used.  Some models are only available
-# on specific devices (e.g. deepseek-r1-14b is NPU-only).  The ``device``
-# field indicates which device(s) the model supports.
-FOUNDRY_LOCAL_MODELS: list[dict[str, str]] = [
-    {
-        "alias": "qwen2.5-0.5b",
-        "label": "Qwen 2.5 0.5B (small, recommended quick start)",
-        "description": "Small chat-completion model used in the Foundry Local README quickstart. Best first download for testing service startup.",
-        "device": "CPU/GPU/NPU auto-select",
-    },
-    {
-        "alias": "phi-4-mini",
-        "label": "Phi-4 Mini",
-        "description": "Compact Microsoft Phi chat model referenced by Foundry Local SDK samples. Good balance of quality and local performance.",
-        "device": "CPU/GPU/NPU auto-select",
-    },
-    {
-        "alias": "qwen3-0.6b",
-        "label": "Qwen 3 0.6B (reasoning)",
-        "description": "Small Qwen reasoning model referenced by Foundry Local CLI 0.10 quick start and SDK tests.",
-        "device": "CPU/GPU/NPU auto-select",
-    },
-    {
-        "alias": "phi-4",
-        "label": "Phi-4",
-        "description": "Larger Microsoft Phi model from the Foundry Local catalog. Higher quality but requires more disk and memory.",
-        "device": "CPU/GPU auto-select",
-    },
-]
+def _model_catalog_path() -> Path:
+    """Return the centralized provider model catalog path."""
+    return get_ui_settings().repo_root / "config" / "model-catalog.json"
 
-OPENVINO_LLM_MODELS: list[dict[str, str]] = [
-    {
-        "alias": "OpenVINO/Qwen3-8B-int4-cw-ov",
-        "label": "Qwen3 8B INT4 CW (NPU recommended)",
-        "description": "NPU-optimised continuous-batching text-generation model. Best default for Intel AI Boost NPU inference speed when sufficient memory is available.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "OVMS downloads/caches this Hugging Face model when it is not local, compiles it for the selected target device, and serves inference there.",
-    },
-    {
-        "alias": "OpenVINO/Qwen3-0.6B-int4-ov",
-        "label": "Qwen3 0.6B INT4 (fast smoke test)",
-        "description": "Very small text-generation model for fast OpenVINO smoke tests on constrained hardware. Useful before starting larger NPU models.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Smallest local validation model; OVMS still compiles and runs inference on the selected target device.",
-    },
-    {
-        "alias": "OpenVINO/Qwen2-0.5B-Instruct-int4-ov",
-        "label": "Qwen2 0.5B Instruct INT4",
-        "description": "Small instruction-tuned model for lightweight local chat/inference checks.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Lightweight NPU/GPU/CPU compatible model; download can be initiated from the UI.",
-    },
-    {
-        "alias": "OpenVINO/Qwen2.5-1.5B-Instruct-int4-ov",
-        "label": "Qwen2.5 1.5B Instruct INT4",
-        "description": "Compact instruction model with better quality than 0.5B-class quick-start models.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Balanced small model for local Intel acceleration.",
-    },
-    {
-        "alias": "OpenVINO/Qwen3-1.7B-int4-ov",
-        "label": "Qwen3 1.7B INT4",
-        "description": "Small Qwen3 model balancing footprint and reasoning quality for local inference.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Good NPU-first balance of latency and quality for demos.",
-    },
-    {
-        "alias": "OpenVINO/DeepSeek-R1-Distill-Qwen-1.5B-int4-ov",
-        "label": "DeepSeek R1 Distill Qwen 1.5B INT4",
-        "description": "Small reasoning-oriented model from the OpenVINO Hugging Face collection.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Reasoning-oriented small model; OVMS serves it on the selected target device.",
-    },
-    {
-        "alias": "OpenVINO/Phi-3-mini-4k-instruct-int4-ov",
-        "label": "Phi-3 Mini 4K Instruct INT4",
-        "description": "Compact Microsoft Phi instruct model for local reasoning workloads.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Compact instruct model for local Intel acceleration.",
-    },
-    {
-        "alias": "OpenVINO/Phi-4-mini-instruct-int4-ov",
-        "label": "Phi-4 Mini Instruct INT4",
-        "description": "Compact Phi-4 generation model for stronger local responses with moderate footprint.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Higher-quality mini model; first NPU compile may take longer.",
-    },
-    {
-        "alias": "OpenVINO/gemma-2b-it-int4-ov",
-        "label": "Gemma 2B IT INT4",
-        "description": "Small Gemma instruction model. May require accepting upstream model terms on Hugging Face.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "false",
-        "serving_note": "May require accepting upstream model terms before download.",
-    },
-    {
-        "alias": "OpenVINO/Qwen3-4B-int4-ov",
-        "label": "Qwen3 4B INT4",
-        "description": "Smaller Qwen3 text-generation model for local Intel acceleration.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Mid-sized Qwen model; compile/cache time is expected on first start.",
-    },
-    {
-        "alias": "OpenVINO/Qwen2.5-1B-Instruct-int4-ov",
-        "label": "Qwen2.5 1B Instruct INT4",
-        "description": "Small instruction model suitable for fast local smoke tests.",
-        "device": "NPU/GPU/CPU",
-        "npu_recommended": "true",
-        "serving_note": "Fast local model for NPU/GPU/CPU inference checks.",
-    },
-]
 
-OPENVINO_EMBEDDING_MODELS: list[dict[str, str]] = [
-    {
-        "alias": "OpenVINO/Qwen3-Embedding-0.6B",
-        "label": "Qwen3 Embedding 0.6B",
-        "description": "Semantic embedding model supported by OpenVINO for local RAG workloads.",
-        "device": "NPU/GPU/CPU",
-        "dimension": "1024",
-        "npu_recommended": "true",
-        "serving_note": "Recommended OpenVINO embedding model for local semantic retrieval; served on the selected OVMS target device.",
-    },
-    {
-        "alias": "OpenVINO/bge-base-en-v1.5-int8-ov",
-        "label": "BGE Base EN v1.5 INT8",
-        "description": "Compact English embedding model from the OpenVINO Hugging Face collection.",
-        "device": "NPU/GPU/CPU",
-        "dimension": "768",
-        "npu_recommended": "true",
-        "serving_note": "Compact English embedding model; changes embedding dimension to 768 if used for ingestion.",
-    },
-    {
-        "alias": "OpenVINO/bge-base-en-v1.5-fp16-ov",
-        "label": "BGE Base EN v1.5 FP16",
-        "description": "Higher-precision BGE embedding model for local semantic retrieval.",
-        "device": "GPU/CPU",
-        "dimension": "768",
-        "npu_recommended": "false",
-        "serving_note": "GPU/CPU-focused FP16 model; not NPU-first.",
-    },
-]
+def _load_model_catalog() -> dict[str, Any]:
+    """Load the centralized provider model catalog."""
+    path = _model_catalog_path()
+    if not path.exists():
+        raise HTTPException(status_code=500, detail=f"Model catalog not found: {path}")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _save_model_catalog(catalog: dict[str, Any]) -> None:
+    """Persist the centralized provider model catalog."""
+    catalog["updated_at"] = date.today().isoformat()
+    _model_catalog_path().write_text(json.dumps(catalog, indent=2) + "\n", encoding="utf-8")
+
+
+def _catalog_models(provider: str | None = None, role: str | None = None) -> list[dict[str, Any]]:
+    """Return catalog models optionally filtered by provider and role."""
+    models = list(_load_model_catalog().get("models", []))
+    if provider is not None:
+        models = [m for m in models if m.get("provider") == provider]
+    if role is not None:
+        models = [m for m in models if m.get("role") == role]
+    return models
+
+
+def _catalog_default(provider: str, role: str) -> dict[str, Any] | None:
+    """Return the default catalog model for a provider and role."""
+    models = _catalog_models(provider, role)
+    return next((m for m in models if m.get("default") is True), models[0] if models else None)
+
+
+def _catalog_alias(provider: str, role: str, fallback: str) -> str:
+    """Return the default alias for provider/role, or fallback when missing."""
+    model = _catalog_default(provider, role)
+    return str(model.get("alias")) if model else fallback
+
+
+def _catalog_dimension(provider: str, role: str, fallback: str) -> str:
+    """Return the default dimension for provider/role, or fallback when missing."""
+    model = _catalog_default(provider, role)
+    return str(model.get("dimension")) if model and model.get("dimension") is not None else fallback
+
+
+# Provider model catalogs are centralized in config/model-catalog.json.
+FOUNDRY_LOCAL_MODELS: list[dict[str, Any]] = _catalog_models("microsoft-foundry-local", "text")
+OPENVINO_LLM_MODELS: list[dict[str, Any]] = _catalog_models("openvino", "text")
+OPENVINO_EMBEDDING_MODELS: list[dict[str, Any]] = _catalog_models("openvino", "embedding")
 
 OPENVINO_LATEST_RELEASE = "2026.2.1"
 OPENVINO_WINDOWS_PYTHON_ON_URL = (
@@ -283,6 +204,11 @@ _OPENVINO_STOP_JOBS: dict[str, dict[str, Any]] = {}
 _FOUNDRY_STOP_JOBS: dict[str, dict[str, Any]] = {}
 _PROVIDER_SWITCH_JOBS: dict[str, dict[str, Any]] = {}
 _FOUNDRY_MANAGER: Any | None = None
+
+
+def _active_job(jobs: dict[str, dict[str, Any]]) -> dict[str, Any] | None:
+    """Return the currently queued/running job, if any."""
+    return next((job for job in jobs.values() if job.get("status") in {"queued", "running"}), None)
 
 
 @router.get("")
@@ -368,6 +294,95 @@ async def get_provider_info() -> dict[str, Any]:
     }
 
 
+
+def _find_catalog_model(catalog: dict[str, Any], provider: str, role: str, alias: str) -> dict[str, Any] | None:
+    """Find a model catalog entry by provider, role, and alias."""
+    return next((m for m in catalog.get("models", []) if m.get("provider") == provider and m.get("role") == role and m.get("alias") == alias), None)
+
+
+def _validate_catalog_model(model: dict[str, Any]) -> dict[str, Any]:
+    """Validate one catalog model alias and return updated validation metadata."""
+    provider = str(model.get("provider", ""))
+    alias = str(model.get("alias", ""))
+    today = date.today().isoformat()
+    result: dict[str, Any] = {"validated": False, "last_checked": today, "validation_source": model.get("validation_source") or "runtime-check"}
+    if provider == "placeholder":
+        result.update({"validated": True, "validation_source": "local", "validation_message": "Built-in deterministic provider."})
+    elif provider == "openvino":
+        import urllib.request
+        import urllib.error
+        url = str(model.get("validation_url") or f"https://huggingface.co/api/models/{alias}")
+        try:
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                result.update({"validated": 200 <= resp.status < 300, "validation_source": "huggingface", "validation_url": url, "validation_message": f"Hugging Face model API returned HTTP {resp.status}."})
+        except urllib.error.HTTPError as exc:
+            result.update({"validation_source": "huggingface", "validation_url": url, "validation_message": f"Hugging Face model API returned HTTP {exc.code}."})
+        except Exception as exc:
+            result.update({"validation_source": "huggingface", "validation_url": url, "validation_message": f"Hugging Face validation failed: {exc}"})
+    elif provider == "microsoft-foundry-local":
+        if _foundry_sdk_available():
+            found = _try_get_foundry_model(alias) is not None
+            result.update({"validated": found, "validation_source": "foundry-sdk-catalog", "validation_message": "Found in installed Foundry Local SDK catalog." if found else "Not found in installed Foundry Local SDK catalog."})
+        else:
+            result.update({"validation_source": "foundry-sdk-catalog", "validation_message": "Foundry Local SDK is not available in the backend environment."})
+    elif provider == "openai":
+        allowed = {"gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "text-embedding-3-small", "text-embedding-3-large"}
+        result.update({"validated": alias in allowed, "validation_source": "openai-local-allowlist", "validation_message": "Known OpenAI alias in local allowlist." if alias in allowed else "Alias is not in local OpenAI allowlist."})
+    else:
+        result.update({"validation_message": f"Unknown provider: {provider}"})
+    model.update(result)
+    return model
+
+
+@router.get("/model-catalog")
+async def get_model_catalog() -> dict[str, Any]:
+    """Return the centralized provider model catalog."""
+    return _load_model_catalog()
+
+
+@router.post("/model-catalog/check")
+async def check_model_catalog_entry(request: ModelCatalogCheckRequest) -> dict[str, Any]:
+    """Validate one provider model catalog entry and persist validation metadata."""
+    catalog = _load_model_catalog()
+    model = _find_catalog_model(catalog, request.provider, request.role, request.alias)
+    if model is None:
+        raise HTTPException(status_code=404, detail=f"Catalog model not found: {request.provider}/{request.role}/{request.alias}")
+    updated = _validate_catalog_model(model)
+    _save_model_catalog(catalog)
+    return {"success": True, "model": updated}
+
+
+@router.post("/model-catalog/check-all")
+async def check_all_model_catalog_entries() -> dict[str, Any]:
+    """Validate all provider model catalog entries and persist validation metadata."""
+    catalog = _load_model_catalog()
+    models = catalog.get("models", [])
+    for model in models:
+        _validate_catalog_model(model)
+    _save_model_catalog(catalog)
+    return {"success": True, "checked": len(models), "catalog": catalog}
+
+
+@router.patch("/model-catalog/model")
+async def update_model_catalog_entry(request: ModelCatalogUpdateRequest) -> dict[str, Any]:
+    """Update editable metadata for one provider model catalog entry."""
+    catalog = _load_model_catalog()
+    model = _find_catalog_model(catalog, request.provider, request.role, request.alias)
+    if model is None:
+        raise HTTPException(status_code=404, detail=f"Catalog model not found: {request.provider}/{request.role}/{request.alias}")
+    for key in ("label", "description", "device", "dimension", "default"):
+        value = getattr(request, key)
+        if value is not None:
+            model[key] = value
+    if request.default is True:
+        for other in catalog.get("models", []):
+            if other is not model and other.get("provider") == request.provider and other.get("role") == request.role:
+                other["default"] = False
+    _save_model_catalog(catalog)
+    return {"success": True, "model": model}
+
+
 @router.post("/switch")
 async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
     """Switch the model or embedding provider by updating the .env file."""
@@ -395,9 +410,9 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
         if request.model_provider == "microsoft-foundry-local":
             settings = get_agent_brain_settings()
             if not _model_alias_is_curated(settings.local_model_name):
-                updates.setdefault("LOCAL_MODEL_NAME", "phi-4-mini")
+                updates.setdefault("LOCAL_MODEL_NAME", _catalog_alias("microsoft-foundry-local", "text", "phi-4-mini"))
         if request.model_provider == "openvino":
-            updates.setdefault("OPENVINO_MODEL", "OpenVINO/Qwen3-8B-int4-cw-ov")
+            updates.setdefault("OPENVINO_MODEL", _catalog_alias("openvino", "text", "OpenVINO/Qwen3-8B-int4-cw-ov"))
 
     if request.embedding_provider is not None:
         if request.embedding_provider not in VALID_EMBEDDING_PROVIDERS:
@@ -421,10 +436,16 @@ async def switch_provider(request: SwitchProviderRequest) -> dict[str, Any]:
         # Keep EMBEDDING_MODEL and EMBEDDING_DIMENSION in sync with the new
         # provider so the Embeddings section of the config table stays accurate.
         _EMBEDDING_DEFAULTS: dict[str, dict[str, str]] = {
-            "placeholder": {"EMBEDDING_MODEL": "deterministic-placeholder", "EMBEDDING_DIMENSION": "8"},
-            "microsoft-foundry-local": {"EMBEDDING_MODEL": "qwen3-embedding-0.6b", "EMBEDDING_DIMENSION": "1024"},
-            "openvino": {"EMBEDDING_MODEL": "OpenVINO/Qwen3-Embedding-0.6B", "EMBEDDING_DIMENSION": "1024"},
-            "openai": {"EMBEDDING_MODEL": "text-embedding-3-small", "EMBEDDING_DIMENSION": "1536"},
+            provider: {
+                "EMBEDDING_MODEL": _catalog_alias(provider, "embedding", fallback),
+                "EMBEDDING_DIMENSION": _catalog_dimension(provider, "embedding", dimension),
+            }
+            for provider, fallback, dimension in (
+                ("placeholder", "deterministic-placeholder", "8"),
+                ("microsoft-foundry-local", "qwen3-embedding-0.6b", "1024"),
+                ("openvino", "OpenVINO/Qwen3-Embedding-0.6B-int8-ov", "1024"),
+                ("openai", "text-embedding-3-small", "1536"),
+            )
         }
         defaults = _EMBEDDING_DEFAULTS.get(request.embedding_provider)
         if defaults:
@@ -637,10 +658,36 @@ def _get_huggingface_cache_dir() -> str:
     return str(Path.home() / ".cache" / "huggingface" / "hub")
 
 
+def _get_openvino_model_repository_root() -> str:
+    """Return the OVMS model repository root, keeping large model repos outside the workspace when configured."""
+    configured = os.environ.get("OPENVINO_MODEL_REPOSITORY_PATH")
+    if configured:
+        return configured
+    settings = get_ui_settings()
+    return str(settings.repo_root / ".openvino" / "models")
+
+
+def _get_openvino_cache_dir() -> str:
+    """Return the OVMS compile/cache directory."""
+    configured = os.environ.get("OPENVINO_CACHE_DIR")
+    if configured:
+        return configured
+    settings = get_ui_settings()
+    return str(settings.repo_root / ".openvino" / "cache")
+
+
+def _get_openvino_log_dir() -> str:
+    """Return the OVMS log directory."""
+    configured = os.environ.get("OPENVINO_LOG_DIR")
+    if configured:
+        return configured
+    settings = get_ui_settings()
+    return str(settings.repo_root / ".openvino")
+
+
 def _openvino_model_repo_path(model_id: str) -> str:
     """Return the expected local OVMS model repository path for a Hugging Face model ID."""
-    settings = get_ui_settings()
-    return str(settings.repo_root / ".openvino" / "models" / Path(*model_id.split("/")))
+    return str(Path(_get_openvino_model_repository_root()) / Path(*model_id.split("/")))
 
 
 def _openvino_model_cached(model_id: str) -> bool:
@@ -667,10 +714,66 @@ def _normalize_ovms_path(raw_path: str) -> str:
     return str(path)
 
 
+def _path_is_relative_to(path: Path, parent: Path) -> bool:
+    """Return whether path is equal to or contained by parent."""
+    try:
+        path.relative_to(parent)
+        return True
+    except ValueError:
+        return False
+
+
+def _normalize_runtime_directory(raw_path: str, label: str, *, disallow_workspace: bool = True) -> str:
+    """Normalize and validate a user-provided local-runtime directory path."""
+    cleaned = raw_path.strip().strip('"').strip("'")
+    if not cleaned:
+        raise HTTPException(status_code=422, detail=f"{label} cannot be empty.")
+    if cleaned.startswith("~") or "%" in cleaned or "$" in cleaned:
+        raise HTTPException(status_code=422, detail=f"{label} must be an explicit absolute path without environment variables or home-directory shortcuts.")
+
+    path = Path(cleaned.replace("/", "\\"))
+    if not path.is_absolute():
+        raise HTTPException(status_code=422, detail=f"{label} must be an absolute path.")
+    if any(part.lower() == ".git" for part in path.parts):
+        raise HTTPException(status_code=422, detail=f"{label} cannot point inside Git metadata.")
+
+    try:
+        resolved = path.resolve(strict=False)
+    except OSError as exc:
+        raise HTTPException(status_code=422, detail=f"{label} could not be normalized: {exc}") from exc
+
+    settings = get_ui_settings()
+    repo_root = settings.repo_root.resolve(strict=False)
+    if disallow_workspace and _path_is_relative_to(resolved, repo_root):
+        raise HTTPException(status_code=422, detail=f"{label} must be outside the current workspace to avoid nested repository and runtime-data conflicts.")
+
+    drive_root = Path(resolved.anchor).resolve(strict=False)
+    protected_roots = [drive_root]
+    home = Path.home().resolve(strict=False)
+    protected_roots.append(home)
+    for env_name in ("SystemRoot", "WINDIR", "ProgramFiles", "ProgramFiles(x86)"):
+        value = os.environ.get(env_name)
+        if value:
+            protected_roots.append(Path(value).resolve(strict=False))
+    if any(resolved == protected for protected in protected_roots):
+        raise HTTPException(status_code=422, detail=f"{label} cannot be a drive, user profile, system, or program-files root.")
+
+    try:
+        resolved.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise HTTPException(status_code=422, detail=f"{label} could not be created or accessed: {exc}") from exc
+
+    return str(resolved)
+
+
+def _foundry_default_cache_dir() -> Path:
+    """Return the Foundry Local default model cache directory."""
+    return Path.home() / ".foundry" / "cache" / "models"
+
+
 def _openvino_served_model_from_log() -> str | None:
     """Best-effort extraction of the currently served model from the latest OVMS log."""
-    settings = get_ui_settings()
-    log_path = settings.repo_root / ".openvino" / "ovms-text_generation-8100.log"
+    log_path = Path(_get_openvino_log_dir()) / "ovms-text_generation-8100.log"
     if not log_path.exists():
         return None
     try:
@@ -700,6 +803,10 @@ async def get_openvino_status() -> dict[str, Any]:
         "models": OPENVINO_LLM_MODELS,
         "embedding_models": OPENVINO_EMBEDDING_MODELS,
         "model_cache_dir": _get_huggingface_cache_dir(),
+        "openvino_model_repository_root": _get_openvino_model_repository_root(),
+        "openvino_cache_dir": _get_openvino_cache_dir(),
+        "openvino_log_dir": _get_openvino_log_dir(),
+        "workspace_root": str(get_ui_settings().repo_root),
         "model_repository_path": _openvino_model_repo_path(settings.openvino_model),
         "embedding_model_repository_path": _openvino_model_repo_path(settings.openvino_embedding_model),
         "model_cached": _openvino_model_cached(settings.openvino_model),
@@ -886,6 +993,11 @@ async def start_openvino_service() -> dict[str, Any]:
     import asyncio
     import uuid
 
+    existing = _active_job(_OPENVINO_START_JOBS)
+    if existing:
+        existing["message"] = existing.get("message") or "An OpenVINO start/load job is already running. Reusing that job instead of starting another local model process."
+        return existing
+
     settings = get_agent_brain_settings()
     running = await _check_openvino_running(settings.openvino_endpoint)
     multi_model = settings.model_provider == "openvino" and settings.embedding_provider == "openvino"
@@ -917,6 +1029,14 @@ async def start_openvino_service() -> dict[str, Any]:
         settings.openvino_device,
         "-Port",
         str(_extract_endpoint_port(settings.openvino_endpoint, default=8100)),
+        "-ModelRepositoryPath",
+        _get_openvino_model_repository_root(),
+        "-ConfigPath",
+        str(Path(_get_openvino_model_repository_root()) / "config.json"),
+        "-CacheDir",
+        _get_openvino_cache_dir(),
+        "-LogDir",
+        _get_openvino_log_dir(),
     ]
     if multi_model:
         args.extend(["-MultiModel", "-ForceRestart"])
@@ -973,10 +1093,7 @@ async def stop_openvino_service() -> dict[str, Any]:
     import asyncio
     import uuid
 
-    existing = next(
-        (job for job in _OPENVINO_STOP_JOBS.values() if job.get("status") in {"queued", "running"}),
-        None,
-    )
+    existing = _active_job(_OPENVINO_STOP_JOBS)
     if existing:
         return existing
     settings = get_agent_brain_settings()
@@ -1012,10 +1129,7 @@ async def stop_foundry_service() -> dict[str, Any]:
     import asyncio
     import uuid
 
-    existing = next(
-        (job for job in _FOUNDRY_STOP_JOBS.values() if job.get("status") in {"queued", "running"}),
-        None,
-    )
+    existing = _active_job(_FOUNDRY_STOP_JOBS)
     if existing:
         return existing
     settings = get_agent_brain_settings()
@@ -1118,6 +1232,12 @@ async def update_openvino_settings(request: UpdateOpenVINOSettingsRequest) -> di
             updates["OPENVINO_OVMS_PATH"] = ovms_path
         else:
             updates["OPENVINO_OVMS_PATH"] = ""
+    if request.model_repository_path is not None:
+        updates["OPENVINO_MODEL_REPOSITORY_PATH"] = _normalize_runtime_directory(request.model_repository_path, "OpenVINO model repository path")
+    if request.cache_dir is not None:
+        updates["OPENVINO_CACHE_DIR"] = _normalize_runtime_directory(request.cache_dir, "OpenVINO cache directory")
+    if request.log_dir is not None:
+        updates["OPENVINO_LOG_DIR"] = _normalize_runtime_directory(request.log_dir, "OpenVINO log directory")
     if request.hf_token is not None:
         updates["HF_TOKEN"] = request.hf_token.strip()
 
@@ -1134,6 +1254,9 @@ async def update_openvino_settings(request: UpdateOpenVINOSettingsRequest) -> di
         "embedding_model": new_settings.openvino_embedding_model,
         "device": new_settings.openvino_device,
         "ovms_path": new_settings.openvino_ovms_path,
+        "model_repository_path": _get_openvino_model_repository_root(),
+        "cache_dir": _get_openvino_cache_dir(),
+        "log_dir": _get_openvino_log_dir(),
         "hf_configured": new_settings.hf_token is not None,
         "hf_token_masked": _mask_key(new_settings.hf_token) if new_settings.hf_token else None,
     }
@@ -1172,6 +1295,9 @@ async def start_openvino_model_download(request: OpenVINODownloadJobRequest) -> 
         raise HTTPException(status_code=422, detail="OpenVINO model ID cannot be empty.")
     if not _openvino_model_is_curated(model_id):
         raise HTTPException(status_code=422, detail=f"'{model_id}' is not in the curated OpenVINO model list.")
+    active_start = _active_job(_OPENVINO_START_JOBS)
+    if active_start:
+        raise HTTPException(status_code=409, detail="OpenVINO is already starting/loading. Wait for that job to finish before pre-caching another model.")
     existing = next(
         (
             job
@@ -1254,8 +1380,9 @@ async def get_foundry_status() -> dict[str, Any]:
                 cache_dir = path_match.group(1)
             else:
                 cache_dir = cache_output.strip()
+    default_cache_dir = _foundry_default_cache_dir()
     if not cache_dir:
-        cache_dir = str(Path.home() / ".foundry" / "cache" / "models")
+        cache_dir = str(default_cache_dir)
 
     # Platform-specific install instructions.  The in-app installer should add
     # the SDK to the same interpreter that is running the UI backend; otherwise
@@ -1303,6 +1430,8 @@ async def get_foundry_status() -> dict[str, Any]:
         "install_command": install_command,
         "install_instructions": install_instructions,
         "cache_dir": cache_dir,
+        "default_cache_dir": str(default_cache_dir),
+        "workspace_root": str(get_ui_settings().repo_root),
     }
 
 
@@ -1336,7 +1465,7 @@ async def update_foundry_cache(request: UpdateFoundryCacheRequest) -> dict[str, 
     import pathlib
 
     config_path = pathlib.Path.home() / ".foundry" / "foundry.config.json"
-    default_dir = pathlib.Path.home() / ".foundry" / "cache" / "models"
+    default_dir = _foundry_default_cache_dir()
     requested_path = pathlib.Path(cache_path)
     is_default_reset = requested_path == default_dir
 
@@ -1356,14 +1485,7 @@ async def update_foundry_cache(request: UpdateFoundryCacheRequest) -> dict[str, 
         if "serviceSettings" in config and "cacheDirectoryPath" in config["serviceSettings"]:
             del config["serviceSettings"]["cacheDirectoryPath"]
     else:
-        # Create the directory if it doesn't exist
-        try:
-            requested_path.mkdir(parents=True, exist_ok=True)
-        except Exception as exc:
-            raise HTTPException(
-                status_code=422,
-                detail=f"Cannot create directory '{cache_path}': {exc}. Please ensure the path is valid and you have write permissions.",
-            )
+        cache_path = _normalize_runtime_directory(cache_path, "Foundry Local model cache directory")
 
         # Update the cache directory path in the service settings
         if "serviceSettings" not in config:
@@ -1442,7 +1564,7 @@ async def reset_foundry_cache() -> dict[str, Any]:
         await _asyncio.sleep(3)
 
     # Get the default cache directory
-    default_dir = str(pathlib.Path.home() / ".foundry" / "cache" / "models")
+    default_dir = str(_foundry_default_cache_dir())
 
     return {
         "success": True,
@@ -1894,6 +2016,9 @@ async def start_foundry_model_download(request: DownloadFoundryModelRequest) -> 
             status_code=422,
             detail=f"'{alias}' is not in the verified downloadable Foundry Local alias list.",
         )
+    active_readiness = _active_job(_FOUNDRY_MODEL_JOBS)
+    if active_readiness:
+        raise HTTPException(status_code=409, detail="Microsoft Foundry Local is already loading a model. Wait for that job to finish before starting another load.")
     existing = next(
         (
             job
@@ -1970,15 +2095,9 @@ async def start_foundry_model_job(request: UpdateFoundryModelRequest) -> dict[st
     alias = request.local_model_name.strip()
     if not alias:
         raise HTTPException(status_code=422, detail="Foundry Local model name cannot be empty.")
-    existing = next(
-        (
-            job
-            for job in _FOUNDRY_MODEL_JOBS.values()
-            if job.get("model") == alias and job.get("status") in {"queued", "running"}
-        ),
-        None,
-    )
+    existing = _active_job(_FOUNDRY_MODEL_JOBS)
     if existing:
+        existing["message"] = existing.get("message") or "A Microsoft Foundry Local load job is already running. Reusing that job instead of starting another local model process."
         return existing
     job_id = str(uuid.uuid4())
     job: dict[str, Any] = {
@@ -2074,36 +2193,40 @@ async def update_foundry_model(request: UpdateFoundryModelRequest) -> dict[str, 
                 f"Details: {start_output}"
             )
 
-    # Step 2: Load the selected text model. Newer Foundry Local CLI builds
-    # automatically download on first load, so loading is the most reliable
-    # readiness check.
-    model_downloaded = await _check_model_downloaded(model)
-    steps.append({"step": "model_download", "status": "info", "message": f"Loading '{model}'. Foundry downloads it automatically if needed..."})
-    sdk_model = _try_get_foundry_model(model)
-    if sdk_model is not None:
-        import asyncio
-        try:
-            await asyncio.to_thread(sdk_model.download)
-            await asyncio.to_thread(sdk_model.load)
-            download_success = True
-            download_output = "Loaded with Foundry Local Python SDK."
-        except Exception as exc:
-            download_success = False
-            download_output = f"Foundry Local Python SDK load failed: {exc}"
+    # Step 2: Load the selected text model only when Foundry Local is the active
+    # text model provider. Embedding-only Foundry setups should not consume text
+    # model memory just to satisfy runtime readiness.
+    model_downloaded = False
+    if settings.model_provider == "microsoft-foundry-local":
+        model_downloaded = await _check_model_downloaded(model)
+        steps.append({"step": "model_download", "status": "info", "message": f"Loading text model '{model}'. Foundry downloads it automatically if needed..."})
+        sdk_model = _try_get_foundry_model(model)
+        if sdk_model is not None:
+            import asyncio
+            try:
+                await asyncio.to_thread(sdk_model.download)
+                await asyncio.to_thread(sdk_model.load)
+                download_success = True
+                download_output = "Loaded with Foundry Local Python SDK."
+            except Exception as exc:
+                download_success = False
+                download_output = f"Foundry Local Python SDK load failed: {exc}"
+        else:
+            download_success, download_output = await _run_foundry_cli_first([
+                ["model", "load", model],
+                ["model", "download", model],
+            ], timeout=600)
+        if download_success:
+            model_downloaded = True
+            steps.append({"step": "model_download_complete", "status": "ok", "message": f"Text model '{model}' loaded successfully."})
+        else:
+            steps.append({"step": "model_download_complete", "status": "error", "message": f"Text model load failed: {download_output}"})
+            warnings.append(
+                f"Text model '{model}' could not be loaded automatically. "
+                "Restart the UI backend under Python 3.11 so it can import foundry-local-sdk-winml, then use the Download Model button."
+            )
     else:
-        download_success, download_output = await _run_foundry_cli_first([
-            ["model", "load", model],
-            ["model", "download", model],
-        ], timeout=600)
-    if download_success:
-        model_downloaded = True
-        steps.append({"step": "model_download_complete", "status": "ok", "message": f"Model '{model}' loaded successfully."})
-    else:
-        steps.append({"step": "model_download_complete", "status": "error", "message": f"Model load failed: {download_output}"})
-        warnings.append(
-            f"Model '{model}' could not be loaded automatically. "
-            "Restart the UI backend under Python 3.11 so it can import foundry-local-sdk-winml, then use the Download Model button."
-        )
+        steps.append({"step": "model_download", "status": "skipped", "message": "Text model loading skipped because Microsoft Foundry Local is not the active text model provider."})
 
     # Step 3: If Foundry Local is also the active embedding provider, ensure the
     # embedding model is loaded too. This keeps the Configuration page's active
@@ -2167,7 +2290,7 @@ async def update_foundry_model(request: UpdateFoundryModelRequest) -> dict[str, 
 
     return {
         "success": True,
-        "message": f"Foundry Local model set to '{model}'. Changes take effect immediately for new workflow runs.",
+        "message": f"Foundry Local model set to '{model}'. Active text and embedding provider selections determine which models are loaded.",
         "local_model_name": new_settings.local_model_name,
         "warning": catalog_warning,
         "warnings": warnings,

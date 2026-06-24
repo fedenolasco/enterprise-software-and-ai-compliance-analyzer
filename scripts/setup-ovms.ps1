@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 Sets up, starts, stops, and checks native Windows OpenVINO Model Server (OVMS).
 
@@ -15,7 +15,7 @@ Examples:
   .\scripts\setup-ovms.ps1 -Status
   .\scripts\setup-ovms.ps1 -Start
   .\scripts\setup-ovms.ps1 -Start -Device GPU -Port 8100
-  .\scripts\setup-ovms.ps1 -Start -Task embeddings -Model OpenVINO/Qwen3-Embedding-0.6B
+  .\scripts\setup-ovms.ps1 -Start -Task embeddings -Model OpenVINO/Qwen3-Embedding-0.6B-int8-ov
   .\scripts\setup-ovms.ps1 -Stop
 #>
 
@@ -36,6 +36,7 @@ param(
   [string]$ModelRepositoryPath,
   [string]$ConfigPath,
   [string]$CacheDir,
+  [string]$LogDir,
   [int]$MaxPromptLen = 2000,
   [int]$CacheSize = 2
 )
@@ -43,11 +44,36 @@ param(
 $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 
+function Import-EnvFile {
+  param([string]$Path)
+
+  if (-not (Test-Path $Path)) {
+    return
+  }
+
+  Get-Content -Path $Path | ForEach-Object {
+    $line = $_.Trim()
+    if (-not $line -or $line.StartsWith("#") -or -not $line.Contains("=")) {
+      return
+    }
+
+    $parts = $line.Split("=", 2)
+    $name = $parts[0].Trim()
+    $value = $parts[1].Trim().Trim('"').Trim("'")
+    if ($name -and -not [Environment]::GetEnvironmentVariable($name, "Process")) {
+      [Environment]::SetEnvironmentVariable($name, $value, "Process")
+    }
+  }
+}
+
+Import-EnvFile -Path (Join-Path $RepoRoot ".env")
+
 if (-not $Model) { $Model = "OpenVINO/Qwen3-8B-int4-cw-ov" }
-if (-not $EmbeddingModel) { $EmbeddingModel = "OpenVINO/Qwen3-Embedding-0.6B" }
-if (-not $ModelRepositoryPath) { $ModelRepositoryPath = Join-Path $RepoRoot ".openvino\models" }
+if (-not $EmbeddingModel) { $EmbeddingModel = "OpenVINO/Qwen3-Embedding-0.6B-int8-ov" }
+if (-not $ModelRepositoryPath) { $ModelRepositoryPath = $(if ($env:OPENVINO_MODEL_REPOSITORY_PATH) { $env:OPENVINO_MODEL_REPOSITORY_PATH } else { Join-Path $RepoRoot ".openvino\models" }) }
 if (-not $ConfigPath) { $ConfigPath = Join-Path $ModelRepositoryPath "config.json" }
-if (-not $CacheDir) { $CacheDir = Join-Path $RepoRoot ".openvino\cache" }
+if (-not $CacheDir) { $CacheDir = $(if ($env:OPENVINO_CACHE_DIR) { $env:OPENVINO_CACHE_DIR } else { Join-Path $RepoRoot ".openvino\cache" }) }
+if (-not $LogDir) { $LogDir = $(if ($env:OPENVINO_LOG_DIR) { $env:OPENVINO_LOG_DIR } else { Join-Path $RepoRoot ".openvino" }) }
 
 function Resolve-OvmsPath {
   param([string]$Candidate)
@@ -143,6 +169,22 @@ function Stop-Ovms {
   }
 }
 
+function Stop-DuplicateOvmsProcesses {
+  param([int]$RestPort)
+
+  $processes = @(Get-OvmsProcesses -RestPort $RestPort | Sort-Object CreationDate -Descending)
+  if ($processes.Count -le 1) {
+    return
+  }
+
+  $keeper = $processes[0]
+  Write-Host "Multiple OVMS processes found for REST port $RestPort. Keeping process $($keeper.ProcessId) and stopping duplicates..." -ForegroundColor Yellow
+  foreach ($process in $processes | Select-Object -Skip 1) {
+    Write-Host "Stopping duplicate OVMS process $($process.ProcessId) on REST port $RestPort..." -ForegroundColor Yellow
+    Stop-Process -Id $process.ProcessId -Force
+  }
+}
+
 function Convert-ModelIdToName {
   param([string]$ModelId)
   # Keep the public model ID as the served model name so OpenAI-compatible
@@ -223,6 +265,7 @@ if ($Stop) {
 }
 
 if ($Start) {
+  Stop-DuplicateOvmsProcesses -RestPort $Port
   if (Test-OvmsEndpoint -RestPort $Port) {
     if ($ForceRestart) {
       Write-Host "OVMS is already responding at http://localhost:$Port. Restarting because -ForceRestart was requested..." -ForegroundColor Yellow
@@ -234,10 +277,18 @@ if ($Start) {
     }
   }
 
+  $staleProcesses = @(Get-OvmsProcesses -RestPort $Port)
+  if ($staleProcesses.Count -gt 0) {
+    Write-Host "OVMS processes exist on REST port $Port but endpoint is not ready. Stopping stale processes before starting a single instance..." -ForegroundColor Yellow
+    Stop-Ovms -RestPort $Port
+    Start-Sleep -Seconds 2
+  }
+
   $resolvedOvms = Resolve-OvmsPath -Candidate $OvmsPath
   $ovmsWorkingDirectory = Initialize-OvmsEnvironment -ResolvedOvmsPath $resolvedOvms
   New-Item -ItemType Directory -Force -Path $ModelRepositoryPath | Out-Null
   New-Item -ItemType Directory -Force -Path $CacheDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
   $selectedModel = if ($Task -eq "embeddings") { $EmbeddingModel } else { $Model }
   $modelName = $selectedModel.Replace("/", "_").Replace("\\", "_")
@@ -249,8 +300,8 @@ if ($Start) {
   # PowerShell does not use backslash as an escape character in strings; "\"
   # is the single backslash path separator we need to replace.
   $ovmsCacheDir = $CacheDir.Replace("\", "/")
-  $logPath = Join-Path $RepoRoot ".openvino\ovms-$Task-$Port.log"
-  $errorLogPath = Join-Path $RepoRoot ".openvino\ovms-$Task-$Port.err.log"
+  $logPath = Join-Path $LogDir "ovms-$Task-$Port.log"
+  $errorLogPath = Join-Path $LogDir "ovms-$Task-$Port.err.log"
   New-Item -ItemType Directory -Force -Path (Split-Path -Parent $logPath) | Out-Null
 
   if ($MultiModel) {
@@ -323,3 +374,4 @@ if ($Start) {
   Write-Host (Get-LogTail -Path $errorLogPath)
   exit 2
 }
+

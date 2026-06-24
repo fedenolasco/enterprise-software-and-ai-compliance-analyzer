@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 #
 # Securely configures OpenAI API key in local .env files and optionally
 # switches provider settings between placeholder, foundry, openvino, and openai.
@@ -96,12 +96,12 @@ get_provider_config() {
       ;;
     openvino)
       echo "EMBEDDING_PROVIDER=openvino"
-      echo "EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B"
+      echo "EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B-int8-ov"
       echo "EMBEDDING_DIMENSION=1024"
       echo "MODEL_PROVIDER=openvino"
       echo "OPENVINO_ENDPOINT=http://localhost:8100"
       echo "OPENVINO_MODEL=OpenVINO/Qwen3-8B-int4-cw-ov"
-      echo "OPENVINO_EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B"
+      echo "OPENVINO_EMBEDDING_MODEL=OpenVINO/Qwen3-Embedding-0.6B-int8-ov"
       echo "OPENVINO_DEVICE=NPU"
       echo "OPENVINO_OVMS_PATH="
       ;;
@@ -245,3 +245,4 @@ if [[ "$SWITCH_TO" != "none" && "$SWITCH_TO" != "placeholder" ]]; then
     echo "  powershell -ExecutionPolicy Bypass -File scripts/setup-ovms.ps1 -Start"
   fi
 fi
+

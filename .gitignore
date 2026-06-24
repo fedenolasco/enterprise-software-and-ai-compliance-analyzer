@@ -36,6 +36,11 @@
 # Playwright MCP cache
 .playwright-mcp/
 
+# Local OpenVINO runtime data and downloaded model repositories.
+# Keep this outside the workspace when possible so Roo Code checkpoints are not
+# disabled by nested Hugging Face/OpenVINO Git repositories.
+.openvino/
+
 # Next.js build output
 **/.next/
 
